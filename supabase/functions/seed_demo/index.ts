@@ -210,28 +210,64 @@ serve(async (req) => {
       }
     }
 
-    // Step 5: Create a team for the user in tier 1 league
-    const { data: team, error: teamError } = await supabase
-      .from('teams')
-      .insert({
-        league_id: leagues[0].id,
-        owner_user_id: user.id,
-        name: 'Demo Team',
-        is_active: true,
-      })
-      .select()
-      .single()
+    // Step 5: Create teams for testing promotion (create teams in all 3 tiers)
+    const createdTeams = []
+    for (let tier = 1; tier <= 3; tier++) {
+      const league = leagues.find(l => l.tier === tier)
+      if (!league) continue
 
-    if (teamError) {
-      throw teamError
+      // Create 2-3 teams per tier for testing (minimum needed for matchups)
+      const teamCount = tier === 1 ? 3 : 2 // More teams in tier 1 for testing
+      
+      for (let i = 1; i <= teamCount; i++) {
+        const teamName = tier === 1 && i === 1 ? 'Demo Team' : `Demo Team Tier ${tier}-${i}`
+        
+        // For demo, reuse same user (in real app, these would be different users)
+        // But for testing promotion, we can create teams with same owner
+        const { data: team, error: teamError } = await supabase
+          .from('teams')
+          .insert({
+            league_id: league.id,
+            owner_user_id: user.id,
+            name: teamName,
+            is_active: true,
+          })
+          .select()
+          .single()
+
+        if (!teamError && team) {
+          createdTeams.push(team)
+        }
+      }
     }
 
-    // Step 6: Create demo schedule (3 weeks) and matchups for tier 1 league
-    // First, create additional teams for matchups (if we only have 1 team, skip schedule)
+    // Step 6: Create demo schedule (3 weeks) and matchups for all leagues
+    // Create schedule for tier 1 league (has most teams)
+    const tier1League = leagues.find(l => l.tier === 1)
+    if (!tier1League) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            season,
+            promotionGroup,
+            leagues,
+            teamsCreated: createdTeams.length,
+            playersSeeded: seededPlayers.length,
+            scheduleCreated: false,
+          },
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      )
+    }
+
     const { data: allTeams } = await supabaseService
       .from('teams')
       .select('id, name')
-      .eq('league_id', leagues[0].id)
+      .eq('league_id', tier1League.id)
       .eq('is_active', true)
 
     if (allTeams && allTeams.length >= 2) {
@@ -268,7 +304,7 @@ serve(async (req) => {
             await supabaseService
               .from('matchups')
               .insert({
-                league_id: leagues[0].id,
+                league_id: tier1League.id,
                 league_week_id: week1.id,
                 home_team_id: homeTeam.id,
                 away_team_id: awayTeam.id,
@@ -325,13 +361,48 @@ serve(async (req) => {
             await supabaseService
               .from('player_week_stats')
               .upsert({
-                league_id: leagues[0].id,
+                league_id: tier1League.id,
                 league_week_id: week1.id,
                 player_id: player.id,
                 ...stats,
               }, {
                 onConflict: 'league_id,league_week_id,player_id'
               })
+          }
+
+          // For promotion testing: Mark season and leagues as complete
+          // This allows the promotion function to run immediately
+          await supabaseService
+            .from('seasons')
+            .update({ status: 'complete' })
+            .eq('id', season.id)
+
+          for (const league of leagues) {
+            await supabaseService
+              .from('leagues')
+              .update({ status: 'complete' })
+              .eq('id', league.id)
+          }
+
+          // Also finalize the week 1 matchups so standings can be computed
+          // First calculate scores if possible, or just mark matchups as final with sample scores
+          const { data: week1Matchups } = await supabaseService
+            .from('matchups')
+            .select('id')
+            .eq('league_week_id', week1.id)
+
+          if (week1Matchups && week1Matchups.length > 0) {
+            // Mark matchups as final with sample scores for testing
+            for (const matchup of week1Matchups) {
+              await supabaseService
+                .from('matchups')
+                .update({
+                  home_score: 100 + Math.floor(Math.random() * 50),
+                  away_score: 80 + Math.floor(Math.random() * 50),
+                  status: 'final',
+                })
+                .eq('id', matchup.id)
+            }
           }
         }
       }
@@ -344,7 +415,7 @@ serve(async (req) => {
           season,
           promotionGroup,
           leagues,
-          team,
+          teamsCreated: createdTeams.length,
           playersSeeded: seededPlayers.length,
           scheduleCreated: allTeams && allTeams.length >= 2,
         },

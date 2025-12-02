@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { CreateLeagueInGroupForm } from '@/components/create-league-in-group-form'
+import { PromotionLadderView } from '@/components/promotion-ladder-view'
+import { PromotionControls } from '@/components/promotion-controls'
 
 export default async function PromotionGroupDetailPage({
   params,
@@ -21,7 +23,8 @@ export default async function PromotionGroupDetailPage({
       *,
       seasons (
         id,
-        year
+        year,
+        status
       )
     `)
     .eq('id', params.id)
@@ -81,46 +84,31 @@ export default async function PromotionGroupDetailPage({
             <CreateLeagueInGroupForm promotionGroupId={params.id} seasonId={group.season_id} />
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          {/* Ladder View */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Leagues by Tier
+              Ladder View
             </h2>
-            
-            {Object.keys(leaguesByTier).length > 0 ? (
-              <div className="space-y-6">
-                {Object.entries(leaguesByTier).map(([tier, tierLeagues]: [string, any]) => (
-                  <div key={tier}>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                      {tier === 'No Tier' ? 'Unassigned' : `Tier ${tier}`}
-                    </h3>
-                    <div className="space-y-3">
-                      {tierLeagues.map((league: any) => (
-                        <Link
-                          key={league.id}
-                          href={`/leagues/${league.id}`}
-                          className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium text-gray-900 dark:text-white">
-                                {league.name}
-                              </h4>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Max teams: {league.max_teams} • Status: {league.status}
-                              </p>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {leagues && leagues.length > 0 ? (
+              <PromotionLadderView promotionGroupId={params.id} leagues={leagues} />
             ) : (
               <p className="text-gray-500 dark:text-gray-400">
                 No leagues in this promotion group yet. Create one above.
               </p>
             )}
+          </div>
+
+          {/* Commissioner Controls */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Promotion & Season Rollover
+            </h2>
+            <PromotionControls
+              promotionGroupId={params.id}
+              seasonId={group.season_id}
+              seasonStatus={group.seasons?.status || 'preseason'}
+              isComplete={group.seasons?.status === 'complete'}
+            />
           </div>
         </div>
       </div>
