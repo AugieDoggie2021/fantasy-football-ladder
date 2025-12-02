@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { previewPromotion, applyPromotion } from '@/app/actions/promotion'
 import { completeSeasonForPromotionGroup } from '@/app/actions/seasons'
+import { useToast } from './toast-provider'
 
 interface PromotionControlsProps {
   promotionGroupId: string
@@ -19,6 +20,7 @@ export function PromotionControls({
   isComplete,
 }: PromotionControlsProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [previewResults, setPreviewResults] = useState<any>(null)
   const [applyResults, setApplyResults] = useState<any>(null)
@@ -31,9 +33,9 @@ export function PromotionControls({
     setLoading('complete')
     const result = await completeSeasonForPromotionGroup(promotionGroupId)
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
     } else {
-      alert('Season marked as complete!')
+      showToast('Season marked as complete!', 'success')
       router.refresh()
     }
     setLoading(null)
@@ -43,9 +45,10 @@ export function PromotionControls({
     setLoading('preview')
     const result = await previewPromotion(promotionGroupId, seasonId)
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
       setPreviewResults(null)
     } else {
+      showToast('Promotion preview calculated. Review below.', 'info')
       setPreviewResults(result.data)
     }
     setLoading(null)
@@ -59,10 +62,10 @@ export function PromotionControls({
     setLoading('apply')
     const result = await applyPromotion(promotionGroupId, seasonId)
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
     } else {
       setApplyResults(result.data)
-      alert('Promotion applied successfully! New season created.')
+      showToast('Promotion applied successfully! New season created.', 'success')
       router.refresh()
     }
     setLoading(null)

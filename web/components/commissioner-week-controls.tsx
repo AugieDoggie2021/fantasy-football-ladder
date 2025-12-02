@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { generateScheduleForLeague } from '@/app/actions/matchups'
 import { setCurrentWeek, advanceToNextWeek } from '@/app/actions/weeks'
+import { useToast } from './toast-provider'
 
 interface CommissionerWeekControlsProps {
   leagueId: string
@@ -17,6 +18,7 @@ export function CommissionerWeekControls({
   hasSchedule,
 }: CommissionerWeekControlsProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<string>('')
 
@@ -28,9 +30,9 @@ export function CommissionerWeekControls({
     setLoading('generate')
     const result = await generateScheduleForLeague(leagueId, 14)
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
     } else {
-      alert('Schedule generated successfully!')
+      showToast('Schedule generated successfully!', 'success')
       router.refresh()
     }
     setLoading(null)
@@ -39,15 +41,16 @@ export function CommissionerWeekControls({
   const handleSetCurrentWeek = async () => {
     const weekNum = parseInt(selectedWeek)
     if (!weekNum || weekNum < 1) {
-      alert('Please select a valid week number')
+      showToast('Please select a valid week number', 'error')
       return
     }
 
     setLoading('set-week')
     const result = await setCurrentWeek(leagueId, weekNum)
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
     } else {
+      showToast(`Week ${weekNum} set as current`, 'success')
       router.refresh()
     }
     setLoading(null)
@@ -61,8 +64,9 @@ export function CommissionerWeekControls({
     setLoading('advance')
     const result = await advanceToNextWeek(leagueId)
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
     } else {
+      showToast('Advanced to next week successfully!', 'success')
       router.refresh()
     }
     setLoading(null)

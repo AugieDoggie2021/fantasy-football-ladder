@@ -25,17 +25,22 @@ Next.js application for the Fantasy Football Ladder platform.
 npm install
 ```
 
-2. Copy environment variables:
-```bash
-cp .env.example .env.local
+2. Create `.env.local` file in the `web/` directory with your Supabase credentials:
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+NEXT_PUBLIC_APP_ENV=dev
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Optional: Service Role Key (server-only, never exposed to client)
+# Only needed for admin operations that bypass RLS
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 ```
 
-3. Configure `.env.local` with your Supabase credentials:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_APP_ENV=dev
-```
+Get your Supabase credentials from:
+- **Project URL & Keys**: Supabase Dashboard → Project Settings → API
+- **Service Role Key**: Same location, but keep this secret (server-only use)
 
 4. Run database migrations (see `/supabase` directory):
 ```bash
@@ -76,9 +81,20 @@ web/
 
 ## Environment Variables
 
-- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-- `NEXT_PUBLIC_APP_ENV` - Environment: `dev`, `staging`, or `prod`
+Create a `.env.local` file in the `web/` directory with the following variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ Yes | Your Supabase project URL (from Supabase Dashboard → Project Settings → API) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Yes | Supabase anonymous key (public, safe for client-side use) |
+| `NEXT_PUBLIC_APP_ENV` | ✅ Yes | Application environment: `dev`, `staging`, or `prod` |
+| `NEXT_PUBLIC_SITE_URL` | ✅ Yes | Site URL for auth redirects (e.g., `http://localhost:3000` for dev, `https://your-app.vercel.app` for prod) |
+| `SUPABASE_SERVICE_ROLE_KEY` | ⚠️ Optional | Service role key for admin operations (server-only, never expose to client) |
+
+**Security Notes:**
+- Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser
+- `SUPABASE_SERVICE_ROLE_KEY` bypasses Row Level Security - use only in server-side code
+- For iOS app: Use the same `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` values (safe for mobile bundles)
 
 ## Development Notes
 

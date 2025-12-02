@@ -3,10 +3,17 @@ import { calculateStandings } from '@/lib/standings-helpers'
 
 interface LeagueStandingsProps {
   leagueId: string
+  currentUserId?: string
 }
 
-export async function LeagueStandings({ leagueId }: LeagueStandingsProps) {
+export async function LeagueStandings({ leagueId, currentUserId }: LeagueStandingsProps) {
   const supabase = await createClient()
+  
+  // Get current user if not provided
+  if (!currentUserId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    currentUserId = user?.id
+  }
 
   // Fetch all completed matchups for this league
   const { data: matchups } = await supabase
@@ -54,9 +61,14 @@ export async function LeagueStandings({ leagueId }: LeagueStandingsProps) {
   // Also fetch all teams to ensure we show all teams (even with 0-0 records)
   const { data: allTeams } = await supabase
     .from('teams')
-    .select('id, name')
+    .select('id, name, logo_url, owner_user_id')
     .eq('league_id', leagueId)
     .eq('is_active', true)
+  
+  // Create a map of team data for easy lookup
+  const teamDataMap = new Map(
+    allTeams?.map(t => [t.id, { name: t.name, logo_url: t.logo_url, owner_user_id: t.owner_user_id }]) || []
+  )
 
   // Add teams with no matchups yet
   const allTeamIds = new Set(standings.map(s => s.teamId))
@@ -108,16 +120,41 @@ export async function LeagueStandings({ leagueId }: LeagueStandingsProps) {
         <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
           {standings.map((standing, index) => {
             const pointDiff = standing.pointsFor - standing.pointsAgainst
+            const teamData = teamDataMap.get(standing.teamId)
+            const isUserTeam = currentUserId && teamData?.owner_user_id === currentUserId
+            const isTop3 = index < 3
+            
             return (
               <tr
                 key={standing.teamId}
-                className={index < 3 ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}
+                className={`
+                  ${isTop3 ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}
+                  ${isUserTeam ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-500' : ''}
+                `}
               >
                 <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   {index + 1}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {standing.teamName}
+                  <div className="flex items-center gap-2">
+                    {teamData?.logo_url ? (
+                      <img
+                        src={teamData.logo_url}
+                        alt={teamData.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
+                        {teamData?.name?.charAt(0) || '?'}
+                      </div>
+                    )}
+                    <span className={isUserTeam ? 'font-semibold' : ''}>
+                      {standing.teamName}
+                      {isUserTeam && (
+                        <span className="ml-2 text-xs text-indigo-600 dark:text-indigo-400">(You)</span>
+                      )}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-900 dark:text-white">
                   {standing.wins}

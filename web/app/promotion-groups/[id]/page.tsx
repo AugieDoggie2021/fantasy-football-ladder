@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { CreateLeagueInGroupForm } from '@/components/create-league-in-group-form'
 import { PromotionLadderView } from '@/components/promotion-ladder-view'
 import { PromotionControls } from '@/components/promotion-controls'
+import { PromotionHistory } from '@/components/promotion-history'
 
 export default async function PromotionGroupDetailPage({
   params,
@@ -109,6 +110,14 @@ export default async function PromotionGroupDetailPage({
               seasonStatus={group.seasons?.status || 'preseason'}
               isComplete={group.seasons?.status === 'complete'}
             />
+          </div>
+
+          {/* Promotion History */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Promotion History
+            </h2>
+            <PromotionHistory promotionGroupId={params.id} />
           </div>
         </div>
       </div>

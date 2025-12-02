@@ -2,10 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 
 interface CurrentWeekMatchupsProps {
   leagueId: string
+  currentUserId?: string
 }
 
-export async function CurrentWeekMatchups({ leagueId }: CurrentWeekMatchupsProps) {
+export async function CurrentWeekMatchups({ leagueId, currentUserId }: CurrentWeekMatchupsProps) {
   const supabase = await createClient()
+  
+  // Get current user if not provided
+  if (!currentUserId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    currentUserId = user?.id
+  }
 
   // Find current week
   const { data: currentWeek } = await supabase
@@ -36,12 +43,14 @@ export async function CurrentWeekMatchups({ leagueId }: CurrentWeekMatchupsProps
       home_team:teams!matchups_home_team_id_fkey (
         id,
         name,
-        logo_url
+        logo_url,
+        owner_user_id
       ),
       away_team:teams!matchups_away_team_id_fkey (
         id,
         name,
-        logo_url
+        logo_url,
+        owner_user_id
       )
     `)
     .eq('league_id', leagueId)
@@ -83,27 +92,40 @@ export async function CurrentWeekMatchups({ leagueId }: CurrentWeekMatchupsProps
           const homeWon = isFinal && homeScore > awayScore
           const awayWon = isFinal && awayScore > homeScore
           const isTie = isFinal && homeScore === awayScore
+          const isUserHomeTeam = currentUserId && homeTeam?.owner_user_id === currentUserId
+          const isUserAwayTeam = currentUserId && awayTeam?.owner_user_id === currentUserId
 
           return (
             <div
               key={matchup.id}
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
+              className={`p-4 border rounded-lg ${
+                isUserHomeTeam || isUserAwayTeam
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+              }`}
             >
               <div className="flex items-center justify-between">
                 {/* Home Team */}
                 <div className={`flex-1 flex items-center gap-3 ${
                   homeWon ? 'font-semibold' : ''
                 }`}>
-                  {homeTeam?.logo_url && (
+                  {homeTeam?.logo_url ? (
                     <img
                       src={homeTeam.logo_url}
                       alt={homeTeam.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300">
+                      {homeTeam?.name?.charAt(0) || 'H'}
+                    </div>
                   )}
                   <div>
-                    <div className="text-sm text-gray-900 dark:text-white">
+                    <div className={`text-sm ${isUserHomeTeam ? 'font-semibold text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
                       {homeTeam?.name || 'Home Team'}
+                      {isUserHomeTeam && (
+                        <span className="ml-2 text-xs text-indigo-600 dark:text-indigo-400">(You)</span>
+                      )}
                     </div>
                     {isFinal && (
                       <div className={`text-lg font-bold ${
@@ -137,8 +159,11 @@ export async function CurrentWeekMatchups({ leagueId }: CurrentWeekMatchupsProps
                   awayWon ? 'font-semibold' : ''
                 }`}>
                   <div className="text-right">
-                    <div className="text-sm text-gray-900 dark:text-white">
+                    <div className={`text-sm ${isUserAwayTeam ? 'font-semibold text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
                       {awayTeam?.name || 'Away Team'}
+                      {isUserAwayTeam && (
+                        <span className="ml-2 text-xs text-indigo-600 dark:text-indigo-400">(You)</span>
+                      )}
                     </div>
                     {isFinal && (
                       <div className={`text-lg font-bold ${
@@ -152,12 +177,16 @@ export async function CurrentWeekMatchups({ leagueId }: CurrentWeekMatchupsProps
                       </div>
                     )}
                   </div>
-                  {awayTeam?.logo_url && (
+                  {awayTeam?.logo_url ? (
                     <img
                       src={awayTeam.logo_url}
                       alt={awayTeam.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300">
+                      {awayTeam?.name?.charAt(0) || 'A'}
+                    </div>
                   )}
                 </div>
               </div>

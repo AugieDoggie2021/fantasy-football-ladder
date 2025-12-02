@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { LogoutButton } from '@/components/logout-button'
 import { SeedDemoButton } from '@/components/seed-demo-button'
+import { DevHelpersSection } from '@/components/dev-helpers-section'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -206,10 +207,22 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Dev-only Seed Button */}
+          {/* Dev-only Tools */}
           {env === 'dev' && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-              <SeedDemoButton />
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                  Demo Data
+                </h3>
+                <SeedDemoButton />
+              </div>
+              
+              <div className="pt-4 border-t border-yellow-200 dark:border-yellow-800">
+                <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                  Testing Helpers
+                </h3>
+                <DevHelpersSection />
+              </div>
             </div>
           )}
 

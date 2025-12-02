@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -25,7 +27,11 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.5"
+    "eslint-config-next": "^14.2.5",
+    "vitest": "^1.2.0",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@vitejs/plugin-react": "^4.2.1"
   }
 }
 

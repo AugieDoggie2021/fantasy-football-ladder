@@ -4,6 +4,84 @@ A modern, ad-free fantasy football platform inspired by the usability of Yahoo F
 
 This project includes:
 
+---
+
+## 🚀 Quickstart
+
+Get the app running locally in just a few steps:
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (for local database)
+- A Supabase project (free at [supabase.com](https://supabase.com))
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/AugieDoggie2021/fantasy-football-ladder.git
+cd fantasy-football-ladder
+```
+
+### Step 2: Set Up Supabase
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to Project Settings → API
+3. Copy your project URL and anon key
+4. Create a `.env.local` file in the `/web` directory (see `.env.example` for template)
+5. Add your Supabase credentials:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_project_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+NEXT_PUBLIC_APP_ENV=dev
+```
+
+### Step 3: Apply Database Migrations
+
+```bash
+cd supabase
+supabase link --project-ref your-project-ref
+supabase db push
+```
+
+Or if using Supabase CLI locally:
+```bash
+supabase start
+supabase db push
+```
+
+### Step 4: Install Web Dependencies & Run
+
+```bash
+cd ../web
+npm install
+npm run dev
+```
+
+The app will be available at [http://localhost:3000](http://localhost:3000)
+
+### Step 5: Seed Demo Data
+
+1. Sign up for a new account at [http://localhost:3000/login](http://localhost:3000/login)
+2. Go to your dashboard
+3. In development mode, click **"Seed Demo Data"** button
+4. This creates a complete demo universe with:
+   - A promotion group with 3 tiers
+   - Leagues, teams, players, schedule
+   - Sample matchups and standings
+
+### What's Next?
+
+- Explore the demo promotion group
+- Create your own seasons and leagues
+- Test the draft and roster management
+- Run promotion/relegation cycles
+
+---
+
+This project includes:
+
 * A **Next.js** web app deployed on **Vercel**
 * A **native SwiftUI iOS app**
 * A **Supabase backend** providing authentication, data, realtime updates, and server logic

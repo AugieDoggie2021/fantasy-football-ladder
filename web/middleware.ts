@@ -57,15 +57,38 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect dashboard routes - require authentication
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
+  // Define public routes that don't require authentication
+  const publicRoutes = ['/login', '/auth/callback']
+  const isPublicRoute = publicRoutes.some((route) =>
+    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith('/auth/callback')
+  )
+
+  // Define protected routes that require authentication
+  const protectedRoutes = [
+    '/dashboard',
+    '/leagues',
+    '/seasons',
+    '/promotion-groups',
+  ]
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    request.nextUrl.pathname.startsWith(route)
+  )
+
+  // Protect authenticated routes - require authentication
+  if (isProtectedRoute && !user) {
+    const loginUrl = new URL('/login', request.url)
+    // Store the original URL for redirect after login
+    loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
   // Redirect authenticated users away from login page
   if (request.nextUrl.pathname === '/login' && user) {
+    // Check if there's a redirect parameter
+    const redirectTo = request.nextUrl.searchParams.get('redirect')
+    if (redirectTo) {
+      return NextResponse.redirect(new URL(redirectTo, request.url))
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

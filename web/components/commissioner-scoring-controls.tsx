@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { calculateAndApplyScoresForWeek } from '@/app/actions/scoring'
+import { useToast } from './toast-provider'
 
 interface CommissionerScoringControlsProps {
   leagueId: string
@@ -16,21 +17,23 @@ export function CommissionerScoringControls({
   currentWeekNumber,
 }: CommissionerScoringControlsProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [previewResults, setPreviewResults] = useState<any>(null)
 
   const handlePreviewScores = async () => {
     if (!currentWeekId) {
-      alert('No current week set. Set a current week first.')
+      showToast('No current week set. Set a current week first.', 'error')
       return
     }
 
     setLoading('preview')
     const result = await calculateAndApplyScoresForWeek(leagueId, currentWeekId, { dryRun: true })
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
       setPreviewResults(null)
     } else {
+      showToast('Score preview calculated. Review below.', 'info')
       setPreviewResults(result.data)
     }
     setLoading(null)
@@ -38,7 +41,7 @@ export function CommissionerScoringControls({
 
   const handleApplyScores = async () => {
     if (!currentWeekId) {
-      alert('No current week set. Set a current week first.')
+      showToast('No current week set. Set a current week first.', 'error')
       return
     }
 
@@ -49,9 +52,9 @@ export function CommissionerScoringControls({
     setLoading('apply')
     const result = await calculateAndApplyScoresForWeek(leagueId, currentWeekId, { dryRun: false })
     if (result.error) {
-      alert(result.error)
+      showToast(result.error, 'error')
     } else {
-      alert('Scores applied successfully!')
+      showToast('Scores applied successfully!', 'success')
       setPreviewResults(null)
       router.refresh()
     }

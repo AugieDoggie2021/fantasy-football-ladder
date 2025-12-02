@@ -8,6 +8,8 @@ import { CurrentWeekMatchups } from '@/components/current-week-matchups'
 import { LeagueStandings } from '@/components/league-standings'
 import { CommissionerWeekControls } from '@/components/commissioner-week-controls'
 import { CommissionerScoringControls } from '@/components/commissioner-scoring-controls'
+import { LeagueContextHeader } from '@/components/league-context-header'
+import { CommissionerToolsSection } from '@/components/commissioner-tools-section'
 
 export default async function LeagueDetailPage({
   params,
@@ -100,20 +102,17 @@ export default async function LeagueDetailPage({
             >
               ← Back to Dashboard
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               {league.name}
             </h1>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
-              <span>{league.seasons?.year} Season</span>
-              {league.tier && <span>• Tier {league.tier}</span>}
-              {league.promotion_groups && (
-                <span>• {league.promotion_groups.name}</span>
-              )}
-              <span>• Max Teams: {league.max_teams}</span>
-              <span className="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                {league.status}
-              </span>
-            </div>
+            
+            <LeagueContextHeader
+              seasonYear={league.seasons?.year}
+              promotionGroupName={league.promotion_groups?.name}
+              leagueName={league.name}
+              tier={league.tier}
+              currentWeek={currentWeek?.week_number || null}
+            />
           </div>
 
           {/* User's Team Section */}
@@ -139,7 +138,7 @@ export default async function LeagueDetailPage({
 
           {/* Current Week Matchups Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-            <CurrentWeekMatchups leagueId={params.id} />
+            <CurrentWeekMatchups leagueId={params.id} currentUserId={user.id} />
           </div>
 
           {/* Standings Section */}
@@ -147,7 +146,7 @@ export default async function LeagueDetailPage({
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Standings
             </h2>
-            <LeagueStandings leagueId={params.id} />
+            <LeagueStandings leagueId={params.id} currentUserId={user.id} />
           </div>
 
           {/* Recent Transactions Section */}
@@ -207,48 +206,31 @@ export default async function LeagueDetailPage({
 
           {/* Commissioner Controls */}
           {league.created_by_user_id === user.id && (
-            <div className="mt-6 space-y-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Commissioner Controls
-                </h2>
-                
-                <div className="space-y-6">
-                  {/* Week Controls */}
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                      Week Management
-                    </h3>
-                    <CommissionerWeekControls
-                      leagueId={params.id}
-                      currentWeekNumber={currentWeek?.week_number || null}
-                      hasSchedule={!!hasSchedule}
-                    />
-                  </div>
+            <div className="mt-6 space-y-4">
+              <CommissionerToolsSection title="Schedule & Week Management">
+                <CommissionerWeekControls
+                  leagueId={params.id}
+                  currentWeekNumber={currentWeek?.week_number || null}
+                  hasSchedule={!!hasSchedule}
+                />
+              </CommissionerToolsSection>
 
-                  {/* Scoring Controls */}
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                      Score Calculation
-                    </h3>
-                    <CommissionerScoringControls
-                      leagueId={params.id}
-                      currentWeekId={currentWeek?.id || null}
-                      currentWeekNumber={currentWeek?.week_number || null}
-                    />
-                  </div>
+              <CommissionerToolsSection title="Score Calculation">
+                <CommissionerScoringControls
+                  leagueId={params.id}
+                  currentWeekId={currentWeek?.id || null}
+                  currentWeekNumber={currentWeek?.week_number || null}
+                />
+              </CommissionerToolsSection>
 
-                  {/* Draft Link */}
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <Link
-                      href={`/leagues/${params.id}/draft`}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium inline-block"
-                    >
-                      Manage Draft
-                    </Link>
-                  </div>
-                </div>
-              </div>
+              <CommissionerToolsSection title="Draft Management">
+                <Link
+                  href={`/leagues/${params.id}/draft`}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium inline-block"
+                >
+                  Manage Draft
+                </Link>
+              </CommissionerToolsSection>
             </div>
           )}
         </div>
