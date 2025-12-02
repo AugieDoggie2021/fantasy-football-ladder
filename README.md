@@ -275,17 +275,27 @@ Testing includes:
 
 ---
 
-## Repository Layout (Initial Intent)
+## Repository Layout
 
 ```
-/web               -> Next.js application
-/ios               -> Native SwiftUI app
+/web               -> Next.js application (Phase 0-1 complete)
+/ios               -> Native SwiftUI app (placeholder - Phase 6)
 /supabase          -> migrations, functions, seed scripts
 /docs              -> design artifacts, diagrams, specs
 /assets            -> image files and generated icons
 ```
 
-(This structure will evolve as implementation proceeds.)
+**Current Status:**
+- ✅ Phase 0/1 scaffolding complete
+- ✅ Next.js app initialized with TypeScript, TailwindCSS
+- ✅ Supabase client configuration (server & client)
+- ✅ Authentication flows (login/signup)
+- ✅ Protected routes via middleware
+- ✅ Dashboard shell
+- ✅ Environment awareness and feature flags
+- ✅ Impersonation hook placeholder
+- ✅ Supabase migrations (users table)
+- ✅ Edge function stub (run_promotion)
 
 ---
 
