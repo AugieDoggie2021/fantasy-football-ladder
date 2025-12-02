@@ -4,6 +4,10 @@ import Link from 'next/link'
 import { JoinLeagueForm } from '@/components/join-league-form'
 import { MyTeamRoster } from '@/components/my-team-roster'
 import { RecentTransactions } from '@/components/recent-transactions'
+import { CurrentWeekMatchups } from '@/components/current-week-matchups'
+import { LeagueStandings } from '@/components/league-standings'
+import { CommissionerWeekControls } from '@/components/commissioner-week-controls'
+import { CommissionerScoringControls } from '@/components/commissioner-scoring-controls'
 
 export default async function LeagueDetailPage({
   params,
@@ -69,6 +73,22 @@ export default async function LeagueDetailPage({
     .eq('is_active', true)
     .order('created_at', { ascending: true })
 
+  // Fetch current week info
+  const { data: currentWeek } = await supabase
+    .from('league_weeks')
+    .select('*')
+    .eq('league_id', params.id)
+    .eq('is_current', true)
+    .single()
+
+  // Check if schedule exists
+  const { data: hasSchedule } = await supabase
+    .from('league_weeks')
+    .select('id')
+    .eq('league_id', params.id)
+    .limit(1)
+    .single()
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -116,6 +136,19 @@ export default async function LeagueDetailPage({
               )}
             </div>
           )}
+
+          {/* Current Week Matchups Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <CurrentWeekMatchups leagueId={params.id} />
+          </div>
+
+          {/* Standings Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Standings
+            </h2>
+            <LeagueStandings leagueId={params.id} />
+          </div>
 
           {/* Recent Transactions Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
@@ -172,19 +205,49 @@ export default async function LeagueDetailPage({
             )}
           </div>
 
-          {/* League Settings (Commissioner Only) */}
+          {/* Commissioner Controls */}
           {league.created_by_user_id === user.id && (
-            <div className="mt-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  You are the commissioner of this league.
-                </p>
-                <Link
-                  href={`/leagues/${params.id}/draft`}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
-                >
-                  Manage Draft
-                </Link>
+            <div className="mt-6 space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Commissioner Controls
+                </h2>
+                
+                <div className="space-y-6">
+                  {/* Week Controls */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                      Week Management
+                    </h3>
+                    <CommissionerWeekControls
+                      leagueId={params.id}
+                      currentWeekNumber={currentWeek?.week_number || null}
+                      hasSchedule={!!hasSchedule}
+                    />
+                  </div>
+
+                  {/* Scoring Controls */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                      Score Calculation
+                    </h3>
+                    <CommissionerScoringControls
+                      leagueId={params.id}
+                      currentWeekId={currentWeek?.id || null}
+                      currentWeekNumber={currentWeek?.week_number || null}
+                    />
+                  </div>
+
+                  {/* Draft Link */}
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <Link
+                      href={`/leagues/${params.id}/draft`}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium inline-block"
+                    >
+                      Manage Draft
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           )}
