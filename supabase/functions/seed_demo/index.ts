@@ -226,6 +226,117 @@ serve(async (req) => {
       throw teamError
     }
 
+    // Step 6: Create demo schedule (3 weeks) and matchups for tier 1 league
+    // First, create additional teams for matchups (if we only have 1 team, skip schedule)
+    const { data: allTeams } = await supabaseService
+      .from('teams')
+      .select('id, name')
+      .eq('league_id', leagues[0].id)
+      .eq('is_active', true)
+
+    if (allTeams && allTeams.length >= 2) {
+      // Create 3 league weeks
+      const leagueWeeks = []
+      for (let weekNum = 1; weekNum <= 3; weekNum++) {
+        const { data: week, error: weekError } = await supabaseService
+          .from('league_weeks')
+          .insert({
+            league_id: leagues[0].id,
+            week_number: weekNum,
+            status: weekNum === 1 ? 'in_progress' : 'upcoming',
+            is_current: weekNum === 1,
+          })
+          .select()
+          .single()
+
+        if (weekError) {
+          console.warn(`Failed to create week ${weekNum}:`, weekError.message)
+        } else {
+          leagueWeeks.push(week)
+        }
+      }
+
+      // Generate simple round-robin matchups for week 1 (if we have weeks)
+      if (leagueWeeks.length > 0 && allTeams.length >= 2) {
+        const week1 = leagueWeeks[0]
+        // Simple pairing: team[0] vs team[1], team[2] vs team[3], etc.
+        for (let i = 0; i < allTeams.length - 1; i += 2) {
+          if (i + 1 < allTeams.length) {
+            const homeTeam = allTeams[i]
+            const awayTeam = allTeams[i + 1]
+            
+            await supabaseService
+              .from('matchups')
+              .insert({
+                league_id: leagues[0].id,
+                league_week_id: week1.id,
+                home_team_id: homeTeam.id,
+                away_team_id: awayTeam.id,
+                status: 'scheduled',
+              })
+          }
+        }
+
+        // Seed sample player week stats for week 1 (if we have players)
+        if (seededPlayers.length > 0 && week1) {
+          // Get a few players to seed stats for
+          const playersToSeed = seededPlayers.slice(0, 10) // First 10 players
+          
+          for (const player of playersToSeed) {
+            // Generate some realistic-ish stats based on position
+            let stats: any = {}
+            
+            if (player.position === 'QB') {
+              stats = {
+                passing_yards: 250 + Math.floor(Math.random() * 150),
+                passing_tds: 2 + Math.floor(Math.random() * 2),
+                interceptions: Math.floor(Math.random() * 2),
+                rushing_yards: Math.floor(Math.random() * 30),
+              }
+            } else if (player.position === 'RB') {
+              stats = {
+                rushing_yards: 80 + Math.floor(Math.random() * 80),
+                rushing_tds: Math.floor(Math.random() * 2),
+                receiving_yards: Math.floor(Math.random() * 40),
+                receptions: Math.floor(Math.random() * 5),
+              }
+            } else if (player.position === 'WR') {
+              stats = {
+                receiving_yards: 70 + Math.floor(Math.random() * 80),
+                receiving_tds: Math.floor(Math.random() * 2),
+                receptions: 5 + Math.floor(Math.random() * 5),
+              }
+            } else if (player.position === 'TE') {
+              stats = {
+                receiving_yards: 50 + Math.floor(Math.random() * 50),
+                receiving_tds: Math.floor(Math.random() * 2),
+                receptions: 4 + Math.floor(Math.random() * 4),
+              }
+            } else if (player.position === 'K') {
+              stats = {
+                kicking_points: 8 + Math.floor(Math.random() * 6), // 8-14 points
+              }
+            } else if (player.position === 'DEF') {
+              stats = {
+                defense_points: 5 + Math.floor(Math.random() * 10), // 5-15 points
+              }
+            }
+
+            await supabaseService
+              .from('player_week_stats')
+              .upsert({
+                league_id: leagues[0].id,
+                league_week_id: week1.id,
+                player_id: player.id,
+                ...stats,
+              }, {
+                onConflict: 'league_id,league_week_id,player_id'
+              })
+          }
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -235,6 +346,7 @@ serve(async (req) => {
           leagues,
           team,
           playersSeeded: seededPlayers.length,
+          scheduleCreated: allTeams && allTeams.length >= 2,
         },
       }),
       {

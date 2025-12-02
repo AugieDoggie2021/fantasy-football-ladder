@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { JoinLeagueForm } from '@/components/join-league-form'
+import { MyTeamRoster } from '@/components/my-team-roster'
+import { RecentTransactions } from '@/components/recent-transactions'
 
 export default async function LeagueDetailPage({
   params,
@@ -96,29 +98,10 @@ export default async function LeagueDetailPage({
 
           {/* User's Team Section */}
           {userTeam ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Your Team
-              </h2>
-              <div className="flex items-center gap-4">
-                {userTeam.logo_url && (
-                  <img
-                    src={userTeam.logo_url}
-                    alt={userTeam.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                )}
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">
-                    {userTeam.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Draft Position: {userTeam.draft_position ?? 'Not assigned'}
-                  </p>
-                </div>
-              </div>
-              {/* TODO: Link to team management page in Phase 3 */}
-            </div>
+            <MyTeamRoster 
+              team={userTeam} 
+              leagueId={params.id}
+            />
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -133,6 +116,14 @@ export default async function LeagueDetailPage({
               )}
             </div>
           )}
+
+          {/* Recent Transactions Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Recent Activity
+            </h2>
+            <RecentTransactions leagueId={params.id} />
+          </div>
 
           {/* Teams in League Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -184,9 +175,17 @@ export default async function LeagueDetailPage({
           {/* League Settings (Commissioner Only) */}
           {league.created_by_user_id === user.id && (
             <div className="mt-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                You are the commissioner of this league. League management features will be added in future phases.
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  You are the commissioner of this league.
+                </p>
+                <Link
+                  href={`/leagues/${params.id}/draft`}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
+                >
+                  Manage Draft
+                </Link>
+              </div>
             </div>
           )}
         </div>

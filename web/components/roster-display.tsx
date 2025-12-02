@@ -1,0 +1,218 @@
+'use client'
+
+import { useState } from 'react'
+import { updateRosterSlot, dropPlayerFromRoster } from '@/app/actions/rosters'
+import { useRouter } from 'next/navigation'
+
+interface Player {
+  id: string
+  full_name: string
+  position: string
+  nfl_team: string | null
+  bye_week: number | null
+}
+
+interface RosterEntry {
+  id: string
+  slot_type: string
+  is_starter: boolean
+  players: Player | null
+}
+
+interface RosterDisplayProps {
+  startersByPosition: Record<string, RosterEntry[]>
+  bench: RosterEntry[]
+  teamId: string
+  leagueId: string
+  slotOrder: string[]
+}
+
+export function RosterDisplay({
+  startersByPosition,
+  bench,
+  teamId,
+  leagueId,
+  slotOrder,
+}: RosterDisplayProps) {
+  const router = useRouter()
+  const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState<string | null>(null)
+
+  const handleMoveToBench = async (rosterId: string) => {
+    setLoading(rosterId)
+    const formData = new FormData()
+    formData.append('roster_id', rosterId)
+    formData.append('slot_type', 'BENCH')
+    formData.append('is_starter', 'false')
+
+    const result = await updateRosterSlot(formData)
+    if (!result.error) {
+      router.refresh()
+    } else {
+      alert(result.error)
+    }
+    setLoading(null)
+  }
+
+  const handleMoveToStarter = async (rosterId: string, position: string) => {
+    setLoading(rosterId)
+    const formData = new FormData()
+    formData.append('roster_id', rosterId)
+    formData.append('slot_type', position)
+    formData.append('is_starter', 'true')
+
+    const result = await updateRosterSlot(formData)
+    if (!result.error) {
+      router.refresh()
+    } else {
+      alert(result.error)
+    }
+    setLoading(null)
+  }
+
+  const handleDrop = async (rosterId: string, playerName: string) => {
+    if (!confirm(`Drop ${playerName} from your roster?`)) {
+      return
+    }
+
+    setLoading(rosterId)
+    const formData = new FormData()
+    formData.append('roster_id', rosterId)
+
+    const result = await dropPlayerFromRoster(formData)
+    if (!result.error) {
+      router.refresh()
+    } else {
+      alert(result.error)
+    }
+    setLoading(null)
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+          Roster
+        </h3>
+        <button
+          onClick={() => setEditing(!editing)}
+          className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+        >
+          {editing ? 'Done Editing' : 'Edit Roster'}
+        </button>
+      </div>
+
+      {/* Starters */}
+      <div className="mb-6">
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          Starters
+        </h4>
+        <div className="space-y-3">
+          {slotOrder.map(slot => {
+            const players = startersByPosition[slot] || []
+            const slotLabel = slot === 'FLEX' ? 'FLEX (RB/WR/TE)' : slot
+            
+            return (
+              <div key={slot} className="flex items-center gap-4">
+                <div className="w-24 text-sm text-gray-600 dark:text-gray-400">
+                  {slotLabel}:
+                </div>
+                <div className="flex-1 flex gap-2 flex-wrap">
+                  {players.length > 0 ? (
+                    players.map(entry => (
+                      <div
+                        key={entry.id}
+                        className="flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded"
+                      >
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {entry.players?.full_name}
+                        </span>
+                        {entry.players?.nfl_team && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {entry.players.nfl_team}
+                          </span>
+                        )}
+                        {editing && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleMoveToBench(entry.id)}
+                              disabled={loading === entry.id}
+                              className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 disabled:opacity-50"
+                            >
+                              Bench
+                            </button>
+                            <button
+                              onClick={() => handleDrop(entry.id, entry.players?.full_name || 'Player')}
+                              disabled={loading === entry.id}
+                              className="text-xs px-2 py-0.5 bg-red-200 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded hover:bg-red-300 disabled:opacity-50"
+                            >
+                              Drop
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-400 dark:text-gray-500 italic">
+                      Empty
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Bench */}
+      <div>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          Bench
+        </h4>
+        {bench.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {bench.map(entry => (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded"
+              >
+                <div>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {entry.players?.full_name}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                    {entry.players?.position}
+                    {entry.players?.nfl_team && ` • ${entry.players.nfl_team}`}
+                  </span>
+                </div>
+                {editing && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleMoveToStarter(entry.id, entry.players?.position || 'BENCH')}
+                      disabled={loading === entry.id}
+                      className="text-xs px-2 py-0.5 bg-green-200 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded hover:bg-green-300 disabled:opacity-50"
+                    >
+                      Start
+                    </button>
+                    <button
+                      onClick={() => handleDrop(entry.id, entry.players?.full_name || 'Player')}
+                      disabled={loading === entry.id}
+                      className="text-xs px-2 py-0.5 bg-red-200 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded hover:bg-red-300 disabled:opacity-50"
+                    >
+                      Drop
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+            No players on bench
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
