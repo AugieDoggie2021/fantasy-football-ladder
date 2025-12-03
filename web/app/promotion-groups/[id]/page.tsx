@@ -107,8 +107,8 @@ export default async function PromotionGroupDetailPage({
             <PromotionControls
               promotionGroupId={params.id}
               seasonId={group.season_id}
-              seasonStatus={group.seasons?.status || 'preseason'}
-              isComplete={group.seasons?.status === 'complete'}
+              seasonStatus={group.seasons?.[0]?.status || 'preseason'}
+              isComplete={group.seasons?.[0]?.status === 'complete'}
             />
           </div>
 
