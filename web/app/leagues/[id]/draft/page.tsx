@@ -37,7 +37,7 @@ export default async function DraftPage({
     .select('id, name, draft_position')
     .eq('league_id', params.id)
     .eq('is_active', true)
-    .order('draft_position', { ascending: true, nullsLast: true })
+    .order('draft_position', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 
   // Fetch draft picks

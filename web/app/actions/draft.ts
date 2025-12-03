@@ -43,7 +43,7 @@ export async function generateDraftPicksForLeague(leagueId: string, rounds: numb
     .select('id, name, draft_position')
     .eq('league_id', leagueId)
     .eq('is_active', true)
-    .order('draft_position', { ascending: true, nullsLast: true })
+    .order('draft_position', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 
   if (teamsError || !teams || teams.length === 0) {

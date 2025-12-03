@@ -41,7 +41,7 @@ export default async function PromotionGroupDetailPage({
     .from('leagues')
     .select('*')
     .eq('promotion_group_id', params.id)
-    .order('tier', { ascending: true, nullsLast: true })
+    .order('tier', { ascending: true, nullsFirst: false })
     .order('name', { ascending: true })
 
   // Group leagues by tier
