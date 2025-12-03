@@ -36,9 +36,15 @@ export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
     .order('is_starter', { ascending: false })
     .order('slot_type', { ascending: true })
 
+  // Transform roster data - convert players array to single object
+  const transformedRoster = roster?.map(r => ({
+    ...r,
+    players: Array.isArray(r.players) ? (r.players[0] || null) : r.players
+  })) || []
+
   // Group roster by slot type
-  const starters = roster?.filter(r => r.is_starter) || []
-  const bench = roster?.filter(r => !r.is_starter) || []
+  const starters = transformedRoster.filter(r => r.is_starter) || []
+  const bench = transformedRoster.filter(r => !r.is_starter) || []
 
   // Group starters by position
   const startersByPosition: Record<string, typeof starters> = {}
