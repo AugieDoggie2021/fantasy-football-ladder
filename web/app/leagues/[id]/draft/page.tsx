@@ -90,7 +90,7 @@ export default async function DraftPage({
               Draft - {league.name}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {league.seasons?.year} Season • Commissioner Draft Control
+              {league.seasons?.[0]?.year} Season • Commissioner Draft Control
             </p>
           </div>
 

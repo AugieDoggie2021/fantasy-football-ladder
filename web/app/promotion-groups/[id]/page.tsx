@@ -69,7 +69,7 @@ export default async function PromotionGroupDetailPage({
               {group.name}
             </h1>
             <p className="text-gray-500 dark:text-gray-400">
-              {group.seasons?.year} Season
+              {group.seasons?.[0]?.year} Season
             </p>
             {group.description && (
               <p className="text-gray-600 dark:text-gray-300 mt-2">

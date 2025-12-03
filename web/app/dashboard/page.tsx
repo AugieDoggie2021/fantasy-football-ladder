@@ -154,7 +154,7 @@ export default async function DashboardPage() {
                       {group.name}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                      {group.seasons?.year} Season
+                      {group.seasons?.[0]?.year} Season
                     </p>
                     {group.description && (
                       <p className="text-sm text-gray-600 dark:text-gray-300">

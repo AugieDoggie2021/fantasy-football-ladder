@@ -89,7 +89,7 @@ export default async function LeaguePlayersPage({
               Players - {league.name}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {league.seasons?.year} Season
+              {league.seasons?.[0]?.year} Season
             </p>
           </div>
 

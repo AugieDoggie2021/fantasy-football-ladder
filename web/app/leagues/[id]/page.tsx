@@ -107,7 +107,7 @@ export default async function LeagueDetailPage({
             </h1>
             
             <LeagueContextHeader
-              seasonYear={league.seasons?.year}
+              seasonYear={league.seasons?.[0]?.year}
               promotionGroupName={league.promotion_groups?.name}
               leagueName={league.name}
               tier={league.tier}
