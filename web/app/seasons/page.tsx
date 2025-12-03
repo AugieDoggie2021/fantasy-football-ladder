@@ -70,7 +70,7 @@ export default async function SeasonsPage() {
               </div>
             ) : (
               <p className="text-gray-500 dark:text-gray-400">
-                You haven't created any seasons yet. Create one above to get started.
+                You haven&apos;t created any seasons yet. Create one above to get started.
               </p>
             )}
           </div>

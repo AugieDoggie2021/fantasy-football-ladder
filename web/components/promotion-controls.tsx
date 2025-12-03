@@ -186,7 +186,7 @@ export function PromotionControls({
             </table>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-            These are preview results. Click "Apply Promotion" to create the next season.
+            These are preview results. Click &quot;Apply Promotion&quot; to create the next season.
           </p>
         </div>
       )}

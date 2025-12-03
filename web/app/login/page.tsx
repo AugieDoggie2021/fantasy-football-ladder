@@ -279,7 +279,7 @@ export default function LoginPage() {
                 </h3>
                 <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                   <p>
-                    We've sent a confirmation link to <strong>{email}</strong>.
+                    We&apos;ve sent a confirmation link to <strong>{email}</strong>.
                     Please click the link in the email to verify your account.
                   </p>
                 </div>

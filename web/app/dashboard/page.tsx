@@ -120,7 +120,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <p className="text-gray-500 dark:text-gray-400">
-                You don't have any teams yet.{' '}
+                You don&apos;t have any teams yet.{' '}
                 <Link href="/leagues/create" className="text-indigo-600 dark:text-indigo-400 hover:underline">
                   Join or create a league
                 </Link>
@@ -166,7 +166,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <p className="text-gray-500 dark:text-gray-400">
-                You haven't created any promotion groups yet.{' '}
+                You haven&apos;t created any promotion groups yet.{' '}
                 <Link href="/promotion-groups" className="text-indigo-600 dark:text-indigo-400 hover:underline">
                   Create one
                 </Link>
