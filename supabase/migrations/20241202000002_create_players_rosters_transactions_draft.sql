@@ -203,10 +203,7 @@ CREATE TABLE IF NOT EXISTS public.draft_picks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
   -- Ensure unique overall pick per league
-  UNIQUE(league_id, overall_pick),
-  
-  -- Ensure player is unique per league (once drafted, can't be drafted again)
-  UNIQUE(league_id, player_id) WHERE player_id IS NOT NULL
+  UNIQUE(league_id, overall_pick)
 );
 
 -- Indexes
@@ -215,6 +212,12 @@ CREATE INDEX IF NOT EXISTS idx_draft_picks_team_id ON public.draft_picks(team_id
 CREATE INDEX IF NOT EXISTS idx_draft_picks_player_id ON public.draft_picks(player_id) WHERE player_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_draft_picks_overall_pick ON public.draft_picks(league_id, overall_pick);
 CREATE INDEX IF NOT EXISTS idx_draft_picks_round ON public.draft_picks(league_id, round);
+
+-- Unique index: Ensure player is unique per league (once drafted, can't be drafted again)
+-- This must be a unique index (not a constraint) because it uses a WHERE clause
+CREATE UNIQUE INDEX IF NOT EXISTS idx_draft_picks_league_player_unique 
+  ON public.draft_picks(league_id, player_id) 
+  WHERE player_id IS NOT NULL;
 
 -- RLS Policies
 ALTER TABLE public.draft_picks ENABLE ROW LEVEL SECURITY;

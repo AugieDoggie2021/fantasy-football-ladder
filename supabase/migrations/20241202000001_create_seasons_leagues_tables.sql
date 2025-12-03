@@ -92,7 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_leagues_tier ON public.leagues(tier) WHERE tier I
 CREATE INDEX IF NOT EXISTS idx_leagues_created_by_user_id ON public.leagues(created_by_user_id);
 CREATE INDEX IF NOT EXISTS idx_leagues_promotion_group_tier ON public.leagues(promotion_group_id, tier) WHERE promotion_group_id IS NOT NULL AND tier IS NOT NULL;
 
--- RLS Policies
+-- RLS Policies (basic ones that don't depend on teams table)
 ALTER TABLE public.leagues ENABLE ROW LEVEL SECURITY;
 
 -- Insert: allowed if auth.uid() IS NOT NULL and created_by_user_id = auth.uid()
@@ -100,21 +100,6 @@ CREATE POLICY "Authenticated users can create leagues"
   ON public.leagues
   FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL AND created_by_user_id = auth.uid());
-
--- Select: allowed if:
--- - created_by_user_id = auth.uid(), OR
--- - the user owns a team in the league
-CREATE POLICY "Users can view their own leagues or leagues they have teams in"
-  ON public.leagues
-  FOR SELECT
-  USING (
-    created_by_user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.teams
-      WHERE teams.league_id = leagues.id
-      AND teams.owner_user_id = auth.uid()
-    )
-  );
 
 -- ============================================================================
 -- TEAMS TABLE
@@ -168,4 +153,22 @@ CREATE POLICY "Users can update their own teams"
   FOR UPDATE
   USING (owner_user_id = auth.uid())
   WITH CHECK (owner_user_id = auth.uid());
+
+-- ============================================================================
+-- LEAGUES TABLE RLS POLICY (depends on teams table, so created after teams)
+-- ============================================================================
+-- Select: allowed if:
+-- - created_by_user_id = auth.uid(), OR
+-- - the user owns a team in the league
+CREATE POLICY "Users can view their own leagues or leagues they have teams in"
+  ON public.leagues
+  FOR SELECT
+  USING (
+    created_by_user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.teams
+      WHERE teams.league_id = leagues.id
+      AND teams.owner_user_id = auth.uid()
+    )
+  );
 

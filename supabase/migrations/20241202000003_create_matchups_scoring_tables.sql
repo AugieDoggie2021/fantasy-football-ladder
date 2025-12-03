@@ -83,10 +83,8 @@ CREATE TABLE IF NOT EXISTS public.matchups (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
   -- Ensure teams don't play themselves
-  CHECK (home_team_id != away_team_id),
-  
-  -- Ensure teams are in the same league
-  -- This will be enforced via application logic since we can't easily check across tables
+  CHECK (home_team_id != away_team_id)
+  -- Note: Ensuring teams are in the same league is enforced via application logic
 );
 
 -- Indexes
