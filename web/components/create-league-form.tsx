@@ -16,7 +16,7 @@ interface PromotionGroup {
   seasons: {
     id: string
     year: number
-  }
+  }[]
 }
 
 interface CreateLeagueFormProps {
