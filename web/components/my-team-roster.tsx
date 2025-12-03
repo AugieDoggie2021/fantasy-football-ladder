@@ -14,6 +14,10 @@ interface MyTeamRosterProps {
   leagueId: string
 }
 
+/**
+ * Displays a team's roster with starters grouped by position and bench players.
+ * Handles data transformation to convert Supabase array responses to expected object types.
+ */
 export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
   const supabase = await createClient()
 
