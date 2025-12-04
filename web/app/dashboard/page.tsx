@@ -4,6 +4,7 @@ import { LogoutButton } from '@/components/logout-button'
 import { SeedDemoButton } from '@/components/seed-demo-button'
 import { DevHelpersSection } from '@/components/dev-helpers-section'
 import { DevStatsIngestionPanel } from '@/components/dev-stats-ingestion-panel'
+import { DevPlayerScoresView } from '@/components/dev-player-scores-view'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -227,6 +228,10 @@ export default async function DashboardPage() {
 
               <div className="pt-4 border-t border-yellow-200 dark:border-yellow-800">
                 <DevStatsIngestionPanel />
+              </div>
+
+              <div className="pt-4 border-t border-yellow-200 dark:border-yellow-800">
+                <DevPlayerScoresView />
               </div>
             </div>
           )}
