@@ -10,6 +10,9 @@ import { CommissionerWeekControls } from '@/components/commissioner-week-control
 import { CommissionerScoringControls } from '@/components/commissioner-scoring-controls'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { CommissionerToolsSection } from '@/components/commissioner-tools-section'
+import { CommissionerScoringWorkflow } from '@/components/commissioner-scoring-workflow'
+import { LeagueScoringSettingsForm } from '@/components/league-scoring-settings-form'
+import { getLeagueScoringConfig } from '@/app/actions/scoring-config'
 
 export default async function LeagueDetailPage({
   params,
@@ -39,6 +42,13 @@ export default async function LeagueDetailPage({
     `)
     .eq('id', params.id)
     .single()
+
+  // Fetch scoring config for commissioner
+  let scoringConfig = null
+  if (league?.created_by_user_id === user.id) {
+    const configResult = await getLeagueScoringConfig(params.id)
+    scoringConfig = configResult.data || null
+  }
 
   if (!league) {
     notFound()
@@ -215,7 +225,27 @@ export default async function LeagueDetailPage({
                 />
               </CommissionerToolsSection>
 
-              <CommissionerToolsSection title="Score Calculation">
+              <CommissionerToolsSection title="Scoring Rules">
+                {scoringConfig ? (
+                  <LeagueScoringSettingsForm
+                    leagueId={params.id}
+                    currentConfig={scoringConfig}
+                  />
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Loading scoring settings...
+                  </p>
+                )}
+              </CommissionerToolsSection>
+
+              <CommissionerToolsSection title="Score Calculation Workflow">
+                <CommissionerScoringWorkflow
+                  leagueId={params.id}
+                  currentWeekNumber={currentWeek?.week_number}
+                />
+              </CommissionerToolsSection>
+
+              <CommissionerToolsSection title="Advanced Score Calculation">
                 <CommissionerScoringControls
                   leagueId={params.id}
                   currentWeekId={currentWeek?.id || null}

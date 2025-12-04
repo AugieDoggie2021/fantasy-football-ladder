@@ -6,8 +6,10 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
-import { calculatePlayerScore } from '@/lib/scoring'
+import { calculatePlayerScoreWithConfig } from '@/lib/scoring'
 import type { PlayerWeekStats } from '@/lib/scoring'
+import { resolveLeagueWeek } from '@/lib/week-mapping'
+import { parseScoringConfig, type ScoringConfig } from '@/lib/scoring-config'
 
 /**
  * Player score entry for a league week
@@ -70,10 +72,21 @@ export async function getLeagueWeekPlayerScores(
     return { error: 'Not authenticated' }
   }
 
-  // Verify user has access to this league (RLS should handle this, but we check anyway)
+  // Resolve league week (gets league_week_id and season info)
+  const weekInfo = await resolveLeagueWeek(leagueId, seasonYear, week)
+  if (weekInfo.error) {
+    return { error: weekInfo.error }
+  }
+  if (!weekInfo.data) {
+    return { error: 'Failed to resolve league week' }
+  }
+
+  const { leagueWeekId, seasonYear: resolvedSeasonYear, nflWeek } = weekInfo.data
+
+  // Fetch league with scoring config
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id')
+    .select('id, scoring_settings')
     .eq('id', leagueId)
     .single()
 
@@ -81,14 +94,8 @@ export async function getLeagueWeekPlayerScores(
     return { error: 'League not found or access denied' }
   }
 
-  // Optionally: Find league_week record if it exists
-  // Note: league_weeks.week_number may not directly map to NFL week
-  // For now, we'll use season_year and nfl_week directly from player_week_stats
-  const { data: leagueWeeks } = await supabase
-    .from('league_weeks')
-    .select('id, week_number')
-    .eq('league_id', leagueId)
-    .order('week_number', { ascending: true })
+  // Parse scoring config (defaults if missing/invalid)
+  const scoringConfig = parseScoringConfig(league.scoring_settings)
 
   // Fetch all roster entries for this league
   const { data: rosters, error: rostersError } = await supabase
@@ -118,37 +125,50 @@ export async function getLeagueWeekPlayerScores(
   // Extract player IDs
   const playerIds = rosters.map(r => r.player_id)
 
-  // Fetch player week stats for this season/week
-  // Use season_year and nfl_week since stats may not be linked to league_week_id yet
-  const { data: stats, error: statsError } = await supabase
+  // Fetch player week stats
+  // Prefer league_week_id if available, fall back to season_year + nfl_week
+  let statsQuery = supabase
     .from('player_week_stats')
-    .select('*')
-    .eq('season_year', seasonYear)
-    .eq('nfl_week', week)
+    .select('*, fantasy_points')
     .in('player_id', playerIds)
+
+  // Try league_week_id first (preferred path)
+  if (leagueWeekId) {
+    statsQuery = statsQuery.eq('league_week_id', leagueWeekId)
+  } else {
+    // Fallback to season_year + nfl_week
+    statsQuery = statsQuery
+      .eq('season_year', resolvedSeasonYear)
+      .eq('nfl_week', nflWeek)
+  }
+
+  const { data: stats, error: statsError } = await statsQuery
 
   if (statsError) {
     return { error: `Failed to fetch player stats: ${statsError.message}` }
   }
 
-  // Create a map of player_id -> stats
+  // Create a map of player_id -> stats and cached fantasy_points
   // If multiple stat rows exist (shouldn't happen due to UNIQUE constraint),
   // we'll use the first one found
-  const statsMap = new Map<string, PlayerWeekStats>()
+  const statsMap = new Map<string, { stats: PlayerWeekStats; cachedPoints?: number }>()
   stats?.forEach(stat => {
     // Only set if not already in map (use first occurrence)
     if (!statsMap.has(stat.player_id)) {
       statsMap.set(stat.player_id, {
-        passing_yards: stat.passing_yards || 0,
-        passing_tds: stat.passing_tds || 0,
-        interceptions: stat.interceptions || 0,
-        rushing_yards: stat.rushing_yards || 0,
-        rushing_tds: stat.rushing_tds || 0,
-        receiving_yards: stat.receiving_yards || 0,
-        receiving_tds: stat.receiving_tds || 0,
-        receptions: stat.receptions || 0,
-        kicking_points: stat.kicking_points || 0,
-        defense_points: stat.defense_points || 0,
+        stats: {
+          passing_yards: stat.passing_yards || 0,
+          passing_tds: stat.passing_tds || 0,
+          interceptions: stat.interceptions || 0,
+          rushing_yards: stat.rushing_yards || 0,
+          rushing_tds: stat.rushing_tds || 0,
+          receiving_yards: stat.receiving_yards || 0,
+          receiving_tds: stat.receiving_tds || 0,
+          receptions: stat.receptions || 0,
+          kicking_points: stat.kicking_points || 0,
+          defense_points: stat.defense_points || 0,
+        },
+        cachedPoints: stat.fantasy_points || undefined,
       })
     }
   })
@@ -156,7 +176,8 @@ export async function getLeagueWeekPlayerScores(
   // Build the result array
   const playerScores: LeagueWeekPlayerScore[] = rosters.map((roster: any) => {
     const player = roster.players
-    const stats = statsMap.get(roster.player_id) || {
+    const statEntry = statsMap.get(roster.player_id)
+    const stats = statEntry?.stats || {
       passing_yards: 0,
       passing_tds: 0,
       interceptions: 0,
@@ -169,7 +190,10 @@ export async function getLeagueWeekPlayerScores(
       defense_points: 0,
     }
 
-    const fantasyPoints = calculatePlayerScore(stats, player.position || 'QB')
+    // Use cached fantasy_points if available, otherwise calculate
+    const fantasyPoints = statEntry?.cachedPoints !== undefined
+      ? statEntry.cachedPoints
+      : calculatePlayerScoreWithConfig(stats, player.position || 'QB', scoringConfig)
 
     return {
       playerId: player.id,

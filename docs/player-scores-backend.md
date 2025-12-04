@@ -2,6 +2,8 @@
 
 This document describes the backend API for fetching player fantasy scores for a given league, season, and week.
 
+**Last Updated**: Phase 11 - Scoring rules UI, bonus points support, and performance optimizations added.
+
 ## Overview
 
 The player scores backend combines:
@@ -78,6 +80,129 @@ Fetches weekly player stats from SportsData.io for a given season and week, and 
 - Note: Stats are initially stored with `league_id` and `league_week_id` as NULL
 - Stats can be linked to specific league weeks later when league weeks are created
 
+## League Week Mapping
+
+**File**: `web/lib/week-mapping.ts`
+
+The scoring system now uses **league weeks** as first-class citizens. The `resolveLeagueWeek()` helper maps between:
+- League-specific week numbers (`league_weeks.week_number`)
+- NFL season years and weeks (`season_year`, `nfl_week`)
+
+**Key Functions**:
+- `resolveLeagueWeek(leagueId, seasonYear?, week?)` - Resolves or creates a league week
+- `getCurrentLeagueWeek(leagueId)` - Gets the current week for a league
+
+**Note**: For now, league week numbers map 1:1 to NFL weeks. This can be extended in the future for bye weeks, playoffs, etc.
+
+## Custom Scoring Rules
+
+**File**: `web/lib/scoring-config.ts`
+
+Leagues can now have custom scoring rules stored in `leagues.scoring_settings` (JSONB).
+
+**Default Configuration** (Yahoo-style standard):
+```json
+{
+  "passingYardsPerPoint": 25,
+  "passingTdPoints": 4,
+  "interceptionPoints": -2,
+  "rushingYardsPerPoint": 10,
+  "rushingTdPoints": 6,
+  "receivingYardsPerPoint": 10,
+  "receivingTdPoints": 6,
+  "receptionPoints": 1,
+  "rushingYardageBonus": {
+    "enabled": false,
+    "threshold": 100,
+    "bonusPoints": 3
+  },
+  "receivingYardageBonus": {
+    "enabled": false,
+    "threshold": 100,
+    "bonusPoints": 3
+  },
+  "passingYardageBonus": {
+    "enabled": false,
+    "threshold": 300,
+    "bonusPoints": 3
+  }
+}
+```
+
+**Customization Examples**:
+- Half-PPR: `"receptionPoints": 0.5`
+- Standard (non-PPR): `"receptionPoints": 0`
+- Custom passing: `"passingYardsPerPoint": 20` (more points per yard)
+- Enable rushing bonus: `"rushingYardageBonus": { "enabled": true, "threshold": 100, "bonusPoints": 3 }`
+
+**Bonus Points**:
+- **Rushing Yardage Bonus**: Award bonus points when a player reaches a threshold (e.g., 100+ yards = +3 points)
+- **Receiving Yardage Bonus**: Award bonus points when a player reaches a threshold (e.g., 100+ yards = +3 points)
+- **Passing Yardage Bonus**: Award bonus points when a QB reaches a threshold (e.g., 300+ yards = +3 points)
+
+Bonuses are configurable per league and can be enabled/disabled independently. When enabled, bonuses are applied automatically during score calculation.
+
+The scoring functions automatically use the league's custom config when calculating fantasy points.
+
+## Fantasy Points Caching
+
+**Migrations**: 
+- `20241202000006_add_fantasy_points_caching.sql` - Adds `fantasy_points` column
+- `20241202000007_batch_update_fantasy_points.sql` - Adds batch update stored procedure
+
+The `player_week_stats` table now includes a `fantasy_points` column that caches computed scores.
+
+**How it works**:
+1. When commissioner applies scoring for a week, fantasy points are computed and stored in `fantasy_points`
+2. Subsequent API calls read from cache when available
+3. If `fantasy_points` is NULL, scores are computed on-the-fly using current scoring rules
+
+**Performance Optimization**:
+- **Batch Updates**: Uses stored procedure `batch_update_fantasy_points()` to update all player scores in a single database operation
+- **Stored Procedure**: `public.batch_update_fantasy_points(updates JSONB)` accepts an array of `{id, fantasy_points}` objects and updates all rows efficiently
+- **Fallback**: If batch update fails, falls back to individual updates (for resilience)
+
+**Benefits**:
+- Faster API responses
+- Consistent scores (won't change if scoring rules are updated later)
+- Historical accuracy (scores reflect rules at time of calculation)
+- Optimized database writes (batch updates instead of N individual queries)
+
+## Commissioner Workflow
+
+**Files**: 
+- `web/app/actions/commissioner-workflow.ts` - Workflow orchestration
+- `web/app/actions/scoring-config.ts` - Scoring settings management
+
+A streamlined workflow for commissioners:
+
+### Score Calculation Workflow
+
+**UI Component**: `web/components/commissioner-scoring-workflow.tsx`
+
+1. **Ingest External Stats** - Fetches player stats from SportsData.io for the current week
+2. **Preview Scores (Dry Run)** - Calculates scores without applying them
+3. **Apply Scores** - Finalizes scores, updates matchups, and caches fantasy points (using batch updates)
+
+### Scoring Rules Management
+
+**UI Component**: `web/components/league-scoring-settings-form.tsx`
+
+Commissioners can view and edit league scoring rules directly from the league detail page:
+
+- **Presets**: Quick selection of Standard (Non-PPR), Half PPR, or Full PPR
+- **Custom Settings**: Fine-tune yardage per point, TD values, interception penalties
+- **Bonus Configuration**: Enable/disable and configure yardage bonuses for rushing, receiving, and passing
+- **Validation**: Real-time validation ensures all values are within acceptable ranges
+- **Persistence**: Changes are saved immediately and affect all future score calculations
+
+**Server Action**: `updateLeagueScoringConfig(leagueId, config)`
+- Validates config using `validateScoringConfig()`
+- Ensures only league commissioner can update settings
+- Updates `leagues.scoring_settings` JSONB column
+
+Available on the league detail page for league commissioners only.
+
 ## Player Scores API
 
 ### Core Function
@@ -122,10 +247,16 @@ type LeagueWeekPlayerScore = {
 **Implementation Details**:
 
 1. **Authentication**: Verifies user is authenticated and has access to the league
-2. **Roster Fetching**: Fetches all roster entries for the league
-3. **Stats Fetching**: Fetches player week stats matching `season_year` and `nfl_week`
-4. **Score Calculation**: Uses `calculatePlayerScore()` from `web/lib/scoring.ts` to compute fantasy points
-5. **Edge Cases**:
+2. **League Week Resolution**: Uses `resolveLeagueWeek()` to get `league_week_id` and season info
+3. **Scoring Config**: Fetches league's `scoring_settings` and parses custom scoring rules
+4. **Roster Fetching**: Fetches all roster entries for the league
+5. **Stats Fetching**: 
+   - **Preferred**: Fetches stats by `league_week_id` (normalized path)
+   - **Fallback**: Fetches by `season_year` + `nfl_week` if `league_week_id` not available
+6. **Score Calculation**: 
+   - **Cached**: Uses `fantasy_points` from database if available
+   - **Computed**: Uses `calculatePlayerScoreWithConfig()` with league's scoring config
+7. **Edge Cases**:
    - Players with no stats (did not play) → treated as 0 fantasy points
    - Multiple stat rows (shouldn't happen due to UNIQUE constraint) → uses first occurrence
 
@@ -146,7 +277,9 @@ const result = await getLeagueWeekPlayerScoresAction({
 })
 ```
 
-### REST API Route
+### REST API Routes
+
+#### Player Scores Endpoint
 
 **File**: `web/app/api/leagues/[id]/scores/route.ts`
 
@@ -160,6 +293,41 @@ const result = await getLeagueWeekPlayerScoresAction({
 ```
 GET /api/leagues/abc123/scores?seasonYear=2024&week=1
 ```
+
+#### Team Totals Endpoint
+
+**File**: `web/app/api/leagues/[id]/scores/summary/route.ts`
+
+**Endpoint**: `GET /api/leagues/[id]/scores/summary`
+
+**Query Parameters**:
+- `seasonYear` (required): NFL season year (e.g., 2024)
+- `week` (required): NFL week number (1-18)
+
+**Example Request**:
+```
+GET /api/leagues/abc123/scores/summary?seasonYear=2024&week=1
+```
+
+**Response** (200 OK):
+```json
+[
+  {
+    "teamId": "team-uuid-1",
+    "teamName": "Team Alpha",
+    "totalFantasyPoints": 125.5,
+    "matchupId": "matchup-uuid-1"
+  },
+  {
+    "teamId": "team-uuid-2",
+    "teamName": "Team Beta",
+    "totalFantasyPoints": 118.25,
+    "matchupId": "matchup-uuid-1"
+  }
+]
+```
+
+**Note**: Teams are sorted by total fantasy points (descending). Only starter points are included.
 
 **Response** (200 OK):
 ```json
@@ -197,13 +365,28 @@ GET /api/leagues/abc123/scores?seasonYear=2024&week=1
 
 ## Scoring Rules
 
-The scoring rules are defined in `web/lib/scoring.ts`:
+The scoring rules are defined in `web/lib/scoring.ts` and `web/lib/scoring-config.ts`.
 
+**Default Rules** (Yahoo-style standard):
 - **Passing**: 1 pt per 25 yards, 4 pts per TD, -2 per INT
 - **Rushing**: 1 pt per 10 yards, 6 pts per TD
 - **Receiving**: 1 pt per 10 yards, 6 pts per TD, 1 pt per reception (PPR)
 - **Kicking**: Uses `kicking_points` as aggregated points
 - **Defense**: Uses `defense_points` as aggregated points
+- **Bonuses**: Disabled by default (can be enabled per league)
+
+**Bonus Rules** (when enabled):
+- **Rushing**: +3 points for 100+ rushing yards
+- **Receiving**: +3 points for 100+ receiving yards
+- **Passing**: +3 points for 300+ passing yards
+
+**Custom Scoring**: Each league can override these defaults via `scoring_settings` JSONB column. Commissioners can edit scoring rules via the UI on the league detail page.
+
+**Validation**: All scoring configs are validated before saving:
+- Yardage per point must be > 0
+- TD points must be >= 0
+- Bonus thresholds must be > 0 when enabled
+- Bonus points must be >= 0 when enabled
 
 Scores are rounded to 2 decimal places.
 
@@ -261,18 +444,37 @@ export function ScoresViewer({ leagueId }: { leagueId: string }) {
 
 ### iOS SwiftUI App (Future)
 
+**Example: Fetching Player Scores**
+
 ```swift
 struct ScoresView: View {
     let leagueId: String
+    let seasonYear: Int
+    let week: Int
     
     @State private var scores: [LeagueWeekPlayerScore] = []
+    @State private var loading = false
+    @State private var error: String?
     
     var body: some View {
         List(scores) { score in
             HStack {
-                Text(score.playerName)
+                VStack(alignment: .leading) {
+                    Text(score.playerName)
+                        .font(.headline)
+                    Text("\(score.position ?? "N/A") • \(score.teamAbbrev ?? "N/A")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 Spacer()
-                Text("\(score.fantasyPoints, specifier: "%.2f") pts")
+                VStack(alignment: .trailing) {
+                    Text("\(score.fantasyPoints, specifier: "%.2f")")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Text(score.rosterSlot == "starter" ? "Starter" : "Bench")
+                        .font(.caption)
+                        .foregroundColor(score.rosterSlot == "starter" ? .green : .gray)
+                }
             }
         }
         .onAppear {
@@ -281,11 +483,103 @@ struct ScoresView: View {
     }
     
     func fetchScores() {
-        let url = URL(string: "\(supabaseUrl)/rest/v1/rpc/get_league_week_scores?league_id=\(leagueId)&season_year=2024&week=1")!
-        // ... make request
+        loading = true
+        error = nil
+        
+        let url = URL(string: "\(supabaseUrl)/functions/v1/api/leagues/\(leagueId)/scores?seasonYear=\(seasonYear)&week=\(week)")!
+        
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, err in
+            // Handle response
+            if let data = data {
+                if let decoded = try? JSONDecoder().decode([LeagueWeekPlayerScore].self, from: data) {
+                    DispatchQueue.main.async {
+                        self.scores = decoded
+                        self.loading = false
+                    }
+                }
+            }
+        }.resume()
     }
 }
 ```
+
+**Example: Fetching Team Totals**
+
+```swift
+struct TeamScoresView: View {
+    let leagueId: String
+    let seasonYear: Int
+    let week: Int
+    
+    @State private var summaries: [LeagueWeekTeamScoreSummary] = []
+    
+    var body: some View {
+        List(summaries) { summary in
+            HStack {
+                Text(summary.teamName)
+                Spacer()
+                Text("\(summary.totalFantasyPoints, specifier: "%.2f") pts")
+                    .fontWeight(.semibold)
+            }
+        }
+        .onAppear {
+            fetchTeamTotals()
+        }
+    }
+    
+    func fetchTeamTotals() {
+        let url = URL(string: "\(supabaseUrl)/functions/v1/api/leagues/\(leagueId)/scores/summary?seasonYear=\(seasonYear)&week=\(week)")!
+        // ... make request similar to above
+    }
+}
+```
+
+**Type Definitions for Swift**:
+
+```swift
+struct LeagueWeekPlayerScore: Codable, Identifiable {
+    let playerId: String
+    let playerName: String
+    let teamAbbrev: String?
+    let position: String?
+    let rosterSlot: String // "starter" or "bench"
+    let fantasyPoints: Double
+    let stats: PlayerStats
+    
+    var id: String { playerId }
+}
+
+struct PlayerStats: Codable {
+    let passingYards: Double?
+    let passingTds: Int?
+    let interceptions: Int?
+    let rushingYards: Double?
+    let rushingTds: Int?
+    let receivingYards: Double?
+    let receivingTds: Int?
+    let receptions: Int?
+    let kickingPoints: Int?
+    let defensePoints: Int?
+}
+
+struct LeagueWeekTeamScoreSummary: Codable, Identifiable {
+    let teamId: String
+    let teamName: String
+    let totalFantasyPoints: Double
+    let matchupId: String?
+    
+    var id: String { teamId }
+}
+```
+
+**Note for iOS Integration**: 
+- iOS clients do not need to know about scoring math or bonus calculations
+- The `fantasyPoints` field in API responses already includes all bonuses and custom scoring rules
+- Simply display the `fantasyPoints` value as-is
+- Scoring rules are managed by commissioners via the web UI
 
 ## Testing
 
@@ -298,6 +592,9 @@ Tests are located in `web/lib/__tests__/league-scores.test.ts`.
 - Returns error when league not found
 - Correctly computes fantasy points
 - Handles players with no stats (0 points)
+- **Bonus Scoring**: Tests for rushing, receiving, and passing yardage bonuses
+- **Config Validation**: Tests for parsing and validating scoring configs
+- **Config Presets**: Tests for standard, half-PPR, and full-PPR presets
 
 Run tests:
 ```bash
@@ -351,12 +648,37 @@ A dev-only component is available at the dashboard for manual verification:
 
 **Note**: Stats are stored with `season_year` and `nfl_week` to allow syncing before league weeks are created. They can be linked to `league_week_id` later.
 
+## Phase 10 & 11 Updates
+
+**Phase 10 Completed**:
+- ✅ League weeks are first-class citizens in scoring pipeline
+- ✅ Custom scoring rules per league (stored in `leagues.scoring_settings`)
+- ✅ Fantasy points caching (`player_week_stats.fantasy_points`)
+- ✅ Commissioner workflow UI (ingest → preview → apply)
+- ✅ Team totals endpoint (`/api/leagues/[id]/scores/summary`)
+
+**Phase 11 Completed**:
+- ✅ Commissioner scoring rules UI with presets and validation
+- ✅ Bonus points support (rushing, receiving, passing yardage bonuses)
+- ✅ Performance optimization (batch updates via stored procedure)
+- ✅ Comprehensive tests for bonus scoring and config validation
+
+**Key Files**:
+- `web/lib/week-mapping.ts` - League week resolution
+- `web/lib/scoring-config.ts` - Custom scoring configuration with bonus support
+- `web/lib/scoring.ts` - Scoring calculation with bonus logic
+- `web/app/actions/commissioner-workflow.ts` - Commissioner workflow orchestration
+- `web/app/actions/scoring-config.ts` - Scoring settings management
+- `web/components/commissioner-scoring-workflow.tsx` - Score calculation UI
+- `web/components/league-scoring-settings-form.tsx` - Scoring rules editor UI
+- `supabase/migrations/20241202000006_add_fantasy_points_caching.sql` - Caching migration
+- `supabase/migrations/20241202000007_batch_update_fantasy_points.sql` - Batch update optimization
+
 ## Future Enhancements
 
-- [ ] Support for custom scoring rules per league
-- [ ] Caching of computed scores
 - [ ] Batch fetching for multiple weeks
 - [ ] Real-time score updates during games
 - [ ] Historical score queries
 - [ ] Score projections/forecasts
+- [ ] Additional bonus types (e.g., multi-TD bonuses, milestone bonuses)
 
