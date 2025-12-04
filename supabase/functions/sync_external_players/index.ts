@@ -136,7 +136,32 @@ serve(async (req) => {
       )
     }
 
-    const playersData = await playersResponse.json()
+    // Parse JSON response with error handling
+    let playersData: any[]
+    try {
+      const responseText = await playersResponse.text()
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from SportsData API')
+      }
+      playersData = JSON.parse(responseText)
+      if (!Array.isArray(playersData)) {
+        throw new Error('Expected array from SportsData API, got: ' + typeof playersData)
+      }
+    } catch (parseError: any) {
+      console.error('[sync_external_players] JSON parse error:', parseError)
+      return new Response(
+        JSON.stringify({ 
+          ok: false,
+          error: 'Failed to parse API response',
+          details: parseError.message || 'Invalid JSON response',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
+    }
+    
     console.log(`[sync_external_players] Fetched ${playersData.length} players from API`)
 
     // Map external data to our format
@@ -225,9 +250,15 @@ serve(async (req) => {
       }
     )
   } catch (error: any) {
-    console.error('[sync_external_players] Error:', error)
+    console.error('[sync_external_players] Unhandled error:', error)
+    console.error('[sync_external_players] Error stack:', error.stack)
     return new Response(
-      JSON.stringify({ error: error.message || 'An error occurred' }),
+      JSON.stringify({ 
+        ok: false,
+        error: 'Internal server error',
+        details: error.message || 'An unexpected error occurred',
+        type: error.constructor?.name || 'Unknown',
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
