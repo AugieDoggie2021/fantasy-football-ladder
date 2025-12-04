@@ -27,11 +27,17 @@ export class SportsDataProvider implements ExternalStatsProvider {
   /**
    * Fetch all NFL players from SportsData.io
    * 
-   * TODO: Verify the exact endpoint and response format from SportsData.io docs
-   * Expected endpoint: GET /Players
+   * Endpoint: GET /scores/json/Players
+   * Full URL: https://api.sportsdata.io/v3/nfl/scores/json/Players
    */
   async fetchAllPlayers(): Promise<ExternalPlayer[]> {
-    const url = `${this.baseUrl}/Players`;
+    // Construct the correct SportsData.io players endpoint
+    // Base URL should be: https://api.sportsdata.io/v3/nfl
+    // Path should be: /scores/json/Players
+    const playersPath = '/scores/json/Players'
+    const url = `${this.baseUrl}${playersPath}`;
+    
+    console.log(`[SportsData] Fetching players from: ${url}`);
     
     const response = await fetch(url, {
       headers: {
@@ -40,6 +46,13 @@ export class SportsDataProvider implements ExternalStatsProvider {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[SportsData] API error:`, {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        responsePreview: errorText.substring(0, 200),
+      });
       throw new Error(`SportsData.io API error: ${response.status} ${response.statusText}`);
     }
 
@@ -63,9 +76,8 @@ export class SportsDataProvider implements ExternalStatsProvider {
   /**
    * Fetch weekly player stats from SportsData.io
    * 
-   * TODO: Verify the exact endpoint and response format from SportsData.io docs
-   * Expected endpoint: GET /PlayerGameStatsByWeek/{season}/{week}
-   * or similar endpoint for weekly stats
+   * Endpoint: GET /stats/json/PlayerGameStatsByWeek/{season}/{week}
+   * Full URL: https://api.sportsdata.io/v3/nfl/stats/json/PlayerGameStatsByWeek/2023/1
    * 
    * @param seasonYear - The NFL season year (e.g., 2024)
    * @param week - The NFL week number (1-18)
@@ -82,9 +94,13 @@ export class SportsDataProvider implements ExternalStatsProvider {
       // TODO: Implement replay logic (e.g., use cached data or different endpoint)
     }
 
-    // TODO: Verify the exact endpoint format from SportsData.io docs
-    // This is a placeholder - adjust based on actual API structure
-    const url = `${this.baseUrl}/PlayerGameStatsByWeek/${seasonYear}/${week}`;
+    // Construct the correct SportsData.io weekly stats endpoint
+    // Base URL should be: https://api.sportsdata.io/v3/nfl
+    // Path should be: /stats/json/PlayerGameStatsByWeek/{season}/{week}
+    const statsPath = `/stats/json/PlayerGameStatsByWeek/${seasonYear}/${week}`
+    const url = `${this.baseUrl}${statsPath}`;
+    
+    console.log(`[SportsData] Fetching stats from: ${url}`);
     
     const response = await fetch(url, {
       headers: {
@@ -93,6 +109,13 @@ export class SportsDataProvider implements ExternalStatsProvider {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[SportsData] API error:`, {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        responsePreview: errorText.substring(0, 200),
+      });
       throw new Error(`SportsData.io API error: ${response.status} ${response.statusText}`);
     }
 

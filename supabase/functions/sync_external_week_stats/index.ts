@@ -6,6 +6,27 @@
  * 
  * Note: This function creates stats records but does NOT link them to league_week_id.
  * The stats are stored with season_year and nfl_week for later association with leagues.
+ * 
+ * Environment Variables Required:
+ * - INGESTION_SHARED_SECRET: Secret key for authenticating ingestion requests
+ * - EXTERNAL_STATS_API_BASE_URL: Base URL for SportsData.io API (defaults to https://api.sportsdata.io/v3/nfl)
+ * - EXTERNAL_STATS_API_KEY: API key for SportsData.io (Ocp-Apim-Subscription-Key header)
+ * - SUPABASE_URL: Supabase project URL (auto-provided by Supabase)
+ * - SUPABASE_SERVICE_ROLE_KEY: Service role key for privileged operations (auto-provided by Supabase)
+ * 
+ * Authentication:
+ * - All requests must include header: X-INGESTION-KEY: <INGESTION_SHARED_SECRET>
+ * - Requests without valid key will receive 401 Unauthorized
+ * 
+ * Request Body:
+ * - { seasonYear: number, week: number, mode?: 'live' | 'replay' }
+ * - week must be between 1 and 18
+ * 
+ * Response:
+ * - Success (200): { seasonYear: number, week: number, mode: string, insertedCount: number, updatedCount: number, skippedCount: number }
+ * - Error (400): { error: "seasonYear and week are required" } or { error: "week must be between 1 and 18" }
+ * - Error (401): { error: "Invalid or missing X-INGESTION-KEY header" }
+ * - Error (500): { error: string }
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -122,10 +143,15 @@ serve(async (req) => {
       )
     }
 
-    // Fetch weekly stats from external provider
-    // TODO: Verify the exact endpoint format from SportsData.io docs
-    const statsUrl = `${apiBaseUrl}/PlayerGameStatsByWeek/${seasonYear}/${week}`
-    console.log(`[sync_external_week_stats] Fetching stats from ${statsUrl}`)
+    // Construct the correct SportsData.io weekly stats endpoint
+    // Base URL should be: https://api.sportsdata.io/v3/nfl
+    // Path should be: /stats/json/PlayerGameStatsByWeek/{season}/{week}
+    // Full URL: https://api.sportsdata.io/v3/nfl/stats/json/PlayerGameStatsByWeek/2023/1
+    const statsPath = `/stats/json/PlayerGameStatsByWeek/${seasonYear}/${week}`
+    const statsUrl = `${apiBaseUrl}${statsPath}`
+    
+    // Log the URL being called (without API key)
+    console.log(`[sync_external_week_stats] SportsData stats URL: ${statsUrl}`)
     
     const statsResponse = await fetch(statsUrl, {
       headers: {
@@ -135,15 +161,24 @@ serve(async (req) => {
 
     if (!statsResponse.ok) {
       const errorText = await statsResponse.text()
-      console.error(`[sync_external_week_stats] API error: ${statsResponse.status} ${errorText}`)
+      // Log detailed error info (without API key)
+      console.error(`[sync_external_week_stats] API error:`, {
+        url: statsUrl,
+        status: statsResponse.status,
+        statusText: statsResponse.statusText,
+        responsePreview: errorText.substring(0, 200), // First 200 chars only
+      })
+      
       return new Response(
         JSON.stringify({ 
-          error: `External API error: ${statsResponse.status} ${statsResponse.statusText}`,
-          details: errorText 
+          ok: false,
+          error: 'External API error',
+          status: statsResponse.status,
+          details: statsResponse.statusText || 'Unknown error',
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: statsResponse.status,
+          status: 500, // Return 500 to indicate our function error, not the upstream status
         }
       )
     }

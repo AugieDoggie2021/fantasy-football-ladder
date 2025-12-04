@@ -3,6 +3,22 @@
  * 
  * Fetches all players from external stats provider (SportsData.io) and upserts them
  * into the players table. Uses service-role client to bypass RLS.
+ * 
+ * Environment Variables Required:
+ * - INGESTION_SHARED_SECRET: Secret key for authenticating ingestion requests
+ * - EXTERNAL_STATS_API_BASE_URL: Base URL for SportsData.io API (defaults to https://api.sportsdata.io/v3/nfl)
+ * - EXTERNAL_STATS_API_KEY: API key for SportsData.io (Ocp-Apim-Subscription-Key header)
+ * - SUPABASE_URL: Supabase project URL (auto-provided by Supabase)
+ * - SUPABASE_SERVICE_ROLE_KEY: Service role key for privileged operations (auto-provided by Supabase)
+ * 
+ * Authentication:
+ * - All requests must include header: X-INGESTION-KEY: <INGESTION_SHARED_SECRET>
+ * - Requests without valid key will receive 401 Unauthorized
+ * 
+ * Response:
+ * - Success (200): { insertedCount: number, updatedCount: number }
+ * - Error (401): { error: "Invalid or missing X-INGESTION-KEY header" }
+ * - Error (500): { error: string }
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -80,9 +96,15 @@ serve(async (req) => {
       )
     }
 
-    // Fetch all players from external provider
-    console.log(`[sync_external_players] Fetching players from ${apiBaseUrl}/Players`)
-    const playersUrl = `${apiBaseUrl}/Players`
+    // Construct the correct SportsData.io players endpoint
+    // Base URL should be: https://api.sportsdata.io/v3/nfl
+    // Path should be: /scores/json/Players
+    // Full URL: https://api.sportsdata.io/v3/nfl/scores/json/Players
+    const playersPath = '/scores/json/Players'
+    const playersUrl = `${apiBaseUrl}${playersPath}`
+    
+    // Log the URL being called (without API key)
+    console.log(`[sync_external_players] SportsData players URL: ${playersUrl}`)
     
     const playersResponse = await fetch(playersUrl, {
       headers: {
@@ -92,15 +114,24 @@ serve(async (req) => {
 
     if (!playersResponse.ok) {
       const errorText = await playersResponse.text()
-      console.error(`[sync_external_players] API error: ${playersResponse.status} ${errorText}`)
+      // Log detailed error info (without API key)
+      console.error(`[sync_external_players] API error:`, {
+        url: playersUrl,
+        status: playersResponse.status,
+        statusText: playersResponse.statusText,
+        responsePreview: errorText.substring(0, 200), // First 200 chars only
+      })
+      
       return new Response(
         JSON.stringify({ 
-          error: `External API error: ${playersResponse.status} ${playersResponse.statusText}`,
-          details: errorText 
+          ok: false,
+          error: 'External API error',
+          status: playersResponse.status,
+          details: playersResponse.statusText || 'Unknown error',
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: playersResponse.status,
+          status: 500, // Return 500 to indicate our function error, not the upstream status
         }
       )
     }
