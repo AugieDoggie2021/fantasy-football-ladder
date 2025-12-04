@@ -6,12 +6,21 @@
 
 const https = require('https');
 
-const VERCEL_API_TOKEN = process.env.VERCEL_API_TOKEN || '6NAPquKnhPEYtNVIq7IXZJ7T';
+const VERCEL_API_TOKEN = process.env.VERCEL_API_TOKEN;
+
+if (!VERCEL_API_TOKEN) {
+  console.error('❌ VERCEL_API_TOKEN environment variable not set');
+  console.log('\nSet it with:');
+  console.log('  Windows PowerShell: $env:VERCEL_API_TOKEN="your_token"');
+  console.log('  Windows CMD: set VERCEL_API_TOKEN=your_token');
+  console.log('  macOS/Linux: export VERCEL_API_TOKEN=your_token');
+  process.exit(1);
+}
 const MCP_ENDPOINT = 'https://mcp.vercel.com';
 
 console.log('🔍 Testing Vercel MCP Connection...\n');
 console.log(`Endpoint: ${MCP_ENDPOINT}`);
-console.log(`Token: ${VERCEL_API_TOKEN.substring(0, 10)}...\n`);
+console.log(`Token: ${VERCEL_API_TOKEN ? VERCEL_API_TOKEN.substring(0, 10) + '...' : 'Not set'}\n`);
 
 // First, test regular Vercel API to verify token works
 function testVercelAPI() {

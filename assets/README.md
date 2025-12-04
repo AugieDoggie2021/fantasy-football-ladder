@@ -95,3 +95,90 @@ Any new icons or badges must:
 - Be placed in the correct folder (`Positions/`, `Badges/`, `UI/`, etc.)
 - Include source files in the corresponding `Source/...` subfolder
 - Include appropriate scale variants (`@1x`, `@2x`, `@3x`) where needed
+
+---
+
+## Platform Usage (iOS vs Web)
+
+### Shared Source of Truth
+
+All master design files and exported PNGs live under `Assets/` at the repository root. This is the single source of truth for all visual assets.
+
+**Designer Workflow:**
+- Designers update assets in `Assets/Source/...` and re-export PNGs into the appropriate `Assets/...` folders.
+- All platform-specific usage pulls from these centralized `Assets/` folders.
+
+### iOS Usage
+
+**Asset Location:**
+- iOS uses Xcode's `Assets.xcassets` catalog inside the Xcode project (e.g., `ios/FantasyFootballLadder/Assets.xcassets`).
+- Developers should import PNGs from the root `Assets/` folders into image sets in the catalog.
+
+**Import Process:**
+1. Open the Xcode project
+2. Navigate to `Assets.xcassets` in the project navigator
+3. Create or update image sets (e.g., `pos-qb`, `badge-tier-1`, `brand-logo-primary`)
+4. Import PNGs from:
+   - `Assets/AppIcon/` for app icons
+   - `Assets/Brand/` for logos and wordmarks
+   - `Assets/Positions/` for position icons
+   - `Assets/Badges/` for tier/promotion/relegation badges
+   - `Assets/UI/` for generic UI icons
+
+**Resolution Variants:**
+- iOS uses the `@1x/@2x/@3x` convention natively
+- Place `@1x` variants in the 1x slot, `@2x` in the 2x slot, and `@3x` in the 3x slot of each image set in Xcode
+
+**Code Usage:**
+```swift
+Image("pos-qb")
+  .resizable()
+  .frame(width: 32, height: 32)
+```
+
+### Web Usage
+
+**Asset Location:**
+- The web client serves images from `web/public/assets/...`
+- The folder structure under `public/assets` mirrors the top-level `Assets` structure:
+  - `web/public/assets/brand/` for logos and wordmarks
+  - `web/public/assets/positions/` for position icons (e.g., `pos-qb@2x.png`)
+  - `web/public/assets/badges/` for tier/promotion/relegation badges
+  - `web/public/assets/ui/` for generic UI icons (fantasy points, settings, leaderboard, notifications, etc.)
+
+**Resolution Strategy:**
+- We typically use the `@2x` variants on web for standard UI elements
+- Can opt into `@3x` for high-density displays or large-display use cases
+- Next.js Image component handles responsive sizing and optimization automatically
+
+**Code Usage:**
+```tsx
+import Image from "next/image";
+
+export function PositionIconQB() {
+  return (
+    <Image
+      src="/assets/positions/pos-qb@2x.png"
+      alt="QB"
+      width={32}
+      height={32}
+    />
+  );
+}
+```
+
+### Syncing Assets
+
+**Important:** When designers update PNGs under `Assets/`, those changes must be manually (or via a future sync script) copied to:
+
+1. **Web:** The corresponding `web/public/assets/...` folders
+2. **iOS:** The Xcode `Assets.xcassets` catalog
+
+**Key Rules:**
+- **Filenames must remain identical** across `Assets/` and `web/public/assets/`
+- Keep folder structure consistent between platforms
+- Ensure all resolution variants (`@1x`, `@2x`, `@3x`) are synced as needed
+
+**Future Automation:**
+- A sync script may be created to automate copying from `Assets/` to `web/public/assets/`
+- Xcode asset catalog imports typically remain manual to allow for proper image set configuration
