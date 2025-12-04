@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getLeagueWeekPlayerScoresAction, type LeagueWeekPlayerScore } from '@/app/actions/scores'
-import { createClient } from '@/lib/supabase/client'
-import { useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
 
 export function DevPlayerScoresView() {
   const [leagueId, setLeagueId] = useState<string>('')
@@ -17,7 +16,6 @@ export function DevPlayerScoresView() {
   // Fetch available leagues on mount
   useEffect(() => {
     async function fetchLeagues() {
-      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
