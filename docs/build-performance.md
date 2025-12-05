@@ -28,24 +28,30 @@ Or set up CI workflows to run these checks in GitHub Actions (not blocking Verce
 
 Vercel can cache `node_modules` installations if a lockfile is committed to the repository.
 
-### Enable Fast Installs on Vercel
+### Status
 
-1. **Generate lockfile** (if not already present):
+✅ **`package-lock.json` is already committed** to the repository, so Vercel dependency caching is enabled.
+
+### Keeping the Lockfile Up to Date
+
+When you add, remove, or update dependencies:
+
+1. **Install dependencies**:
    ```bash
    cd web
    npm install
    ```
 
-2. **Commit the lockfile**:
+2. **Commit the updated lockfile**:
    ```bash
    git add package-lock.json
-   git commit -m "Add package-lock.json for Vercel dependency caching"
+   git commit -m "Update package-lock.json"
    git push
    ```
 
-3. **Verify** that `package-lock.json` is in the repository and NOT in `.gitignore`
+3. **Verify** that `package-lock.json` remains in the repository (NOT in `.gitignore`)
 
-After the first build with a lockfile, Vercel will cache the dependency installation step, dramatically speeding up subsequent builds.
+After the first build with a lockfile, Vercel caches the dependency installation step, dramatically speeding up subsequent builds. Since the lockfile is already committed, caching should already be active.
 
 ### Lockfile Guidelines
 

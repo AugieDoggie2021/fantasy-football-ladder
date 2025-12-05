@@ -109,16 +109,16 @@ Create a `.env.local` file in the `web/` directory with the following variables:
 
 For faster Vercel builds, see [`docs/build-performance.md`](../docs/build-performance.md).
 
-**Quick setup for dependency caching:**
+**Dependency caching is already enabled:** `package-lock.json` is committed to the repository, so Vercel can cache dependency installations for faster builds.
+
+When dependencies change, remember to commit the updated lockfile:
 ```bash
 cd web
 npm install
 git add package-lock.json
-git commit -m "Add package-lock.json for Vercel caching"
+git commit -m "Update package-lock.json"
 git push
 ```
-
-This enables Vercel to cache dependency installations, significantly speeding up subsequent builds.
 
 ## Next Steps
 
