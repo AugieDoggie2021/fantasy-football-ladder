@@ -180,29 +180,26 @@ export default async function DashboardPage() {
             </div>
           )}
 
-                {/* Admin Links */}
-                {isAdmin && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                      Admin Tools
-                    </h3>
-                    <div className="space-y-2">
-                      <Link
-                        href="/seasons"
-                        className="block px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm"
-                      >
-                        Manage Seasons (Admin)
-                      </Link>
-                      {env === 'dev' && (
-                        <Link
-                          href="/admin"
-                          className="block px-4 py-2 border border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition text-sm text-yellow-800 dark:text-yellow-200"
-                        >
-                          Developer Tools (Admin)
-                        </Link>
-                      )}
-                    </div>
-                  </div>
+          {/* Admin Links */}
+          {isAdmin && (
+            <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Admin Tools
+              </h2>
+              <div className="space-y-2">
+                <Link
+                  href="/seasons"
+                  className="block px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm"
+                >
+                  Manage Seasons (Admin)
+                </Link>
+                {env === 'dev' && (
+                  <Link
+                    href="/admin"
+                    className="block px-4 py-2 border border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition text-sm text-yellow-800 dark:text-yellow-200"
+                  >
+                    Developer Tools (Admin)
+                  </Link>
                 )}
               </div>
             </div>
