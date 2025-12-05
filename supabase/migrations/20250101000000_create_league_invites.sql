@@ -1,0 +1,93 @@
+-- League Invitations Table
+-- This migration creates the league_invites table for managing league invitations
+
+-- ============================================================================
+-- LEAGUE INVITES TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.league_invites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  league_id UUID NOT NULL REFERENCES public.leagues(id) ON DELETE CASCADE,
+  email TEXT, -- Optional: for email-based invites (future use)
+  token TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'accepted', 'revoked', 'expired'
+  created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ -- Optional expiration
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_league_invites_league_id ON public.league_invites(league_id);
+CREATE INDEX IF NOT EXISTS idx_league_invites_token ON public.league_invites(token);
+CREATE INDEX IF NOT EXISTS idx_league_invites_email ON public.league_invites(email) WHERE email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_league_invites_status ON public.league_invites(status);
+CREATE INDEX IF NOT EXISTS idx_league_invites_created_by ON public.league_invites(created_by);
+
+-- RLS Policies
+ALTER TABLE public.league_invites ENABLE ROW LEVEL SECURITY;
+
+-- Select: League commissioners (league.owner_id) and global admins can view invites for their leagues
+-- Users can also view invites that match their email OR that they hold via token
+CREATE POLICY "Commissioners and admins can view invites for their leagues"
+  ON public.league_invites
+  FOR SELECT
+  USING (
+    -- League commissioner
+    EXISTS (
+      SELECT 1 FROM public.leagues
+      WHERE leagues.id = league_invites.league_id
+      AND leagues.created_by_user_id = auth.uid()
+    )
+    -- Global admin (check via users table)
+    OR EXISTS (
+      SELECT 1 FROM public.users
+      WHERE users.id = auth.uid()
+      AND users.is_admin = true
+    )
+    -- User can see invites matching their email
+    OR (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
+  );
+
+-- Insert: League commissioners can create invites for their leagues
+CREATE POLICY "Commissioners can create invites for their leagues"
+  ON public.league_invites
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND created_by = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.leagues
+      WHERE leagues.id = league_invites.league_id
+      AND leagues.created_by_user_id = auth.uid()
+    )
+  );
+
+-- Update: League commissioners can update invites for their leagues (e.g., revoke)
+CREATE POLICY "Commissioners can update invites for their leagues"
+  ON public.league_invites
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.leagues
+      WHERE leagues.id = league_invites.league_id
+      AND leagues.created_by_user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.leagues
+      WHERE leagues.id = league_invites.league_id
+      AND leagues.created_by_user_id = auth.uid()
+    )
+  );
+
+-- ============================================================================
+-- ADD is_public and is_joinable COLUMNS TO LEAGUES TABLE
+-- ============================================================================
+ALTER TABLE public.leagues
+ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS is_joinable BOOLEAN NOT NULL DEFAULT false;
+
+-- Index for public/joinable leagues
+CREATE INDEX IF NOT EXISTS idx_leagues_is_public ON public.leagues(is_public) WHERE is_public = true;
+CREATE INDEX IF NOT EXISTS idx_leagues_is_joinable ON public.leagues(is_joinable) WHERE is_joinable = true;
+

@@ -1,0 +1,473 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
+import { randomBytes } from 'crypto'
+import { sendLeagueInviteEmail } from '@/lib/email'
+
+/**
+ * Create a league invite
+ * Generates a random token and inserts into league_invites
+ */
+export async function createLeagueInvite(leagueId: string, email?: string) {
+  const supabase = await createClient()
+  
+  const userWithProfile = await getCurrentUserWithProfile()
+  if (!userWithProfile?.user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { user } = userWithProfile
+
+  // Verify user is the league commissioner
+  const { data: league, error: leagueError } = await supabase
+    .from('leagues')
+    .select('id, created_by_user_id')
+    .eq('id', leagueId)
+    .single()
+
+  if (leagueError || !league) {
+    return { error: 'League not found' }
+  }
+
+  // Check if user is commissioner or global admin
+  const isCommissioner = league.created_by_user_id === user.id
+  const isAdmin = isGlobalAdmin(userWithProfile.profile)
+  
+  if (!isCommissioner && !isAdmin) {
+    return { error: 'Only league commissioners can create invites' }
+  }
+
+  // Generate a secure random token
+  const token = randomBytes(32).toString('hex')
+
+  // Set expiration date (7 days from now, configurable via env)
+  const expirationDays = parseInt(process.env.INVITE_EXPIRATION_DAYS || '7')
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + expirationDays)
+
+  // Get league details for email
+  const { data: leagueDetails } = await supabase
+    .from('leagues')
+    .select('name, created_by_user_id')
+    .eq('id', leagueId)
+    .single()
+
+  // Get commissioner details for email
+  const { data: commissionerProfile } = await supabase
+    .from('users')
+    .select('display_name')
+    .eq('id', user.id)
+    .single()
+
+  const commissionerName = commissionerProfile?.display_name || user.email?.split('@')[0] || 'League Commissioner'
+
+  // Insert invite
+  const { data: invite, error: inviteError } = await supabase
+    .from('league_invites')
+    .insert({
+      league_id: leagueId,
+      email: email || null,
+      token,
+      status: 'pending',
+      created_by: user.id,
+      expires_at: expiresAt.toISOString(),
+    })
+    .select('id, token')
+    .single()
+
+  if (inviteError || !invite) {
+    return { error: 'Failed to create invite' }
+  }
+
+  // Construct invite URL
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasy-football-ladder.vercel.app'
+  const inviteUrl = `${baseUrl}/join/league/${invite.token}`
+
+  // Send email if email is provided
+  let emailResult: { success: boolean; error?: string; devMode?: boolean } | null = null
+  if (email) {
+    try {
+      emailResult = await sendLeagueInviteEmail({
+        to: email,
+        inviteUrl,
+        leagueName: leagueDetails?.name || 'Fantasy League',
+        commissionerName,
+        commissionerEmail: user.email || undefined,
+      })
+
+      // Update invite with email sending status
+      if (emailResult.success) {
+        await supabase
+          .from('league_invites')
+          .update({
+            email_sent_at: new Date().toISOString(),
+            email_sent_count: 1,
+            last_email_error: null,
+          })
+          .eq('id', invite.id)
+      } else {
+        await supabase
+          .from('league_invites')
+          .update({
+            last_email_error: emailResult.error || 'Unknown error',
+          })
+          .eq('id', invite.id)
+      }
+    } catch (error: any) {
+      // Log error but don't fail invite creation
+      console.error('Email sending error:', error)
+      await supabase
+        .from('league_invites')
+        .update({
+          last_email_error: error.message || 'Failed to send email',
+        })
+        .eq('id', invite.id)
+    }
+  }
+
+  revalidatePath(`/leagues/${leagueId}`)
+  
+  return { 
+    data: { 
+      token: invite.token,
+      emailSent: emailResult?.success || false,
+      emailError: emailResult?.error,
+      devMode: emailResult?.devMode,
+    } 
+  }
+}
+
+/**
+ * Get invite by token
+ */
+export async function getInviteByToken(token: string) {
+  const supabase = await createClient()
+
+  const { data: invite, error } = await supabase
+    .from('league_invites')
+    .select(`
+      id,
+      league_id,
+      email,
+      token,
+      status,
+      created_at,
+      expires_at,
+      leagues (
+        id,
+        name,
+        max_teams,
+        status,
+        promotion_groups (
+          id,
+          name
+        ),
+        created_by_user_id,
+        teams!inner (
+          id
+        )
+      )
+    `)
+    .eq('token', token)
+    .single()
+
+  if (error || !invite) {
+    return { error: 'Invite not found' }
+  }
+
+  // Check if invite is expired
+  if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+    return { error: 'Invite has expired' }
+  }
+
+  // Check if invite is still pending
+  if (invite.status !== 'pending') {
+    return { error: `Invite has been ${invite.status}` }
+  }
+
+  return { data: invite }
+}
+
+/**
+ * Accept an invite
+ * Validates invite, creates a team, and marks invite as accepted
+ */
+export async function acceptInvite(token: string, teamName: string) {
+  const supabase = await createClient()
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const userId = user.id
+
+  // Get invite
+  const inviteResult = await getInviteByToken(token)
+  if (inviteResult.error || !inviteResult.data) {
+    return { error: inviteResult.error || 'Invalid invite' }
+  }
+
+  const invite = inviteResult.data
+
+  // Check if user already has a team in this league
+  const { data: existingTeam } = await supabase
+    .from('teams')
+    .select('id')
+    .eq('league_id', invite.league_id)
+    .eq('owner_user_id', userId)
+    .single()
+
+  if (existingTeam) {
+    return { error: 'You already have a team in this league', data: { leagueId: invite.league_id } }
+  }
+
+  // Check if league is full
+  const league = invite.leagues as any
+  const teamCount = Array.isArray(league?.teams) ? league.teams.length : 0
+  if (teamCount >= league.max_teams) {
+    return { error: 'This league is full' }
+  }
+
+  // Create team
+  const { data: team, error: teamError } = await supabase
+    .from('teams')
+    .insert({
+      league_id: invite.league_id,
+      owner_user_id: userId,
+      name: teamName,
+      is_active: true,
+    })
+    .select('id, league_id')
+    .single()
+
+  if (teamError || !team) {
+    return { error: 'Failed to create team' }
+  }
+
+  // Mark invite as accepted
+  const { error: updateError } = await supabase
+    .from('league_invites')
+    .update({ status: 'accepted' })
+    .eq('id', invite.id)
+
+  if (updateError) {
+    // Team was created but invite update failed - log but don't fail
+    console.error('Failed to update invite status:', updateError)
+  }
+
+  revalidatePath(`/leagues/${invite.league_id}`)
+  revalidatePath('/dashboard')
+  
+  return { data: { leagueId: invite.league_id, teamId: team.id } }
+}
+
+/**
+ * Get all invites for a league (commissioner only)
+ */
+export async function getLeagueInvites(leagueId: string) {
+  const supabase = await createClient()
+  
+  const userWithProfile = await getCurrentUserWithProfile()
+  if (!userWithProfile?.user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { user, profile } = userWithProfile
+
+  // Verify user is the league commissioner
+  const { data: league, error: leagueError } = await supabase
+    .from('leagues')
+    .select('id, created_by_user_id')
+    .eq('id', leagueId)
+    .single()
+
+  if (leagueError || !league) {
+    return { error: 'League not found' }
+  }
+
+  const isCommissioner = league.created_by_user_id === user.id
+  const isAdmin = isGlobalAdmin(profile)
+  
+  if (!isCommissioner && !isAdmin) {
+    return { error: 'Only league commissioners can view invites' }
+  }
+
+  const { data: invites, error } = await supabase
+    .from('league_invites')
+    .select(`
+      id,
+      email,
+      token,
+      status,
+      created_at,
+      expires_at,
+      email_sent_at,
+      email_sent_count,
+      last_email_error
+    `)
+    .eq('league_id', leagueId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    return { error: 'Failed to fetch invites' }
+  }
+
+  return { data: invites || [] }
+}
+
+/**
+ * Revoke an invite
+ */
+export async function revokeInvite(inviteId: string) {
+  const supabase = await createClient()
+  
+  const userWithProfile = await getCurrentUserWithProfile()
+  if (!userWithProfile?.user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { user, profile } = userWithProfile
+
+  // Get invite and verify league ownership
+  const { data: invite, error: inviteError } = await supabase
+    .from('league_invites')
+    .select(`
+      id,
+      league_id,
+      leagues!inner (
+        id,
+        created_by_user_id
+      )
+    `)
+    .eq('id', inviteId)
+    .single()
+
+  if (inviteError || !invite) {
+    return { error: 'Invite not found' }
+  }
+
+  const league = invite.leagues as any
+  const isCommissioner = league.created_by_user_id === user.id
+  const isAdmin = isGlobalAdmin(profile)
+  
+  if (!isCommissioner && !isAdmin) {
+    return { error: 'Only league commissioners can revoke invites' }
+  }
+
+  // Update invite status
+  const { error: updateError } = await supabase
+    .from('league_invites')
+    .update({ status: 'revoked' })
+    .eq('id', inviteId)
+
+  if (updateError) {
+    return { error: 'Failed to revoke invite' }
+  }
+
+  revalidatePath(`/leagues/${invite.league_id}`)
+  return { data: { success: true } }
+}
+
+/**
+ * Resend invite email
+ */
+export async function resendInviteEmail(inviteId: string) {
+  const supabase = await createClient()
+  
+  const userWithProfile = await getCurrentUserWithProfile()
+  if (!userWithProfile?.user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { user, profile } = userWithProfile
+
+  // Get invite with league details
+  const { data: invite, error: inviteError } = await supabase
+    .from('league_invites')
+    .select(`
+      id,
+      email,
+      token,
+      league_id,
+      email_sent_count,
+      leagues!inner (
+        id,
+        name,
+        created_by_user_id
+      )
+    `)
+    .eq('id', inviteId)
+    .single()
+
+  if (inviteError || !invite) {
+    return { error: 'Invite not found' }
+  }
+
+  if (!invite.email) {
+    return { error: 'This invite has no email address' }
+  }
+
+  const league = invite.leagues as any
+  const isCommissioner = league.created_by_user_id === user.id
+  const isAdmin = isGlobalAdmin(profile)
+  
+  if (!isCommissioner && !isAdmin) {
+    return { error: 'Only league commissioners can resend invites' }
+  }
+
+  // Get commissioner details
+  const { data: commissionerProfile } = await supabase
+    .from('users')
+    .select('display_name')
+    .eq('id', user.id)
+    .single()
+
+  const commissionerName = commissionerProfile?.display_name || user.email?.split('@')[0] || 'League Commissioner'
+
+  // Construct invite URL
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasy-football-ladder.vercel.app'
+  const inviteUrl = `${baseUrl}/join/league/${invite.token}`
+
+  // Send email
+  const emailResult = await sendLeagueInviteEmail({
+    to: invite.email,
+    inviteUrl,
+    leagueName: league.name,
+    commissionerName,
+    commissionerEmail: user.email || undefined,
+  })
+
+  // Update invite with email sending status
+  if (emailResult.success) {
+    await supabase
+      .from('league_invites')
+      .update({
+        email_sent_at: new Date().toISOString(),
+        email_sent_count: (invite.email_sent_count || 0) + 1,
+        last_email_error: null,
+      })
+      .eq('id', inviteId)
+  } else {
+    await supabase
+      .from('league_invites')
+      .update({
+        last_email_error: emailResult.error || 'Failed to send email',
+      })
+      .eq('id', inviteId)
+  }
+
+  revalidatePath(`/leagues/${invite.league_id}`)
+  
+  return { 
+    data: { 
+      success: emailResult.success,
+      error: emailResult.error,
+      devMode: emailResult.devMode,
+    } 
+  }
+}
+

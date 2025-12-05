@@ -137,12 +137,25 @@ When deployed via Supabase CLI, these environment variables are automatically av
 - `SUPABASE_SERVICE_ROLE_KEY` - Service role key for privileged operations (from linked project)
 - `ENVIRONMENT` - Environment indicator (set manually via Supabase dashboard or CLI)
 
-To set custom environment variables:
+To set custom environment variables (secrets):
 ```bash
 supabase secrets set KEY=value
 ```
 
 Or via Supabase dashboard: Project Settings → Edge Functions → Secrets
+
+### Required Secrets for Email Sending
+
+The `send_invite_email` Edge Function requires the following secret:
+
+- `RESEND_API_KEY` - Resend API key for sending emails (starts with `re_`)
+
+**Setting the Resend API Key:**
+```bash
+supabase secrets set RESEND_API_KEY=re_xxxxx
+```
+
+**Note**: The domain `fantasyladder.app` must be verified in Resend dashboard before emails can be sent.
 
 ## Local Development Workflow
 
@@ -181,8 +194,14 @@ supabase db push
 
 ### Step 3: Deploy Functions
 ```bash
+# Deploy all functions
 supabase functions deploy
+
+# Or deploy specific function (e.g., email function)
+supabase functions deploy send_invite_email
 ```
+
+**Important**: After deploying the `send_invite_email` function, ensure `RESEND_API_KEY` is set as a secret (see "Required Secrets for Email Sending" above).
 
 ### Step 4: Verify
 

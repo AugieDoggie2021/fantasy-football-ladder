@@ -81,6 +81,8 @@ export async function middleware(request: NextRequest) {
     '/leagues',
     '/seasons',
     '/promotion-groups',
+    '/commissioner',
+    '/join',
   ]
   const isProtectedRoute = protectedRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)

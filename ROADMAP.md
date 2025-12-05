@@ -226,6 +226,8 @@ It evolves alongside development and acts as both **Roadmap** and **Feature Inve
 
 * League newsfeed + commissioner announcements
 
+* Commissioner weekly video recaps — Upload short talking-head style videos from mobile devices (ESPN-style recaps). Videos auto-play when managers log in, featuring weekly highlights, matchup results, and league chat moments
+
 #### Social Layer
 
 * Shareable "promotion cards" for social media

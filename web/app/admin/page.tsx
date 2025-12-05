@@ -5,6 +5,7 @@ import { SeedDemoButton } from '@/components/seed-demo-button'
 import { DevHelpersSection } from '@/components/dev-helpers-section'
 import { DevStatsIngestionPanel } from '@/components/dev-stats-ingestion-panel'
 import { DevPlayerScoresView } from '@/components/dev-player-scores-view'
+import { DevEmailPreview } from '@/components/dev-email-preview'
 import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
 
 // Force dynamic rendering - requires authentication
@@ -118,6 +119,14 @@ export default async function AdminPage() {
                 Player Scores Debug View
               </h2>
               <DevPlayerScoresView />
+            </div>
+
+            {/* Email Testing */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Email Testing
+              </h2>
+              <DevEmailPreview />
             </div>
           </div>
         </div>

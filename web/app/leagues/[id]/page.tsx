@@ -11,6 +11,8 @@ import { CommissionerWeekControls } from '@/components/commissioner-week-control
 import { CommissionerScoringControls } from '@/components/commissioner-scoring-controls'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { CommissionerToolsSection } from '@/components/commissioner-tools-section'
+import { LeagueInvitePanel } from '@/components/league-invite-panel'
+import { LeagueInviteList } from '@/components/league-invite-list'
 import { CommissionerScoringWorkflow } from '@/components/commissioner-scoring-workflow'
 import { LeagueScoringSettingsForm } from '@/components/league-scoring-settings-form'
 import { getLeagueScoringConfig } from '@/app/actions/scoring-config'
@@ -284,14 +286,21 @@ export default async function LeagueDetailPage({
                 </div>
               </div>
 
-              <CommissionerToolsSection title="Draft Management">
-                <Link
-                  href={`/leagues/${params.id}/draft`}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium inline-block"
-                >
-                  Manage Draft
-                </Link>
-              </CommissionerToolsSection>
+                  <CommissionerToolsSection title="Invite Players">
+                    <LeagueInvitePanel leagueId={params.id} />
+                    <div className="mt-6">
+                      <LeagueInviteList leagueId={params.id} />
+                    </div>
+                  </CommissionerToolsSection>
+
+                  <CommissionerToolsSection title="Draft Management">
+                    <Link
+                      href={`/leagues/${params.id}/draft`}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium inline-block"
+                    >
+                      Manage Draft
+                    </Link>
+                  </CommissionerToolsSection>
             </div>
           )}
         </div>
