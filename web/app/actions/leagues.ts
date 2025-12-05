@@ -79,7 +79,7 @@ export async function createLeague(formData: FormData) {
       name,
       tier: tier ? parseInt(tier) : null,
       max_teams: maxTeams,
-      status: 'preseason',
+      status: 'invites_open',
       scoring_settings: {},
       draft_type: 'snake',
       created_by_user_id: user.id,
@@ -98,5 +98,102 @@ export async function createLeague(formData: FormData) {
   }
   
   return { data }
+}
+
+/**
+ * Delete a league (commissioner only)
+ * This will cascade delete related records (teams, matchups, etc.) via foreign keys
+ */
+export async function deleteLeague(leagueId: string) {
+  const supabase = await createClient()
+  
+  const userWithProfile = await getCurrentUserWithProfile()
+  if (!userWithProfile?.user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { user, profile } = userWithProfile
+  const isAdmin = isGlobalAdmin(profile)
+
+  // Verify user is the league commissioner
+  const { data: league, error: leagueError } = await supabase
+    .from('leagues')
+    .select('id, name, created_by_user_id')
+    .eq('id', leagueId)
+    .single()
+
+  if (leagueError || !league) {
+    return { error: 'League not found' }
+  }
+
+  // Check if user is commissioner or global admin
+  const isCommissioner = league.created_by_user_id === user.id
+  
+  if (!isCommissioner && !isAdmin) {
+    return { error: 'Only league commissioners can delete leagues' }
+  }
+
+  // Delete the league (cascade will handle related records)
+  const { error: deleteError } = await supabase
+    .from('leagues')
+    .delete()
+    .eq('id', leagueId)
+
+  if (deleteError) {
+    return { error: `Failed to delete league: ${deleteError.message}` }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/leagues')
+  
+  return { success: true }
+}
+
+/**
+ * Update league status
+ */
+export async function updateLeagueStatus(leagueId: string, status: 'invites_open' | 'draft' | 'active') {
+  const supabase = await createClient()
+  
+  const userWithProfile = await getCurrentUserWithProfile()
+  if (!userWithProfile?.user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { user, profile } = userWithProfile
+  const isAdmin = isGlobalAdmin(profile)
+
+  // Verify user is the league commissioner
+  const { data: league, error: leagueError } = await supabase
+    .from('leagues')
+    .select('id, created_by_user_id')
+    .eq('id', leagueId)
+    .single()
+
+  if (leagueError || !league) {
+    return { error: 'League not found' }
+  }
+
+  // Check if user is commissioner or global admin
+  const isCommissioner = league.created_by_user_id === user.id
+  
+  if (!isCommissioner && !isAdmin) {
+    return { error: 'Only league commissioners can update league status' }
+  }
+
+  // Update status
+  const { error: updateError } = await supabase
+    .from('leagues')
+    .update({ status })
+    .eq('id', leagueId)
+
+  if (updateError) {
+    return { error: `Failed to update league status: ${updateError.message}` }
+  }
+
+  revalidatePath(`/leagues/${leagueId}`)
+  revalidatePath('/dashboard')
+  
+  return { success: true }
 }
 

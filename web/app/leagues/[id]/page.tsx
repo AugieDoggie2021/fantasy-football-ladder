@@ -19,6 +19,8 @@ import { getLeagueScoringConfig } from '@/app/actions/scoring-config'
 import { LeagueNavigation } from '@/components/league-navigation'
 import { StandingsIcon, MatchupsIcon, HomeFootballIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
+import { CommissionerSetupPanel } from '@/components/commissioner-setup-panel'
+import { LeagueStatusMessage } from '@/components/league-status-message'
 
 export default async function LeagueDetailPage({
   params,
@@ -138,58 +140,88 @@ export default async function LeagueDetailPage({
           </div>
 
           {/* League Navigation */}
-          <LeagueNavigation leagueId={params.id} />
+          <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
 
-          {/* User's Team Section */}
-          {userTeam ? (
-            <MyTeamRoster 
-              team={userTeam} 
+          {/* Commissioner Setup Panel (for invites_open and draft status) */}
+          {canAccessCommissioner && (league.status === 'invites_open' || league.status === 'draft') && (
+            <CommissionerSetupPanel
               leagueId={params.id}
+              leagueStatus={league.status as 'invites_open' | 'draft' | 'active'}
+              teamCount={teams?.length || 0}
+              maxTeams={league.max_teams}
             />
+          )}
+
+          {/* Status Message for Non-Commissioners */}
+          {!canAccessCommissioner && (league.status === 'invites_open' || league.status === 'draft') && (
+            <LeagueStatusMessage
+              status={league.status as 'invites_open' | 'draft' | 'active'}
+              isCommissioner={false}
+            />
+          )}
+
+          {/* User's Team Section - Only show in active status or if user has team */}
+          {(league.status === 'active' || userTeam) ? (
+            userTeam ? (
+              <MyTeamRoster 
+                team={userTeam} 
+                leagueId={params.id}
+              />
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Join this League
+                </h2>
+                {teams && teams.length >= league.max_teams ? (
+                  <p className="text-gray-500 dark:text-gray-400">
+                    This league is full ({teams.length}/{league.max_teams} teams).
+                  </p>
+                ) : (
+                  <JoinLeagueForm leagueId={params.id} />
+                )}
+              </div>
+            )
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Join this League
-              </h2>
-              {teams && teams.length >= league.max_teams ? (
-                <p className="text-gray-500 dark:text-gray-400">
-                  This league is full ({teams.length}/{league.max_teams} teams).
-                </p>
-              ) : (
-                <JoinLeagueForm leagueId={params.id} />
-              )}
+              <p className="text-gray-500 dark:text-gray-400">
+                Lineups will be available after the draft.
+              </p>
             </div>
           )}
 
-          {/* Current Week Matchups Section */}
-          <div id="matchups" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
-            <div className="flex items-center gap-3 mb-4">
-              <MatchupsIcon size={24} />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Matchups
-              </h2>
-            </div>
-            <CurrentWeekMatchups leagueId={params.id} currentUserId={user.id} />
-          </div>
+          {/* Current Week Matchups Section - Only show in active status */}
+          {league.status === 'active' && (
+            <>
+              <div id="matchups" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <MatchupsIcon size={24} />
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Matchups
+                  </h2>
+                </div>
+                <CurrentWeekMatchups leagueId={params.id} currentUserId={user.id} />
+              </div>
 
-          {/* Standings Section */}
-          <div id="standings" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
-            <div className="flex items-center gap-3 mb-4">
-              <StandingsIcon size={24} />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Standings
-              </h2>
-            </div>
-            <LeagueStandings leagueId={params.id} currentUserId={user.id} />
-          </div>
+              {/* Standings Section */}
+              <div id="standings" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <StandingsIcon size={24} />
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Standings
+                  </h2>
+                </div>
+                <LeagueStandings leagueId={params.id} currentUserId={user.id} />
+              </div>
 
-          {/* Recent Activity Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Recent Activity
-            </h2>
-            <RecentTransactions leagueId={params.id} />
-          </div>
+              {/* Recent Activity Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Recent Activity
+                </h2>
+                <RecentTransactions leagueId={params.id} />
+              </div>
+            </>
+          )}
 
           {/* Teams in League Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -283,8 +315,6 @@ export default async function LeagueDetailPage({
                       currentWeekNumber={currentWeek?.week_number || null}
                     />
                   </CommissionerToolsSection>
-                </div>
-              </div>
 
                   <CommissionerToolsSection title="Invite Players">
                     <LeagueInvitePanel leagueId={params.id} />
@@ -301,6 +331,8 @@ export default async function LeagueDetailPage({
                       Manage Draft
                     </Link>
                   </CommissionerToolsSection>
+                </div>
+              </div>
             </div>
           )}
         </div>

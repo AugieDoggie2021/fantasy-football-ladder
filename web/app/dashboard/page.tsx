@@ -99,6 +99,44 @@ export default async function DashboardPage() {
             </div>
           )}
 
+          {/* Quick Actions - Always Visible */}
+          <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link
+                href="/commissioner/get-started"
+                className="flex flex-col items-center justify-center p-6 border-2 border-indigo-300 dark:border-indigo-700 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition text-center"
+              >
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Create New League
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Start your own league and invite managers
+                </p>
+                <span className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium">
+                  Create League
+                </span>
+              </Link>
+              
+              <Link
+                href="/leagues/browse"
+                className="flex flex-col items-center justify-center p-6 border-2 border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-center"
+              >
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Join a League
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Join a league using a code or invite link
+                </p>
+                <span className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium">
+                  Join League
+                </span>
+              </Link>
+            </div>
+          </div>
+
           {/* Commissioner Onboarding / Leagues I Run */}
           <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -252,21 +290,6 @@ export default async function DashboardPage() {
               </p>
             )}
 
-            {/* Join a League */}
-            <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Join a League
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                Browse and join available leagues.
-              </p>
-              <Link
-                href="/leagues/browse"
-                className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
-              >
-                Browse Available Leagues
-              </Link>
-            </div>
           </div>
 
           <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">

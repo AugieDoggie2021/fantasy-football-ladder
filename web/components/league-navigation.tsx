@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { HomeFootballIcon, StandingsIcon, MatchupsIcon, FantasyPointsIcon } from '@/components/icons'
+import { HomeFootballIcon, StandingsIcon, MatchupsIcon, FantasyPointsIcon, SettingsGearIcon } from '@/components/icons'
 
 interface LeagueNavigationProps {
   leagueId: string
+  isCommissioner?: boolean
 }
 
-export function LeagueNavigation({ leagueId }: LeagueNavigationProps) {
+export function LeagueNavigation({ leagueId, isCommissioner = false }: LeagueNavigationProps) {
   const pathname = usePathname()
   const basePath = `/leagues/${leagueId}`
   
@@ -23,13 +24,13 @@ export function LeagueNavigation({ leagueId }: LeagueNavigationProps) {
       href: `${basePath}#standings`,
       label: 'Standings',
       icon: StandingsIcon,
-      isActive: pathname === basePath && pathname.includes('#standings'),
+      isActive: pathname === basePath,
     },
     {
       href: `${basePath}#matchups`,
       label: 'Matchups',
       icon: MatchupsIcon,
-      isActive: pathname === basePath && pathname.includes('#matchups'),
+      isActive: pathname === basePath,
     },
     {
       href: `${basePath}/players`,
@@ -38,6 +39,16 @@ export function LeagueNavigation({ leagueId }: LeagueNavigationProps) {
       isActive: pathname === `${basePath}/players`,
     },
   ]
+
+  // Add Settings tab for commissioners
+  if (isCommissioner) {
+    navItems.push({
+      href: `${basePath}/settings`,
+      label: 'Settings',
+      icon: SettingsGearIcon,
+      isActive: pathname === `${basePath}/settings`,
+    })
+  }
 
   return (
     <nav className="mb-6">
