@@ -1,5 +1,6 @@
 import { LandingLayout } from '@/components/layout'
 import { HeroSection, FeatureGrid, HowItWorks, CallToAction } from '@/components/landing'
+import { AuthRedirectCheck } from '@/components/landing/auth-redirect-check'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
@@ -17,6 +18,7 @@ export default async function Home() {
 
   return (
     <LandingLayout>
+      <AuthRedirectCheck />
       <HeroSection />
       <FeatureGrid />
       <HowItWorks />

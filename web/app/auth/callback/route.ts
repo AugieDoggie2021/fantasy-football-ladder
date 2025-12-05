@@ -32,8 +32,12 @@ export async function GET(request: NextRequest) {
 
   // If code is present, exchange it for a session
   if (code) {
-    // Determine redirect path first
-    const redirectPath = redirectTo || '/dashboard'
+    // Determine redirect path first - ensure it's never the landing page
+    let redirectPath = redirectTo || '/dashboard'
+    // Safety check: never redirect to landing page after auth
+    if (redirectPath === '/' || !redirectPath || redirectPath.trim() === '') {
+      redirectPath = '/dashboard'
+    }
     let response = NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
 
     // Create Supabase client with proper cookie handling for route handlers
@@ -95,10 +99,25 @@ export async function GET(request: NextRequest) {
         console.log('[Auth Callback] Redirecting to:', redirectPath)
       } else {
         console.warn('[Auth Callback] Session created but user not found')
+        // If no user found, still redirect but to login with error
+        const errorUrl = new URL('/login', requestUrl.origin)
+        errorUrl.searchParams.set('error', 'session_error')
+        errorUrl.searchParams.set('message', 'Session created but user not found. Please try signing in again.')
+        return NextResponse.redirect(errorUrl)
       }
     }
 
+    // If no user found in production, redirect to login
+    if (!user) {
+      const errorUrl = new URL('/login', requestUrl.origin)
+      errorUrl.searchParams.set('error', 'session_error')
+      errorUrl.searchParams.set('message', 'Failed to complete authentication. Please try again.')
+      return NextResponse.redirect(errorUrl)
+    }
+
     // Success! Return response with cookies set
+    // Add a small delay header to ensure cookies are set before redirect
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     return response
   }
 

@@ -105,11 +105,28 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect authenticated users from landing page to dashboard
+  // Also handle auth callback to ensure proper redirect
   if (request.nextUrl.pathname === '/' && user) {
     if (isDev) {
       console.log('[Middleware] Authenticated user on landing page, redirecting to dashboard')
     }
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const dashboardUrl = new URL('/dashboard', request.url)
+    dashboardUrl.searchParams.delete('code') // Remove any OAuth code params
+    dashboardUrl.searchParams.delete('error') // Remove any error params
+    return NextResponse.redirect(dashboardUrl)
+  }
+
+  // Ensure auth callback redirects properly after authentication
+  if (request.nextUrl.pathname.startsWith('/auth/callback') && user) {
+    // If user is already authenticated and on callback, redirect to dashboard
+    // This handles cases where callback might be hit multiple times
+    const redirectTo = request.nextUrl.searchParams.get('redirect') || request.nextUrl.searchParams.get('redirect_to') || '/dashboard'
+    // Safety check: never redirect to landing page
+    const safeRedirect = (redirectTo === '/' || !redirectTo) ? '/dashboard' : redirectTo
+    if (isDev) {
+      console.log('[Middleware] User already authenticated on callback, redirecting to:', safeRedirect)
+    }
+    return NextResponse.redirect(new URL(safeRedirect, request.url))
   }
 
   return response
