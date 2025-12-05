@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { TierBadge, MovementArrow } from '@/components/ui'
 
 interface PromotionHistoryProps {
   promotionGroupId: string
@@ -85,46 +86,36 @@ export async function PromotionHistory({ promotionGroupId }: PromotionHistoryPro
                         {movement.team?.name || 'Unknown Team'}
                       </td>
                       <td className="px-3 py-2">
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${
-                          isPromoted
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                            : isRelegated
-                            ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                        }`}>
-                          {isPromoted && (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                            </svg>
-                          )}
-                          {isRelegated && (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          )}
+                        <div className="inline-flex items-center gap-2">
+                          {isPromoted && <MovementArrow direction="up" size={20} />}
+                          {isRelegated && <MovementArrow direction="down" size={20} />}
                           {isStayed && (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
-                            </svg>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
                           )}
-                          {movement.movement_type.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="font-medium">Tier {movement.from_tier}</span>
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                          <span className={`font-medium ${
+                          <span className={`text-xs font-medium ${
                             isPromoted
                               ? 'text-green-600 dark:text-green-400'
                               : isRelegated
                               ? 'text-red-600 dark:text-red-400'
                               : 'text-gray-600 dark:text-gray-400'
                           }`}>
-                            Tier {movement.to_tier}
+                            {movement.movement_type.toUpperCase()}
                           </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center justify-center gap-2">
+                          {movement.from_tier >= 1 && movement.from_tier <= 4 && (
+                            <TierBadge tier={movement.from_tier as 1 | 2 | 3 | 4} size={28} />
+                          )}
+                          {isPromoted && <MovementArrow direction="up" size={20} />}
+                          {isRelegated && <MovementArrow direction="down" size={20} />}
+                          {isStayed && (
+                            <span className="text-gray-400">→</span>
+                          )}
+                          {movement.to_tier >= 1 && movement.to_tier <= 4 && (
+                            <TierBadge tier={movement.to_tier as 1 | 2 | 3 | 4} size={28} />
+                          )}
                         </div>
                       </td>
                     </tr>

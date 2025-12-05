@@ -1,5 +1,7 @@
 'use client'
 
+import { TierBadge } from '@/components/ui'
+
 interface LeagueContextHeaderProps {
   seasonYear?: number
   promotionGroupName?: string
@@ -35,10 +37,8 @@ export function LeagueContextHeader({
         <div className="flex items-center gap-2">
           <span className="font-semibold text-indigo-900 dark:text-indigo-200">League:</span>
           <span className="text-indigo-700 dark:text-indigo-300">{leagueName}</span>
-          {tier !== null && tier !== undefined && (
-            <span className="px-2 py-0.5 bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 rounded text-xs font-medium">
-              Tier {tier}
-            </span>
+          {tier !== null && tier !== undefined && tier >= 1 && tier <= 4 && (
+            <TierBadge tier={tier as 1 | 2 | 3 | 4} size={28} />
           )}
         </div>
         

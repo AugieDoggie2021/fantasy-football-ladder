@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 
 type AuthError = {
@@ -245,23 +246,25 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 p-8 sm:p-10 bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-2xl">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            {isSignUp ? 'Create an account' : 'Sign in to your account'}
+          <h2 className="mt-6 text-center text-3xl font-bold text-white">
+            {isSignUp ? 'Create an account' : 'Sign in to Fantasy Football Ladder'}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Fantasy Football Ladder
+          <p className="mt-2 text-center text-sm text-slate-400">
+            {isSignUp
+              ? 'Join the ladder and start competing'
+              : 'Access your leagues, manage your team, and climb the ladder.'}
           </p>
         </div>
 
         {showEmailConfirmation && (
-          <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-4">
+          <div className="rounded-lg bg-kelly-base/10 border border-kelly-base/30 p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-blue-400"
+                  className="h-5 w-5 text-kelly-neon"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                   aria-hidden="true"
@@ -274,10 +277,10 @@ function LoginForm() {
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                <h3 className="text-sm font-medium text-kelly-neon">
                   Check your email
                 </h3>
-                <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                <div className="mt-2 text-sm text-slate-300">
                   <p>
                     We&apos;ve sent a confirmation link to <strong>{email}</strong>.
                     Please click the link in the email to verify your account.
@@ -295,7 +298,7 @@ function LoginForm() {
               type="button"
               onClick={handleGoogleOAuth}
               disabled={loading || oauthLoading || showEmailConfirmation}
-              className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-600 rounded-lg shadow-sm bg-slate-700/50 text-sm font-medium text-white hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-kelly-base focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {oauthLoading ? (
                 'Connecting...'
@@ -328,10 +331,10 @@ function LoginForm() {
           {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+              <div className="w-full border-t border-slate-600" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+              <span className="px-2 bg-slate-800/30 text-slate-400">
                 Or continue with email
               </span>
             </div>
@@ -341,17 +344,17 @@ function LoginForm() {
         <form className="space-y-6" onSubmit={handleSubmit}>
           {error && !showEmailConfirmation && (
             <div
-              className={`rounded-md p-4 ${
+              className={`rounded-lg p-4 border ${
                 error.type === 'network'
-                  ? 'bg-yellow-50 dark:bg-yellow-900/20'
-                  : 'bg-red-50 dark:bg-red-900/20'
+                  ? 'bg-yellow-500/10 border-yellow-500/30'
+                  : 'bg-relegation-red/10 border-relegation-red/30'
               }`}
             >
               <p
                 className={`text-sm ${
                   error.type === 'network'
-                    ? 'text-yellow-800 dark:text-yellow-200'
-                    : 'text-red-800 dark:text-red-200'
+                    ? 'text-yellow-300'
+                    : 'text-relegation-red-neon'
                 }`}
               >
                 {error.message}
@@ -370,10 +373,10 @@ function LoginForm() {
                 type="email"
                 autoComplete="email"
                 required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm ${
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-slate-400 text-white bg-slate-700/50 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-kelly-base focus:border-kelly-base focus:z-10 sm:text-sm ${
                   validationErrors.email
-                    ? 'border-red-300 dark:border-red-600'
-                    : 'border-gray-300 dark:border-gray-600'
+                    ? 'border-relegation-red'
+                    : 'border-slate-600'
                 }`}
                 placeholder="Email address"
                 value={email}
@@ -381,7 +384,7 @@ function LoginForm() {
                 disabled={loading || showEmailConfirmation}
               />
               {validationErrors.email && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p className="mt-1 text-sm text-relegation-red">
                   {validationErrors.email}
                 </p>
               )}
@@ -396,10 +399,10 @@ function LoginForm() {
                 type="password"
                 autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm ${
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-slate-400 text-white bg-slate-700/50 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-kelly-base focus:border-kelly-base focus:z-10 sm:text-sm ${
                   validationErrors.password
-                    ? 'border-red-300 dark:border-red-600'
-                    : 'border-gray-300 dark:border-gray-600'
+                    ? 'border-relegation-red'
+                    : 'border-slate-600'
                 }`}
                 placeholder="Password"
                 value={password}
@@ -407,12 +410,12 @@ function LoginForm() {
                 disabled={loading || showEmailConfirmation}
               />
               {validationErrors.password && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p className="mt-1 text-sm text-relegation-red">
                   {validationErrors.password}
                 </p>
               )}
               {isSignUp && !validationErrors.password && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-xs text-slate-400">
                   Must be at least 6 characters
                 </p>
               )}
@@ -424,7 +427,7 @@ function LoginForm() {
               <div className="text-sm">
                 <a
                   href="/forgot-password"
-                  className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                  className="font-medium text-kelly-neon hover:text-kelly-base transition-colors"
                 >
                   Forgot your password?
                 </a>
@@ -436,23 +439,31 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading || showEmailConfirmation}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-slate-950 bg-kelly-base hover:bg-kelly-soft transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-kelly-base focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Please wait...' : isSignUp ? 'Sign up' : 'Sign in'}
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <button
               type="button"
               onClick={handleToggleMode}
-              className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+              className="text-sm text-kelly-neon hover:text-kelly-base transition-colors"
               disabled={loading || oauthLoading || showEmailConfirmation}
             >
               {isSignUp
                 ? 'Already have an account? Sign in'
                 : "Don't have an account? Sign up"}
             </button>
+            <div>
+              <Link
+                href="/"
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                ← Learn more about Fantasy Football Ladder
+              </Link>
+            </div>
           </div>
         </form>
       </div>
@@ -463,9 +474,9 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <div className="text-center">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 p-8 sm:p-10 bg-slate-800/30 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-2xl">
+          <div className="text-center text-slate-400">Loading...</div>
         </div>
       </div>
     }>

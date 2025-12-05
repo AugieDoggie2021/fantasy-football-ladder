@@ -38,7 +38,7 @@ export function CommissionerScoringWorkflow({
     try {
       const result = await ingestStatsForCurrentWeek(leagueId)
       if ('error' in result) {
-        setIngestError(result.error)
+        setIngestError(result.error ?? null)
       } else {
         setIngestResult(result.data)
         router.refresh()
@@ -58,7 +58,7 @@ export function CommissionerScoringWorkflow({
     try {
       const result = await dryRunScoringForCurrentWeek(leagueId)
       if ('error' in result) {
-        setDryRunError(result.error)
+        setDryRunError(result.error ?? null)
       } else {
         setDryRunResult(result.data)
       }
@@ -81,7 +81,7 @@ export function CommissionerScoringWorkflow({
     try {
       const result = await applyScoringForCurrentWeek(leagueId)
       if ('error' in result) {
-        setApplyError(result.error)
+        setApplyError(result.error ?? null)
       } else {
         setApplyResult(result.data)
         router.refresh()

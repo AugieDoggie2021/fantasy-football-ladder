@@ -1,14 +1,13 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { LandingLayout } from '@/components/layout'
+import { HeroSection, FeatureGrid, HowItWorks, CallToAction } from '@/components/landing'
 
-// Home page - redirects authenticated users to dashboard, unauthenticated to login
-export default async function Home() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user) {
-    redirect('/dashboard')
-  } else {
-    redirect('/login')
-  }
+export default function Home() {
+  return (
+    <LandingLayout>
+      <HeroSection />
+      <FeatureGrid />
+      <HowItWorks />
+      <CallToAction />
+    </LandingLayout>
+  )
 }

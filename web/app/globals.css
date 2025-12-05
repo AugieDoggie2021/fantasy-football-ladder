@@ -3,9 +3,22 @@
 @tailwind utilities;
 
 :root {
+  /* Legacy RGB variables (kept for compatibility) */
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+
+  /* Fantasy Football Neon Design System Colors */
+  --ff-kelly-green-base: #00FF66;
+  --ff-kelly-green-neon: #6BFFB3;
+  --ff-kelly-green-soft: #00CC55;
+  --ff-turf-dark: #020812;
+  --ff-turf-mid: #04191A;
+  --ff-white-pure: #FFFFFF;
+  --ff-text-offwhite: #E6F7EE;
+  --ff-relegation-red: #FF1744;
+  --ff-relegation-red-neon: #FF4F7B;
+  --ff-neutral-grey: #4C5A60;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,5 +37,40 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+}
+
+/* Neon Design System Utility Classes */
+@layer utilities {
+  .ff-neon-panel {
+    background: radial-gradient(circle at top, var(--ff-turf-mid), var(--ff-turf-dark));
+    border-radius: 16px;
+    box-shadow: 0 0 16px rgba(0, 255, 102, 0.35);
+    border: 1px solid rgba(0, 255, 102, 0.2);
+  }
+
+  .ff-neon-text {
+    color: var(--ff-text-offwhite);
+    text-rendering: optimizeLegibility;
+  }
+
+  .ff-neon-green-glow {
+    filter: drop-shadow(0 0 8px rgba(0, 255, 102, 0.8));
+  }
+
+  .ff-neon-green-glow-strong {
+    filter: drop-shadow(0 0 20px rgba(0, 255, 102, 1));
+  }
+
+  .ff-neon-green-glow-soft {
+    filter: drop-shadow(0 0 8px rgba(0, 204, 85, 0.25));
+  }
+
+  .ff-neon-red-glow {
+    filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.9));
+  }
+
+  .ff-neon-red-glow-strong {
+    filter: drop-shadow(0 0 20px rgba(255, 79, 123, 1));
+  }
 }
 
