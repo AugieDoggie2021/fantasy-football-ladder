@@ -101,6 +101,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Redirect authenticated users from landing page to dashboard
+  if (request.nextUrl.pathname === '/' && user) {
+    if (isDev) {
+      console.log('[Middleware] Authenticated user on landing page, redirecting to dashboard')
+    }
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   return response
 }
 
