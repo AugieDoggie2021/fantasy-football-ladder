@@ -54,8 +54,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
+  // Refresh session if expired and get user
   const { data: { user } } = await supabase.auth.getUser()
+
+  const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'dev'
+  if (isDev && request.nextUrl.pathname.startsWith('/auth/callback')) {
+    console.log('[Middleware] Auth callback route, user:', user?.email || 'none')
+  }
 
   // Define public routes that don't require authentication
   // These routes are accessible to all users (authenticated and unauthenticated):

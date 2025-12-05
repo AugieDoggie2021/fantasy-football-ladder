@@ -225,10 +225,15 @@ function LoginForm() {
     
     try {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      // Preserve redirect parameter in OAuth callback
+      const redirectTo = searchParams.get('redirect') || '/dashboard'
+      const callbackUrl = new URL('/auth/callback', siteUrl)
+      callbackUrl.searchParams.set('redirect', redirectTo)
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${siteUrl}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
         },
       })
 

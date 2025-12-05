@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -16,11 +16,14 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
   const error = requestUrl.searchParams.get('error')
   const errorDescription = requestUrl.searchParams.get('error_description')
-  const redirectTo = requestUrl.searchParams.get('redirect_to')
+  const redirectTo = requestUrl.searchParams.get('redirect_to') || requestUrl.searchParams.get('redirect')
+  const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'dev'
 
   // Handle OAuth errors
   if (error) {
-    console.error('OAuth error:', error, errorDescription)
+    if (isDev) {
+      console.error('[Auth Callback] OAuth error:', error, errorDescription)
+    }
     const errorUrl = new URL('/login', requestUrl.origin)
     errorUrl.searchParams.set('error', 'oauth_error')
     errorUrl.searchParams.set('message', errorDescription || error)
@@ -29,23 +32,74 @@ export async function GET(request: NextRequest) {
 
   // If code is present, exchange it for a session
   if (code) {
-    const supabase = await createClient()
-    
-    // Exchange the code for a session
+    // Determine redirect path first
+    const redirectPath = redirectTo || '/dashboard'
+    let response = NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
+
+    // Create Supabase client with proper cookie handling for route handlers
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            request.cookies.set({
+              name,
+              value,
+              ...options,
+            })
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+            })
+          },
+          remove(name: string, options: CookieOptions) {
+            request.cookies.set({
+              name,
+              value: '',
+              ...options,
+            })
+            response.cookies.set({
+              name,
+              value: '',
+              ...options,
+            })
+          },
+        },
+      }
+    )
+
+    // Exchange the code for a session (this will set cookies via the handlers above)
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
-      console.error('Error exchanging code for session:', exchangeError)
+      if (isDev) {
+        console.error('[Auth Callback] Error exchanging code for session:', exchangeError.message)
+      }
       const errorUrl = new URL('/login', requestUrl.origin)
       errorUrl.searchParams.set('error', 'auth_error')
       errorUrl.searchParams.set('message', 'Failed to complete authentication. Please try again.')
       return NextResponse.redirect(errorUrl)
     }
 
-    // Success! Redirect to dashboard or the specified redirect target
-    const redirectPath = redirectTo || '/dashboard'
-    const redirectUrl = new URL(redirectPath, requestUrl.origin)
-    return NextResponse.redirect(redirectUrl)
+    // Verify session was created successfully
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (isDev) {
+      if (user) {
+        console.log('[Auth Callback] Successfully authenticated user:', user.email)
+        console.log('[Auth Callback] Redirecting to:', redirectPath)
+      } else {
+        console.warn('[Auth Callback] Session created but user not found')
+      }
+    }
+
+    // Success! Return response with cookies set
+    return response
   }
 
   // No code or error - redirect to login

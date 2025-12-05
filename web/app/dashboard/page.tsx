@@ -11,6 +11,11 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'dev'
+  if (isDev) {
+    console.log('[Dashboard] User check:', user?.email || 'not authenticated')
+  }
+
   if (!user) {
     redirect('/login')
   }
