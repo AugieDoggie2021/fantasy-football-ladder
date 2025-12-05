@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import Image from 'next/image'
 import { RosterDisplay } from './roster-display'
+import { TeamHelmetIcon } from '@/components/icons'
 
 interface Team {
   id: string
@@ -63,7 +64,7 @@ export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
-          {team.logo_url && (
+          {team.logo_url ? (
             <Image
               src={team.logo_url}
               alt={team.name}
@@ -71,11 +72,16 @@ export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
               height={64}
               className="w-16 h-16 rounded-full object-cover"
             />
+          ) : (
+            <TeamHelmetIcon size={48} />
           )}
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {team.name}
-            </h2>
+            <div className="flex items-center gap-2">
+              <TeamHelmetIcon size={20} />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {team.name}
+              </h2>
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Draft Position: {team.draft_position ?? 'Not assigned'}
             </p>

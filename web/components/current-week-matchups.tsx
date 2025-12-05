@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Image from 'next/image'
+import { LivePillIcon } from '@/components/icons'
 
 interface CurrentWeekMatchupsProps {
   leagueId: string
@@ -72,13 +73,14 @@ export async function CurrentWeekMatchups({ leagueId, currentUserId }: CurrentWe
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           Week {currentWeek.week_number} Matchups
         </h3>
-        <span className={`px-2 py-1 text-xs font-medium rounded ${
+        <span className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded ${
           currentWeek.status === 'completed'
             ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
             : currentWeek.status === 'in_progress'
             ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200'
             : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
         }`}>
+          {currentWeek.status === 'in_progress' && <LivePillIcon size={14} />}
           {currentWeek.status === 'completed' 
             ? 'Final' 
             : currentWeek.status === 'in_progress' 

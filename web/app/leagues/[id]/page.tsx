@@ -14,6 +14,8 @@ import { CommissionerToolsSection } from '@/components/commissioner-tools-sectio
 import { CommissionerScoringWorkflow } from '@/components/commissioner-scoring-workflow'
 import { LeagueScoringSettingsForm } from '@/components/league-scoring-settings-form'
 import { getLeagueScoringConfig } from '@/app/actions/scoring-config'
+import { LeagueNavigation } from '@/components/league-navigation'
+import { StandingsIcon, MatchupsIcon, HomeFootballIcon } from '@/components/icons'
 
 export default async function LeagueDetailPage({
   params,
@@ -109,9 +111,10 @@ export default async function LeagueDetailPage({
           <div className="mb-6">
             <Link
               href="/dashboard"
-              className="text-indigo-600 dark:text-indigo-400 hover:underline mb-4 inline-block"
+              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
             >
-              ← Back to Dashboard
+              <HomeFootballIcon size={20} />
+              <span>Back to Dashboard</span>
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               {league.name}
@@ -125,6 +128,9 @@ export default async function LeagueDetailPage({
               currentWeek={currentWeek?.week_number || null}
             />
           </div>
+
+          {/* League Navigation */}
+          <LeagueNavigation leagueId={params.id} />
 
           {/* User's Team Section */}
           {userTeam ? (
@@ -148,15 +154,24 @@ export default async function LeagueDetailPage({
           )}
 
           {/* Current Week Matchups Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+          <div id="matchups" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
+            <div className="flex items-center gap-3 mb-4">
+              <MatchupsIcon size={24} />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Matchups
+              </h2>
+            </div>
             <CurrentWeekMatchups leagueId={params.id} currentUserId={user.id} />
           </div>
 
           {/* Standings Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Standings
-            </h2>
+          <div id="standings" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
+            <div className="flex items-center gap-3 mb-4">
+              <StandingsIcon size={24} />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Standings
+              </h2>
+            </div>
             <LeagueStandings leagueId={params.id} currentUserId={user.id} />
           </div>
 

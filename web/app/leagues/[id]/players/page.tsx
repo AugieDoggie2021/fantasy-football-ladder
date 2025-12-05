@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { PlayersList } from '@/components/players-list'
+import { FantasyPointsIcon } from '@/components/icons'
 
 export default async function LeaguePlayersPage({
   params,
@@ -85,9 +86,12 @@ export default async function LeaguePlayersPage({
             >
               ← Back to League
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Players - {league.name}
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <FantasyPointsIcon size={32} />
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Fantasy Points - {league.name}
+              </h1>
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {league.seasons?.[0]?.year} Season
             </p>

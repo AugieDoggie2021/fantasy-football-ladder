@@ -1,6 +1,7 @@
 'use client'
 
 import { TierBadge } from '@/components/ui'
+import { LeagueTrophyIcon } from '@/components/icons'
 
 interface LeagueContextHeaderProps {
   seasonYear?: number
@@ -35,6 +36,7 @@ export function LeagueContextHeader({
         )}
         
         <div className="flex items-center gap-2">
+          <LeagueTrophyIcon size={18} />
           <span className="font-semibold text-indigo-900 dark:text-indigo-200">League:</span>
           <span className="text-indigo-700 dark:text-indigo-300">{leagueName}</span>
           {tier !== null && tier !== undefined && tier >= 1 && tier <= 4 && (

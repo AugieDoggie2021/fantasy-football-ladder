@@ -9,3 +9,16 @@ export { TierBadgeIcon } from "./badges";
 // Arrow Icons
 export { PromotionArrowIcon, RelegationArrowIcon } from "./arrows";
 
+// UI Icons
+export { 
+  HomeIcon, 
+  HomeFootballIcon,
+  StandingsIcon, 
+  MatchupsIcon, 
+  FantasyPointsIcon,
+  SettingsGearIcon,
+  LeagueTrophyIcon,
+  TeamHelmetIcon,
+  LivePillIcon,
+} from "./ui";
+

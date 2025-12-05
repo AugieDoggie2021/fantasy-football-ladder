@@ -15,10 +15,22 @@ export function AuthRedirectCheck() {
     const checkAuth = async () => {
       try {
         // Check if we're on the landing page (pathname === '/')
-        if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        if (typeof window === 'undefined' || window.location.pathname !== '/') {
           return // Not on landing page, don't redirect
         }
 
+        // Check if there's an OAuth code in the URL - if so, redirect to callback
+        const urlParams = new URLSearchParams(window.location.search)
+        const oauthCode = urlParams.get('code')
+        if (oauthCode) {
+          // OAuth code found on landing page - redirect to callback handler
+          const redirectTo = urlParams.get('redirect') || '/dashboard'
+          const callbackUrl = `/auth/callback?code=${encodeURIComponent(oauthCode)}&redirect=${encodeURIComponent(redirectTo)}`
+          router.replace(callbackUrl)
+          return
+        }
+
+        // Check authentication status
         const { data: { user }, error } = await supabase.auth.getUser()
         if (user && !error) {
           // User is authenticated, redirect to dashboard immediately
