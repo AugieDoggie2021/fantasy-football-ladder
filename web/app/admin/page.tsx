@@ -5,19 +5,49 @@ import { SeedDemoButton } from '@/components/seed-demo-button'
 import { DevHelpersSection } from '@/components/dev-helpers-section'
 import { DevStatsIngestionPanel } from '@/components/dev-stats-ingestion-panel'
 import { DevPlayerScoresView } from '@/components/dev-player-scores-view'
+import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
 
 // Force dynamic rendering - requires authentication
 export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const userWithProfile = await getCurrentUserWithProfile()
 
-  if (!user) {
+  if (!userWithProfile?.user) {
     redirect('/login')
   }
 
-  // Gate access: Only show in dev environment
+  const { user, profile } = userWithProfile
+  const isAdmin = isGlobalAdmin(profile)
+
+  // Gate access: Only global admins can access
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                Access Denied
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                This area is only available to admins.
+              </p>
+              <Link
+                href="/dashboard"
+                className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                ← Back to Dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Gate access: Only show in dev environment (additional check)
   const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'dev'
   if (!isDev) {
     return (

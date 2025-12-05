@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
 
 /**
  * Create a new league
@@ -12,10 +13,13 @@ import { revalidatePath } from 'next/cache'
 export async function createLeague(formData: FormData) {
   const supabase = await createClient()
   
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const userWithProfile = await getCurrentUserWithProfile()
+  if (!userWithProfile?.user) {
     return { error: 'Not authenticated' }
   }
+
+  const { user, profile } = userWithProfile
+  const isAdmin = isGlobalAdmin(profile)
 
   // Infer active season - look for status 'active' first, then 'preseason', then most recent
   const { data: activeSeason } = await supabase
@@ -28,7 +32,12 @@ export async function createLeague(formData: FormData) {
     .single()
 
   if (!activeSeason) {
-    return { error: 'No active season is configured yet. Please contact the commissioner or admin.' }
+    // Only show this error to admins/commissioners
+    // Regular users should never hit this (they should be gated at the page level)
+    if (isAdmin) {
+      return { error: 'No active season is configured yet. Go to Season Configuration (Admin) to set the active season.' }
+    }
+    return { error: 'You don\'t have permission to create a league. Ask your commissioner to set one up.' }
   }
 
   const seasonId = activeSeason.id

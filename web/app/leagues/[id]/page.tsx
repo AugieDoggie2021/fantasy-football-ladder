@@ -16,6 +16,7 @@ import { LeagueScoringSettingsForm } from '@/components/league-scoring-settings-
 import { getLeagueScoringConfig } from '@/app/actions/scoring-config'
 import { LeagueNavigation } from '@/components/league-navigation'
 import { StandingsIcon, MatchupsIcon, HomeFootballIcon } from '@/components/icons'
+import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 
 export default async function LeagueDetailPage({
   params,
@@ -23,11 +24,13 @@ export default async function LeagueDetailPage({
   params: { id: string }
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const userWithProfile = await getCurrentUserWithProfile()
 
-  if (!user) {
+  if (!userWithProfile?.user) {
     redirect('/login')
   }
+
+  const { user, profile } = userWithProfile
 
   // Fetch league with related data
   const { data: league } = await supabase
@@ -46,9 +49,12 @@ export default async function LeagueDetailPage({
     .eq('id', params.id)
     .single()
 
+  // Check if user can access commissioner tools
+  const canAccessCommissioner = canAccessCommissionerTools(user.id, profile, league)
+
   // Fetch scoring config for commissioner
   let scoringConfig = null
-  if (league?.created_by_user_id === user.id) {
+  if (canAccessCommissioner) {
     const configResult = await getLeagueScoringConfig(params.id)
     scoringConfig = configResult.data || null
   }
@@ -233,7 +239,7 @@ export default async function LeagueDetailPage({
           </div>
 
           {/* Commissioner Controls */}
-          {league.created_by_user_id === user.id && (
+          {canAccessCommissioner && (
             <div className="mt-6 space-y-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
