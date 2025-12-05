@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { JoinLeagueForm } from '@/components/join-league-form'
 import { MyTeamRoster } from '@/components/my-team-roster'
 import { RecentTransactions } from '@/components/recent-transactions'
@@ -185,9 +186,11 @@ export default async function LeagueDetailPage({
                     }`}
                   >
                     {team.logo_url && (
-                      <img
+                      <Image
                         src={team.logo_url}
                         alt={team.name}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full object-cover mb-2"
                       />
                     )}

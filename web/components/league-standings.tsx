@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import Image from 'next/image'
 import { calculateStandings } from '@/lib/standings-helpers'
 
 interface LeagueStandingsProps {
@@ -138,9 +139,11 @@ export async function LeagueStandings({ leagueId, currentUserId }: LeagueStandin
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div className="flex items-center gap-2">
                     {teamData?.logo_url ? (
-                      <img
+                      <Image
                         src={teamData.logo_url}
                         alt={teamData.name}
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (

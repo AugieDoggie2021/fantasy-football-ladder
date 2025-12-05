@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import Image from 'next/image'
 
 interface CurrentWeekMatchupsProps {
   leagueId: string
@@ -110,9 +111,11 @@ export async function CurrentWeekMatchups({ leagueId, currentUserId }: CurrentWe
                   homeWon ? 'font-semibold' : ''
                 }`}>
                   {homeTeam?.logo_url ? (
-                    <img
+                    <Image
                       src={homeTeam.logo_url}
                       alt={homeTeam.name}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (
@@ -178,9 +181,11 @@ export async function CurrentWeekMatchups({ leagueId, currentUserId }: CurrentWe
                     )}
                   </div>
                   {awayTeam?.logo_url ? (
-                    <img
+                    <Image
                       src={awayTeam.logo_url}
                       alt={awayTeam.name}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (

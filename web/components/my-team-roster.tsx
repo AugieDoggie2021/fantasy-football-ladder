@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import Image from 'next/image'
 import { RosterDisplay } from './roster-display'
 
 interface Team {
@@ -63,9 +64,11 @@ export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           {team.logo_url && (
-            <img
+            <Image
               src={team.logo_url}
               alt={team.name}
+              width={64}
+              height={64}
               className="w-16 h-16 rounded-full object-cover"
             />
           )}
