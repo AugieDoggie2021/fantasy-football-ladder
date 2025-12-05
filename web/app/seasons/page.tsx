@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { CreateSeasonForm } from '@/components/create-season-form'
 
+// Force dynamic rendering - requires authentication and database queries
+export const dynamic = 'force-dynamic'
+
 export default async function SeasonsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
