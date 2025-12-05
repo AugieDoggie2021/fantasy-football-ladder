@@ -96,10 +96,10 @@ export function CommissionerWeekControls({
         <>
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-              Current Week
+              Season Week: {currentWeekNumber || 'Not Set'}
             </h4>
             <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-              {currentWeekNumber ? `Week ${currentWeekNumber} is currently active.` : 'No current week set.'}
+              {currentWeekNumber ? `Week ${currentWeekNumber} is currently active for this league.` : 'Set the current week to begin managing scores and matchups.'}
             </p>
             <div className="flex gap-2 flex-wrap">
               <div className="flex gap-2">

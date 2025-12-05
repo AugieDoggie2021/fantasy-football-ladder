@@ -72,6 +72,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith('/auth/callback')
   )
 
+  // Admin routes require authentication but are gated by environment
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
+
   // Define protected routes that require authentication
   const protectedRoutes = [
     '/dashboard',

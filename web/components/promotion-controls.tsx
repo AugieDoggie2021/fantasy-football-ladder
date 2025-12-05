@@ -80,7 +80,7 @@ export function PromotionControls({
             Season Not Complete
           </h4>
           <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
-            Mark the season as complete before running promotion. This will mark all leagues in the promotion group as complete.
+            Mark the season as complete before running promotion. This will mark all leagues in the ladder as complete.
           </p>
           <button
             onClick={handleMarkComplete}
@@ -205,7 +205,7 @@ export function PromotionControls({
               href={`/promotion-groups/${applyResults.new_promotion_group_id}`}
               className="text-sm text-green-600 dark:text-green-400 hover:underline font-medium"
             >
-              View New Promotion Group →
+              View New Ladder →
             </a>
           )}
         </div>

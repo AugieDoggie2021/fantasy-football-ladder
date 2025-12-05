@@ -63,7 +63,7 @@ export default async function PromotionGroupDetailPage({
               href="/promotion-groups"
               className="text-indigo-600 dark:text-indigo-400 hover:underline mb-4 inline-block"
             >
-              ← Back to Promotion Groups
+              ← Back to Ladders
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               {group.name}
@@ -80,7 +80,7 @@ export default async function PromotionGroupDetailPage({
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Create League in this Group
+              Create League in this Ladder
             </h2>
             <CreateLeagueInGroupForm promotionGroupId={params.id} seasonId={group.season_id} />
           </div>
@@ -94,7 +94,7 @@ export default async function PromotionGroupDetailPage({
               <PromotionLadderView promotionGroupId={params.id} leagues={leagues} />
             ) : (
               <p className="text-gray-500 dark:text-gray-400">
-                No leagues in this promotion group yet. Create one above.
+                No leagues in this ladder yet. Create one above.
               </p>
             )}
           </div>

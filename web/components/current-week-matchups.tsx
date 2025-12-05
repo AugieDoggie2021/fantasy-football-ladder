@@ -79,7 +79,13 @@ export async function CurrentWeekMatchups({ leagueId, currentUserId }: CurrentWe
             ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200'
             : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
         }`}>
-          {currentWeek.status.replace('_', ' ').toUpperCase()}
+          {currentWeek.status === 'completed' 
+            ? 'Final' 
+            : currentWeek.status === 'in_progress' 
+            ? 'Live' 
+            : currentWeek.status === 'scheduled'
+            ? 'Scheduled'
+            : currentWeek.status.replace('_', ' ').toUpperCase()}
         </span>
       </div>
       

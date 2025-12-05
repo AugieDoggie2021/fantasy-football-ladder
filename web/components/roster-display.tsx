@@ -92,20 +92,20 @@ export function RosterDisplay({
     <div>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-          Roster
+          My Lineup
         </h3>
         <button
           onClick={() => setEditing(!editing)}
           className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
         >
-          {editing ? 'Done Editing' : 'Edit Roster'}
+          {editing ? 'Done Editing' : 'Edit Lineup'}
         </button>
       </div>
 
-      {/* Starters */}
+      {/* Starting Lineup */}
       <div className="mb-6">
         <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          Starters
+          Starting Lineup
         </h4>
         <div className="space-y-3">
           {slotOrder.map(slot => {

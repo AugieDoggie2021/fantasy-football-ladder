@@ -14,6 +14,29 @@ export default async function SeasonsPage() {
     redirect('/login')
   }
 
+  // Gate access: Only show in dev environment or for admins
+  const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'dev'
+  if (!isDev) {
+    // In production, check if user is admin (for now, just show access denied)
+    // TODO: Add proper admin check based on user email or role
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                Access Denied
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Season configuration is only available to administrators.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const { data: seasons } = await supabase
     .from('seasons')
     .select('*')
@@ -32,8 +55,11 @@ export default async function SeasonsPage() {
               ← Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Seasons
+              Season Configuration (Admin)
             </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              Seasons define which NFL year is active for creating leagues. The active season is automatically used when creating new leagues.
+            </p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">

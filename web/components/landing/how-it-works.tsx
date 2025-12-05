@@ -8,7 +8,7 @@ const steps: Step[] = [
   {
     number: '1',
     title: 'Create or join a ladder league',
-    description: 'Start a new promotion group with multiple tiers, or join an existing ladder league. Each tier has its own league with teams competing for promotion.',
+    description: 'Start a new ladder with multiple tiers, or join an existing ladder league. Each tier has its own league with teams competing for promotion.',
   },
   {
     number: '2',

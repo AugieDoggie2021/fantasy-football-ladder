@@ -16,7 +16,7 @@ interface MyTeamRosterProps {
 }
 
 /**
- * Displays a team's roster with starters grouped by position and bench players.
+ * Displays a team's lineup with starting lineup grouped by position and bench players.
  * Handles data transformation to convert Supabase array responses to expected object types.
  */
 export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {

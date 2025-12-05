@@ -29,7 +29,7 @@ export function LeagueContextHeader({
         
         {promotionGroupName && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-indigo-900 dark:text-indigo-200">Group:</span>
+            <span className="font-semibold text-indigo-900 dark:text-indigo-200">Ladder:</span>
             <span className="text-indigo-700 dark:text-indigo-300">{promotionGroupName}</span>
           </div>
         )}

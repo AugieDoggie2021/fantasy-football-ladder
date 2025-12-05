@@ -50,10 +50,10 @@ export function DevStatsIngestionPanel() {
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-          External Stats Ingestion (Dev)
+          External Stats Sync (Dev Only)
         </h3>
         <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-4">
-          Sync players and weekly stats from SportsData.io
+          Update players and weekly stats from SportsData.io. This is a backend operation for development.
         </p>
       </div>
 
@@ -65,7 +65,7 @@ export function DevStatsIngestionPanel() {
             disabled={playersLoading}
             className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {playersLoading ? 'Syncing...' : 'Sync External Players'}
+            {playersLoading ? 'Syncing...' : 'Update Players from External Source'}
           </button>
         </div>
 
@@ -137,7 +137,7 @@ export function DevStatsIngestionPanel() {
             disabled={statsLoading}
             className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {statsLoading ? 'Syncing...' : 'Sync Week Stats'}
+            {statsLoading ? 'Updating...' : 'Update Week Stats from External Source'}
           </button>
         </div>
 

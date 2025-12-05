@@ -1,10 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { LogoutButton } from '@/components/logout-button'
-import { SeedDemoButton } from '@/components/seed-demo-button'
-import { DevHelpersSection } from '@/components/dev-helpers-section'
-import { DevStatsIngestionPanel } from '@/components/dev-stats-ingestion-panel'
-import { DevPlayerScoresView } from '@/components/dev-player-scores-view'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -111,7 +107,7 @@ export default async function DashboardPage() {
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             {season?.year} Season
                             {league.tier && ` • Tier ${league.tier}`}
-                            {promotionGroup && ` • ${promotionGroup.name}`}
+                            {promotionGroup && ` • ${promotionGroup.name} Ladder`}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             Your Team: {team.name}
@@ -135,17 +131,17 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          {/* Promotion Groups I Own Section */}
+          {/* My Ladders Section */}
           <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Promotion Groups I Own
+                My Ladders
               </h2>
               <Link
                 href="/promotion-groups"
                 className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
               >
-                Create Promotion Group
+                Create Ladder
               </Link>
             </div>
             
@@ -173,7 +169,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <p className="text-gray-500 dark:text-gray-400">
-                You haven&apos;t created any promotion groups yet.{' '}
+                You haven&apos;t created any ladders yet.{' '}
                 <Link href="/promotion-groups" className="text-indigo-600 dark:text-indigo-400 hover:underline">
                   Create one
                 </Link>
@@ -200,7 +196,7 @@ export default async function DashboardPage() {
                 className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-center"
               >
                 <span className="text-indigo-600 dark:text-indigo-400 font-medium">
-                  Promotion Groups
+                  My Ladders
                 </span>
               </Link>
               <Link
@@ -214,29 +210,24 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Dev-only Tools */}
+          {/* Developer Tools Link (Dev Only) */}
           {env === 'dev' && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-                  Demo Data
-                </h3>
-                <SeedDemoButton />
-              </div>
-              
-              <div className="pt-4 border-t border-yellow-200 dark:border-yellow-800">
-                <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-                  Testing Helpers
-                </h3>
-                <DevHelpersSection />
-              </div>
-
-              <div className="pt-4 border-t border-yellow-200 dark:border-yellow-800">
-                <DevStatsIngestionPanel />
-              </div>
-
-              <div className="pt-4 border-t border-yellow-200 dark:border-yellow-800">
-                <DevPlayerScoresView />
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                    Developer Tools
+                  </h3>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                    Access development-only tools for testing and data management
+                  </p>
+                </div>
+                <Link
+                  href="/admin"
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-sm font-medium"
+                >
+                  Open Dev Tools
+                </Link>
               </div>
             </div>
           )}

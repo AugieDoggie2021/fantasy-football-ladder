@@ -75,10 +75,10 @@ export function CommissionerScoringControls({
     <div className="space-y-4">
       <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
         <h4 className="font-medium text-purple-800 dark:text-purple-200 mb-2">
-          Score Calculation - Week {currentWeekNumber}
+          Score Management - Week {currentWeekNumber}
         </h4>
         <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">
-          Calculate scores based on starting rosters and player week stats.
+          Preview and finalize scores for this week's matchups based on starting lineups and player stats.
         </p>
         <div className="flex gap-2">
           <button
@@ -86,14 +86,14 @@ export function CommissionerScoringControls({
             disabled={loading !== null}
             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {loading === 'preview' ? 'Calculating...' : 'Preview Scores (Dry Run)'}
+            {loading === 'preview' ? 'Calculating...' : 'Preview Scores (no changes)'}
           </button>
           <button
             onClick={handleApplyScores}
             disabled={loading !== null}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {loading === 'apply' ? 'Applying...' : 'Apply Scores'}
+            {loading === 'apply' ? 'Finalizing...' : 'Finalize Scores for this Week'}
           </button>
         </div>
       </div>
@@ -101,7 +101,7 @@ export function CommissionerScoringControls({
       {previewResults && (
         <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
           <h5 className="font-medium text-gray-900 dark:text-white mb-3">
-            Preview Results (Dry Run)
+            Score Preview
           </h5>
           <div className="space-y-2">
             {previewResults.matchups.map((matchup: any) => (
@@ -125,7 +125,7 @@ export function CommissionerScoringControls({
             ))}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            These are preview scores. Click &quot;Apply Scores&quot; to finalize.
+            These are preview scores. Click &quot;Finalize Scores for this Week&quot; to apply them to matchups.
           </p>
         </div>
       )}

@@ -11,14 +11,18 @@ export default async function CreateLeaguePage() {
     redirect('/login')
   }
 
-  // Fetch user's seasons and promotion groups for dropdowns
-  const { data: seasons } = await supabase
+  // Check for active season (inferred automatically, but we need to validate it exists)
+  const { data: activeSeason } = await supabase
     .from('seasons')
-    .select('id, year')
-    .eq('created_by_user_id', user.id)
+    .select('id, year, status')
+    .or('status.eq.active,status.eq.preseason')
+    .order('status', { ascending: true })
     .order('year', { ascending: false })
+    .limit(1)
+    .single()
 
-  const { data: promotionGroups } = await supabase
+  // Fetch user's ladders (promotion groups) for the active season
+  const { data: ladders } = await supabase
     .from('promotion_groups')
     .select(`
       id,
@@ -30,6 +34,7 @@ export default async function CreateLeaguePage() {
       )
     `)
     .eq('created_by_user_id', user.id)
+    .eq('season_id', activeSeason?.id || '')
     .order('created_at', { ascending: false })
 
   return (
@@ -46,10 +51,23 @@ export default async function CreateLeaguePage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Create League
             </h1>
+            {activeSeason && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Creating league for {activeSeason.year} Season
+              </p>
+            )}
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <CreateLeagueForm seasons={seasons || []} promotionGroups={promotionGroups || []} />
+            {!activeSeason ? (
+              <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 p-4">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  No active season is configured yet. Please contact the commissioner or admin.
+                </p>
+              </div>
+            ) : (
+              <CreateLeagueForm ladders={ladders || []} />
+            )}
           </div>
         </div>
       </div>

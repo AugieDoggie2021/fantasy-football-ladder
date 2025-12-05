@@ -160,7 +160,7 @@ export default async function LeagueDetailPage({
             <LeagueStandings leagueId={params.id} currentUserId={user.id} />
           </div>
 
-          {/* Recent Transactions Section */}
+          {/* Recent Activity Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Recent Activity
@@ -220,41 +220,48 @@ export default async function LeagueDetailPage({
           {/* Commissioner Controls */}
           {league.created_by_user_id === user.id && (
             <div className="mt-6 space-y-4">
-              <CommissionerToolsSection title="Schedule & Week Management">
-                <CommissionerWeekControls
-                  leagueId={params.id}
-                  currentWeekNumber={currentWeek?.week_number || null}
-                  hasSchedule={!!hasSchedule}
-                />
-              </CommissionerToolsSection>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Commissioner Tools
+                </h2>
+                <div className="space-y-6">
+                  <CommissionerToolsSection title="Schedule & Week Management">
+                    <CommissionerWeekControls
+                      leagueId={params.id}
+                      currentWeekNumber={currentWeek?.week_number || null}
+                      hasSchedule={!!hasSchedule}
+                    />
+                  </CommissionerToolsSection>
 
-              <CommissionerToolsSection title="Scoring Rules">
-                {scoringConfig ? (
-                  <LeagueScoringSettingsForm
-                    leagueId={params.id}
-                    currentConfig={scoringConfig}
-                  />
-                ) : (
-                  <p className="text-gray-500 dark:text-gray-400">
-                    Loading scoring settings...
-                  </p>
-                )}
-              </CommissionerToolsSection>
+                  <CommissionerToolsSection title="Scoring Rules">
+                    {scoringConfig ? (
+                      <LeagueScoringSettingsForm
+                        leagueId={params.id}
+                        currentConfig={scoringConfig}
+                      />
+                    ) : (
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Loading scoring settings...
+                      </p>
+                    )}
+                  </CommissionerToolsSection>
 
-              <CommissionerToolsSection title="Score Calculation Workflow">
-                <CommissionerScoringWorkflow
-                  leagueId={params.id}
-                  currentWeekNumber={currentWeek?.week_number}
-                />
-              </CommissionerToolsSection>
+                  <CommissionerToolsSection title="Score Management">
+                    <CommissionerScoringWorkflow
+                      leagueId={params.id}
+                      currentWeekNumber={currentWeek?.week_number}
+                    />
+                  </CommissionerToolsSection>
 
-              <CommissionerToolsSection title="Advanced Score Calculation">
-                <CommissionerScoringControls
-                  leagueId={params.id}
-                  currentWeekId={currentWeek?.id || null}
-                  currentWeekNumber={currentWeek?.week_number || null}
-                />
-              </CommissionerToolsSection>
+                  <CommissionerToolsSection title="Score Preview & Finalization">
+                    <CommissionerScoringControls
+                      leagueId={params.id}
+                      currentWeekId={currentWeek?.id || null}
+                      currentWeekNumber={currentWeek?.week_number || null}
+                    />
+                  </CommissionerToolsSection>
+                </div>
+              </div>
 
               <CommissionerToolsSection title="Draft Management">
                 <Link

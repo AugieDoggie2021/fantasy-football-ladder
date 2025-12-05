@@ -107,22 +107,22 @@ export function CommissionerScoringWorkflow({
     <div className="space-y-4">
       <div>
         <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-          Week {currentWeekNumber} Scoring Workflow
+          Week {currentWeekNumber} Score Management
         </h4>
         <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
-          Step 1: Ingest stats → Step 2: Preview scores → Step 3: Apply scores
+          Step 1: Update scores from live stats → Step 2: Preview scores → Step 3: Finalize scores
         </p>
       </div>
 
-      {/* Step 1: Ingest Stats */}
+      {/* Step 1: Update Stats */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
             <h5 className="text-sm font-medium text-gray-900 dark:text-white">
-              1. Ingest External Stats
+              1. Update Scores from Live Stats
             </h5>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Fetch player stats from SportsData.io for this week
+              Fetch the latest player stats for this week from external sources
             </p>
           </div>
           <button
@@ -130,7 +130,7 @@ export function CommissionerScoringWorkflow({
             disabled={ingestLoading || dryRunLoading || applyLoading}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {ingestLoading ? 'Ingesting...' : 'Ingest Stats'}
+            {ingestLoading ? 'Updating...' : 'Update Scores from Live Stats'}
           </button>
         </div>
         {ingestError && (
@@ -138,7 +138,7 @@ export function CommissionerScoringWorkflow({
         )}
         {ingestResult && (
           <div className="text-xs text-green-600 dark:text-green-400">
-            ✓ Ingested: {ingestResult.insertedCount || 0} inserted, {ingestResult.updatedCount || 0} updated
+            ✓ Updated: {ingestResult.insertedCount || 0} new stats, {ingestResult.updatedCount || 0} updated
           </div>
         )}
       </div>
@@ -182,10 +182,10 @@ export function CommissionerScoringWorkflow({
         <div className="flex items-center justify-between">
           <div>
             <h5 className="text-sm font-medium text-gray-900 dark:text-white">
-              3. Apply Scores
+              3. Finalize Scores for this Week
             </h5>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Finalize scores and update matchups
+              Finalize all scores and update matchups. This will mark the week as complete.
             </p>
           </div>
           <button
@@ -193,7 +193,7 @@ export function CommissionerScoringWorkflow({
             disabled={ingestLoading || dryRunLoading || applyLoading}
             className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {applyLoading ? 'Applying...' : 'Apply Scores'}
+            {applyLoading ? 'Finalizing...' : 'Finalize Scores for this Week'}
           </button>
         </div>
         {applyError && (
@@ -201,7 +201,7 @@ export function CommissionerScoringWorkflow({
         )}
         {applyResult && (
           <div className="text-xs text-green-600 dark:text-green-400">
-            ✓ Scores applied: {applyResult.matchups?.length || 0} matchups updated
+            ✓ Scores finalized: {applyResult.matchups?.length || 0} matchups updated
           </div>
         )}
       </div>

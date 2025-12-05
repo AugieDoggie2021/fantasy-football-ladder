@@ -38,20 +38,20 @@ export default async function PromotionGroupsPage() {
               ← Back to Dashboard
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Promotion Groups
+              Ladders
             </h1>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Create Promotion Group
+              Create Ladder
             </h2>
             <CreatePromotionGroupForm />
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              My Promotion Groups
+              My Ladders
             </h2>
             
             {promotionGroups && promotionGroups.length > 0 ? (
@@ -78,7 +78,7 @@ export default async function PromotionGroupsPage() {
               </div>
             ) : (
               <p className="text-gray-500 dark:text-gray-400">
-                You haven&apos;t created any promotion groups yet. Create one above to get started.
+                You haven&apos;t created any ladders yet. Create one above to get started.
               </p>
             )}
           </div>
