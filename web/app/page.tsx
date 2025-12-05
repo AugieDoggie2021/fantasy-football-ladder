@@ -12,9 +12,13 @@ export default async function Home() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // If user is authenticated, always redirect to dashboard (never show landing page)
   if (user) {
     redirect('/dashboard')
   }
+  
+  // Note: If there's an OAuth code in the URL, it means Supabase redirected here
+  // instead of /auth/callback. The client-side AuthRedirectCheck will handle this.
 
   return (
     <LandingLayout>

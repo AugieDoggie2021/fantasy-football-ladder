@@ -104,29 +104,39 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Redirect authenticated users from landing page to dashboard
-  // Also handle auth callback to ensure proper redirect
+  // CRITICAL: Redirect authenticated users from landing page to dashboard
+  // This must happen BEFORE any other logic to prevent landing page access
   if (request.nextUrl.pathname === '/' && user) {
     if (isDev) {
       console.log('[Middleware] Authenticated user on landing page, redirecting to dashboard')
     }
     const dashboardUrl = new URL('/dashboard', request.url)
-    dashboardUrl.searchParams.delete('code') // Remove any OAuth code params
-    dashboardUrl.searchParams.delete('error') // Remove any error params
+    // Remove any OAuth or error params that might interfere
+    dashboardUrl.searchParams.delete('code')
+    dashboardUrl.searchParams.delete('error')
+    dashboardUrl.searchParams.delete('error_description')
+    dashboardUrl.searchParams.delete('redirect_to')
+    dashboardUrl.searchParams.delete('redirect')
     return NextResponse.redirect(dashboardUrl)
   }
 
   // Ensure auth callback redirects properly after authentication
+  // This handles cases where the callback route might not have properly set cookies
   if (request.nextUrl.pathname.startsWith('/auth/callback') && user) {
     // If user is already authenticated and on callback, redirect to dashboard
-    // This handles cases where callback might be hit multiple times
+    // This handles cases where callback might be hit multiple times or cookies are already set
     const redirectTo = request.nextUrl.searchParams.get('redirect') || request.nextUrl.searchParams.get('redirect_to') || '/dashboard'
     // Safety check: never redirect to landing page
-    const safeRedirect = (redirectTo === '/' || !redirectTo) ? '/dashboard' : redirectTo
+    const safeRedirect = (redirectTo === '/' || !redirectTo || redirectTo.trim() === '') ? '/dashboard' : redirectTo
     if (isDev) {
       console.log('[Middleware] User already authenticated on callback, redirecting to:', safeRedirect)
     }
-    return NextResponse.redirect(new URL(safeRedirect, request.url))
+    const redirectUrl = new URL(safeRedirect, request.url)
+    // Clean up any OAuth params
+    redirectUrl.searchParams.delete('code')
+    redirectUrl.searchParams.delete('error')
+    redirectUrl.searchParams.delete('error_description')
+    return NextResponse.redirect(redirectUrl)
   }
 
   return response

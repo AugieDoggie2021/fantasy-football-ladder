@@ -14,19 +14,29 @@ export function AuthRedirectCheck() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          // User is authenticated, redirect to dashboard
+        // Check if we're on the landing page (pathname === '/')
+        if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+          return // Not on landing page, don't redirect
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (user && !error) {
+          // User is authenticated, redirect to dashboard immediately
+          // Use replace to prevent back button issues
           router.replace('/dashboard')
         }
       } catch (error) {
         // Silently fail - server-side redirect should handle it
-        console.error('Auth check error:', error)
+        if (process.env.NEXT_PUBLIC_APP_ENV === 'dev') {
+          console.error('[AuthRedirectCheck] Auth check error:', error)
+        }
       }
     }
 
-    // Small delay to allow server-side redirect to happen first
-    const timeoutId = setTimeout(checkAuth, 100)
+    // Check immediately and also after a short delay
+    // This handles both immediate checks and cookie propagation delays
+    checkAuth()
+    const timeoutId = setTimeout(checkAuth, 200)
     
     return () => clearTimeout(timeoutId)
   }, [router])

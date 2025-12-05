@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     )
 
     // Exchange the code for a session (this will set cookies via the handlers above)
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    const { error: exchangeError, data: exchangeData } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
       if (isDev) {
@@ -91,34 +91,55 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify session was created successfully
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (isDev) {
       if (user) {
         console.log('[Auth Callback] Successfully authenticated user:', user.email)
         console.log('[Auth Callback] Redirecting to:', redirectPath)
+        console.log('[Auth Callback] Session data:', exchangeData?.session ? 'Session exists' : 'No session')
       } else {
         console.warn('[Auth Callback] Session created but user not found')
-        // If no user found, still redirect but to login with error
-        const errorUrl = new URL('/login', requestUrl.origin)
-        errorUrl.searchParams.set('error', 'session_error')
-        errorUrl.searchParams.set('message', 'Session created but user not found. Please try signing in again.')
-        return NextResponse.redirect(errorUrl)
+        console.warn('[Auth Callback] User error:', userError)
       }
     }
 
-    // If no user found in production, redirect to login
+    // If no user found, redirect to login with error
     if (!user) {
       const errorUrl = new URL('/login', requestUrl.origin)
       errorUrl.searchParams.set('error', 'session_error')
-      errorUrl.searchParams.set('message', 'Failed to complete authentication. Please try again.')
+      errorUrl.searchParams.set('message', 'Session created but user not found. Please try signing in again.')
       return NextResponse.redirect(errorUrl)
     }
 
-    // Success! Return response with cookies set
-    // Add a small delay header to ensure cookies are set before redirect
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
-    return response
+    // Success! Ensure we're redirecting to dashboard (never landing page)
+    // Force redirectPath to dashboard if it's somehow set to landing page
+    if (redirectPath === '/' || redirectPath === '' || !redirectPath) {
+      redirectPath = '/dashboard'
+    }
+    
+    // Create a new response with the correct redirect path
+    const finalResponse = NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
+    
+    // Copy all cookies from the exchange response to the final response
+    // This ensures cookies are properly set before redirect
+    response.cookies.getAll().forEach((cookie) => {
+      finalResponse.cookies.set(cookie.name, cookie.value, {
+        path: cookie.path || '/',
+        domain: cookie.domain,
+        sameSite: cookie.sameSite as 'lax' | 'strict' | 'none' | undefined,
+        secure: cookie.secure,
+        httpOnly: cookie.httpOnly,
+        maxAge: cookie.maxAge,
+      })
+    })
+    
+    // Add headers to prevent caching and ensure cookies are set
+    finalResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    finalResponse.headers.set('Pragma', 'no-cache')
+    finalResponse.headers.set('Expires', '0')
+    
+    return finalResponse
   }
 
   // No code or error - redirect to login
