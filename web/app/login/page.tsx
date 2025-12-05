@@ -174,11 +174,15 @@ function LoginForm() {
 
     try {
       if (isSignUp) {
+        // Get base URL safely
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+        const emailRedirectTo = `${baseUrl}/auth/callback`
+        
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo,
           },
         })
 
@@ -224,16 +228,39 @@ function LoginForm() {
     setError(null)
     
     try {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+      // Get base URL - ensure it's valid
+      let baseUrl: string
+      if (typeof window !== 'undefined') {
+        baseUrl = window.location.origin
+      } else {
+        // Fallback for SSR (shouldn't happen in client component, but safety check)
+        baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      }
+
+      // Validate base URL
+      if (!baseUrl || baseUrl === 'undefined' || !baseUrl.startsWith('http')) {
+        throw new Error('Invalid site URL configuration')
+      }
+
       // Preserve redirect parameter in OAuth callback
       const redirectTo = searchParams.get('redirect') || '/dashboard'
-      const callbackUrl = new URL('/auth/callback', siteUrl)
-      callbackUrl.searchParams.set('redirect', redirectTo)
+      
+      // Construct callback URL safely
+      let callbackUrl: string
+      try {
+        const url = new URL('/auth/callback', baseUrl)
+        url.searchParams.set('redirect', redirectTo)
+        callbackUrl = url.toString()
+      } catch (urlError) {
+        // Fallback: construct URL manually if URL constructor fails
+        const separator = baseUrl.endsWith('/') ? '' : '/'
+        callbackUrl = `${baseUrl}${separator}auth/callback?redirect=${encodeURIComponent(redirectTo)}`
+      }
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: callbackUrl.toString(),
+          redirectTo: callbackUrl,
         },
       })
 
