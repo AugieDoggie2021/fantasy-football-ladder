@@ -105,6 +105,21 @@ Create a `.env.local` file in the `web/` directory with the following variables:
 - Feature flags are configured in `lib/config/feature-flags.ts`
 - Environment banner shows in dev/staging (hidden in prod)
 
+## Build Performance
+
+For faster Vercel builds, see [`docs/build-performance.md`](../docs/build-performance.md).
+
+**Quick setup for dependency caching:**
+```bash
+cd web
+npm install
+git add package-lock.json
+git commit -m "Add package-lock.json for Vercel caching"
+git push
+```
+
+This enables Vercel to cache dependency installations, significantly speeding up subsequent builds.
+
 ## Next Steps
 
 See `/ROADMAP.md` for Phase 2+ development milestones.
