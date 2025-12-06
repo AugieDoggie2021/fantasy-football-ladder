@@ -23,7 +23,9 @@ export async function GET(
   }
 
   const leagueId = params.id
-  const searchParams = request.nextUrl.searchParams
+  // Next.js 15: request.nextUrl is now async and must be awaited
+  const nextUrl = await request.nextUrl
+  const searchParams = nextUrl.searchParams
   const seasonYearParam = searchParams.get('seasonYear')
   const weekParam = searchParams.get('week')
 

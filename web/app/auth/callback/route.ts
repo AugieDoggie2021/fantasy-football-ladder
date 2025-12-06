@@ -12,7 +12,9 @@ import type { NextRequest } from 'next/server'
  * parameter if present (for deep linking after auth).
  */
 export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url)
+  // Next.js 15: request.url is now async and must be awaited
+  const url = await request.url
+  const requestUrl = new URL(url)
   const code = requestUrl.searchParams.get('code')
   const error = requestUrl.searchParams.get('error')
   const errorDescription = requestUrl.searchParams.get('error_description')

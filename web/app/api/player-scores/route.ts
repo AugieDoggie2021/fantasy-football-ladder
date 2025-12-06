@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const searchParams = request.nextUrl.searchParams
+  // Next.js 15: request.nextUrl is now async and must be awaited
+  const nextUrl = await request.nextUrl
+  const searchParams = nextUrl.searchParams
   const leagueId = searchParams.get('leagueId')
   const seasonYearParam = searchParams.get('seasonYear')
   const weekParam = searchParams.get('week')
