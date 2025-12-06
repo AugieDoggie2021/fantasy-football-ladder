@@ -121,8 +121,8 @@ export default async function DashboardPage() {
               </Link>
               
               <Link
-                href="/leagues/browse"
-                className="flex flex-col items-center justify-center p-6 border-2 border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-center"
+                href="/join"
+                className="flex flex-col items-center justify-center p-6 border-2 border-indigo-300 dark:border-indigo-700 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition text-center"
               >
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   Join a League
@@ -130,35 +130,20 @@ export default async function DashboardPage() {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Join a league using a code or invite link
                 </p>
-                <span className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium">
+                <span className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium">
                   Join League
                 </span>
               </Link>
             </div>
           </div>
 
-          {/* Commissioner Onboarding / Leagues I Run */}
-          <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              {leaguesOwned.length === 0 ? 'Get Started as Commissioner' : 'Leagues I Run'}
-            </h2>
-            
-            {leaguesOwned.length === 0 ? (
-              <div className="text-center py-8">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Run your own league
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Create a league (and optional ladder) for this season.
-                </p>
-                <Link
-                  href="/commissioner/get-started"
-                  className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium"
-                >
-                  Create a League
-                </Link>
-              </div>
-            ) : (
+          {/* Leagues I Run */}
+          {leaguesOwned.length > 0 && (
+            <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Leagues I Run
+              </h2>
+              
               <div className="space-y-2">
                 {leaguesOwned.map((league: any) => {
                   const season = league?.seasons
@@ -181,8 +166,8 @@ export default async function DashboardPage() {
                   )
                 })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Ladders I Manage (if commissioner) */}
           {isCommissioner && myPromotionGroups && myPromotionGroups.length > 0 && (

@@ -25,6 +25,7 @@ interface RosterDisplayProps {
   teamId: string
   leagueId: string
   slotOrder: string[]
+  isEditable?: boolean
 }
 
 export function RosterDisplay({
@@ -33,6 +34,7 @@ export function RosterDisplay({
   teamId,
   leagueId,
   slotOrder,
+  isEditable = true,
 }: RosterDisplayProps) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
@@ -94,13 +96,23 @@ export function RosterDisplay({
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">
           My Lineup
         </h3>
-        <button
-          onClick={() => setEditing(!editing)}
-          className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-        >
-          {editing ? 'Done Editing' : 'Edit Lineup'}
-        </button>
+        {isEditable && (
+          <button
+            onClick={() => setEditing(!editing)}
+            className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            {editing ? 'Done Editing' : 'Edit Lineup'}
+          </button>
+        )}
       </div>
+      
+      {!isEditable && (
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-md">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Draft not started. Your roster will be populated after the draft.
+          </p>
+        </div>
+      )}
 
       {/* Starting Lineup */}
       <div className="mb-6">
@@ -132,7 +144,7 @@ export function RosterDisplay({
                             {entry.players.nfl_team}
                           </span>
                         )}
-                        {editing && (
+                        {editing && isEditable && (
                           <div className="flex gap-1">
                             <button
                               onClick={() => handleMoveToBench(entry.id)}
@@ -154,7 +166,7 @@ export function RosterDisplay({
                     ))
                   ) : (
                     <span className="text-sm text-gray-400 dark:text-gray-500 italic">
-                      Empty
+                      {isEditable ? 'Empty' : 'Draft not started'}
                     </span>
                   )}
                 </div>
@@ -185,7 +197,7 @@ export function RosterDisplay({
                     {entry.players?.nfl_team && ` • ${entry.players.nfl_team}`}
                   </span>
                 </div>
-                {editing && (
+                {editing && isEditable && (
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleMoveToStarter(entry.id, entry.players?.position || 'BENCH')}
@@ -208,7 +220,7 @@ export function RosterDisplay({
           </div>
         ) : (
           <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-            No players on bench
+            {isEditable ? 'No players on bench' : 'Draft not started'}
           </p>
         )}
       </div>

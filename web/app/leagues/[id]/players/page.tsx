@@ -19,12 +19,17 @@ export default async function LeaguePlayersPage({
   // Fetch league info
   const { data: league } = await supabase
     .from('leagues')
-    .select('id, name, seasons(year)')
+    .select('id, name, status, seasons(year)')
     .eq('id', params.id)
     .single()
 
   if (!league) {
     notFound()
+  }
+
+  // Redirect if league is not active
+  if (league.status !== 'active') {
+    redirect(`/leagues/${params.id}`)
   }
 
   // Check if user has a team in this league

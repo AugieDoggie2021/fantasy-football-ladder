@@ -142,7 +142,7 @@ export default async function LeagueDetailPage({
           {/* League Navigation */}
           <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
 
-          {/* Commissioner Setup Panel (for invites_open and draft status) */}
+          {/* Commissioner Setup Panel (for invites_open and draft status) - Primary focus on Home tab */}
           {canAccessCommissioner && (league.status === 'invites_open' || league.status === 'draft') && (
             <CommissionerSetupPanel
               leagueId={params.id}
@@ -152,40 +152,48 @@ export default async function LeagueDetailPage({
             />
           )}
 
-          {/* Status Message for Non-Commissioners */}
-          {!canAccessCommissioner && (league.status === 'invites_open' || league.status === 'draft') && (
+          {/* Status Message for Non-Commissioners - Only show if no team yet */}
+          {!canAccessCommissioner && !userTeam && (league.status === 'invites_open' || league.status === 'draft') && (
             <LeagueStatusMessage
               status={league.status as 'invites_open' | 'draft' | 'active'}
               isCommissioner={false}
             />
           )}
 
-          {/* User's Team Section - Only show in active status or if user has team */}
-          {(league.status === 'active' || userTeam) ? (
-            userTeam ? (
+          {/* User's Team Section - Show roster in all states, but gate editing by status */}
+          {userTeam ? (
+            <>
               <MyTeamRoster 
                 team={userTeam} 
                 leagueId={params.id}
+                leagueStatus={league.status}
               />
-            ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Join this League
-                </h2>
-                {teams && teams.length >= league.max_teams ? (
-                  <p className="text-gray-500 dark:text-gray-400">
-                    This league is full ({teams.length}/{league.max_teams} teams).
+              
+              {/* Pre-draft informational message */}
+              {league.status !== 'active' && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg shadow p-6 mb-6">
+                  <p className="text-blue-800 dark:text-blue-200">
+                    {league.status === 'invites_open' 
+                      ? canAccessCommissioner
+                        ? "You'll draft players once the league is full. Lineups and waiver wire unlock after the draft."
+                        : "Waiting for the commissioner to start the draft. Your team will be filled after the draft."
+                      : "Draft in progress – your commissioner will finalize rosters."}
                   </p>
-                ) : (
-                  <JoinLeagueForm leagueId={params.id} />
-                )}
-              </div>
-            )
+                </div>
+              )}
+            </>
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-              <p className="text-gray-500 dark:text-gray-400">
-                Lineups will be available after the draft.
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Join this League
+              </h2>
+              {teams && teams.length >= league.max_teams ? (
+                <p className="text-gray-500 dark:text-gray-400">
+                  This league is full ({teams.length}/{league.max_teams} teams).
+                </p>
+              ) : (
+                <JoinLeagueForm leagueId={params.id} />
+              )}
             </div>
           )}
 

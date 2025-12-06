@@ -14,13 +14,14 @@ interface Team {
 interface MyTeamRosterProps {
   team: Team
   leagueId: string
+  leagueStatus?: string
 }
 
 /**
  * Displays a team's lineup with starting lineup grouped by position and bench players.
  * Handles data transformation to convert Supabase array responses to expected object types.
  */
-export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
+export async function MyTeamRoster({ team, leagueId, leagueStatus }: MyTeamRosterProps) {
   const supabase = await createClient()
 
   // Fetch roster with player details
@@ -62,37 +63,26 @@ export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          {team.logo_url ? (
-            <Image
-              src={team.logo_url}
-              alt={team.name}
-              width={64}
-              height={64}
-              className="w-16 h-16 rounded-full object-cover"
-            />
-          ) : (
-            <TeamHelmetIcon size={48} />
-          )}
-          <div>
-            <div className="flex items-center gap-2">
-              <TeamHelmetIcon size={20} />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {team.name}
-              </h2>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Draft Position: {team.draft_position ?? 'Not assigned'}
-            </p>
-          </div>
+      <div className="flex items-center gap-4 mb-4">
+        {team.logo_url ? (
+          <Image
+            src={team.logo_url}
+            alt={team.name}
+            width={64}
+            height={64}
+            className="w-16 h-16 rounded-full object-cover"
+          />
+        ) : (
+          <TeamHelmetIcon size={48} />
+        )}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {team.name}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Draft Position: {team.draft_position ?? 'Not assigned'}
+          </p>
         </div>
-        <Link
-          href={`/leagues/${leagueId}/players`}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
-        >
-          Add Players
-        </Link>
       </div>
 
       <RosterDisplay
@@ -101,6 +91,7 @@ export async function MyTeamRoster({ team, leagueId }: MyTeamRosterProps) {
         teamId={team.id}
         leagueId={leagueId}
         slotOrder={slotOrder}
+        isEditable={leagueStatus === 'active'}
       />
     </div>
   )

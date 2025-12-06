@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteLeague } from '@/app/actions/leagues'
+import { useToast } from '@/components/toast-provider'
 
 interface DeleteLeagueButtonProps {
   leagueId: string
@@ -11,6 +12,7 @@ interface DeleteLeagueButtonProps {
 
 export function DeleteLeagueButton({ leagueId, leagueName }: DeleteLeagueButtonProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [confirmationText, setConfirmationText] = useState('')
@@ -29,8 +31,10 @@ export function DeleteLeagueButton({ leagueId, leagueName }: DeleteLeagueButtonP
 
     if (result.error) {
       setError(result.error)
+      showToast(result.error, 'error')
       setIsDeleting(false)
     } else {
+      showToast('League deleted successfully.', 'success')
       router.push('/dashboard')
       router.refresh()
     }
