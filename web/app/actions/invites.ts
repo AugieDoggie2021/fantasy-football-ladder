@@ -109,12 +109,25 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
 
   if (inviteError) {
     console.error('Invite creation error:', inviteError)
+    console.error('Error details:', {
+      code: inviteError.code,
+      message: inviteError.message,
+      details: inviteError.details,
+      hint: inviteError.hint,
+      userId: user.id,
+      leagueId,
+      isCommissioner,
+      isAdmin
+    })
     // Return more descriptive error message
     if (inviteError.code === '23505') {
       return { error: 'An invite with this token already exists. Please try again.' }
     }
     if (inviteError.code === '42501') {
-      return { error: 'Permission denied. You may not have permission to create invites for this league.' }
+      // More detailed error for permission denied
+      return { 
+        error: `Permission denied. RLS policy blocked the insert. User: ${user.id}, League: ${leagueId}, Is Commissioner: ${isCommissioner}, Is Admin: ${isAdmin}` 
+      }
     }
     return { error: inviteError.message || 'Failed to create invite' }
   }
@@ -357,7 +370,18 @@ export async function getLeagueInvites(leagueId: string) {
     .order('created_at', { ascending: false })
 
   if (invitesError) {
-    return { error: 'Failed to fetch invites' }
+    console.error('Failed to fetch invites:', invitesError)
+    console.error('Error details:', {
+      code: invitesError.code,
+      message: invitesError.message,
+      details: invitesError.details,
+      hint: invitesError.hint,
+      userId: user.id,
+      leagueId,
+      isCommissioner,
+      isAdmin
+    })
+    return { error: invitesError.message || 'Failed to fetch invites' }
   }
 
   // Fetch teams in this league
