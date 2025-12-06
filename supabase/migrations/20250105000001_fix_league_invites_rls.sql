@@ -40,12 +40,8 @@ CREATE POLICY "Commissioners and admins can view invites for their leagues"
   USING (
     -- League commissioner (using SECURITY DEFINER function to avoid RLS recursion)
     public.check_league_creator(league_id, auth.uid())
-    -- Global admin (check via users table)
-    OR EXISTS (
-      SELECT 1 FROM public.users
-      WHERE users.id = auth.uid()
-      AND users.is_admin = true
-    )
+    -- Global admin (using SECURITY DEFINER function to avoid RLS recursion)
+    OR public.check_user_is_admin(auth.uid())
     -- User can see invites matching their email
     OR (email IS NOT NULL AND email = (SELECT email FROM auth.users WHERE id = auth.uid()))
   );
