@@ -71,6 +71,16 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
 
   const commissionerName = commissionerProfile?.display_name || user.email?.split('@')[0] || 'League Commissioner'
 
+  // Verify user authentication context
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser || authUser.id !== user.id) {
+    console.error('Auth context mismatch:', { 
+      authUserId: authUser?.id, 
+      expectedUserId: user.id 
+    })
+    return { error: 'Authentication context mismatch. Please try logging in again.' }
+  }
+
   // Prepare invite data - ensure email is null if empty string
   const inviteData = {
     league_id: leagueId,
@@ -81,7 +91,14 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
     expires_at: expiresAt.toISOString(),
   }
 
-  console.log('Creating invite with data:', { ...inviteData, token: '[REDACTED]' })
+  console.log('Creating invite with data:', { 
+    ...inviteData, 
+    token: '[REDACTED]',
+    userId: user.id,
+    leagueId,
+    isCommissioner,
+    isAdmin
+  })
 
   // Insert invite
   const { data: invite, error: inviteError } = await supabase
