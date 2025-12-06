@@ -2,7 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { PlayersList } from '@/components/players-list'
-import { FantasyPointsIcon } from '@/components/icons'
+import { HomeFootballIcon } from '@/components/icons'
+import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
+import { LeagueContextHeader } from '@/components/league-context-header'
+import { LeagueNavigation } from '@/components/league-navigation'
 
 export default async function LeaguePlayersPage({
   params,
@@ -10,22 +13,37 @@ export default async function LeaguePlayersPage({
   params: { id: string }
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const userWithProfile = await getCurrentUserWithProfile()
 
-  if (!user) {
+  if (!userWithProfile?.user) {
     redirect('/login')
   }
+
+  const { user, profile } = userWithProfile
 
   // Fetch league info
   const { data: league } = await supabase
     .from('leagues')
-    .select('id, name, status, seasons(year)')
+    .select(`
+      *,
+      seasons (
+        id,
+        year
+      ),
+      promotion_groups (
+        id,
+        name
+      )
+    `)
     .eq('id', params.id)
     .single()
 
   if (!league) {
     notFound()
   }
+
+  // Check if user can access commissioner tools
+  const canAccessCommissioner = canAccessCommissionerTools(user.id, profile, league)
 
   // Redirect if league is not active
   if (league.status !== 'active') {
@@ -86,20 +104,28 @@ export default async function LeaguePlayersPage({
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">
             <Link
-              href={`/leagues/${params.id}`}
-              className="text-indigo-600 dark:text-indigo-400 hover:underline mb-4 inline-block"
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
             >
-              ← Back to League
+              <HomeFootballIcon size={20} />
+              <span>← Back to Overview</span>
             </Link>
-            <div className="flex items-center gap-3 mb-2">
-              <FantasyPointsIcon size={32} />
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Fantasy Points - {league.name}
+            
+            <LeagueContextHeader
+              seasonYear={league.seasons?.[0]?.year}
+              promotionGroupName={undefined}
+              leagueName={league.name}
+              tier={undefined}
+              currentWeek={null}
+            />
+            
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Players
               </h1>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {league.seasons?.[0]?.year} Season
-            </p>
+
+            <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
           </div>
 
           <PlayersList

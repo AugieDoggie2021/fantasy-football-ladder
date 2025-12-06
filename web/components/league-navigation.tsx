@@ -2,8 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { HomeFootballIcon, StandingsIcon, MatchupsIcon, FantasyPointsIcon, SettingsGearIcon } from '@/components/icons'
+import { HomeFootballIcon, TeamHelmetIcon, MatchupsIcon, FantasyPointsIcon, SettingsGearIcon } from '@/components/icons'
 
 interface LeagueNavigationProps {
   leagueId: string
@@ -11,73 +10,48 @@ interface LeagueNavigationProps {
 }
 
 // Centralized nav items configuration to prevent icon/label mismatches
+// League navigation: League Home, Team, Matchup, Players
 const createNavItems = (
   leagueId: string, 
   pathname: string, 
-  isCommissioner: boolean,
-  hash: string
+  isCommissioner: boolean
 ) => {
   const basePath = `/leagues/${leagueId}`
   
   const items = [
     {
       href: basePath,
-      label: 'Home',
+      label: 'League Home',
       icon: HomeFootballIcon,
-      // Home is active when pathname exactly matches basePath and no hash
-      isActive: pathname === basePath && !hash,
+      // League Home is active when pathname exactly matches basePath
+      isActive: pathname === basePath,
     },
     {
-      href: `${basePath}#standings`,
-      label: 'Standings',
-      icon: StandingsIcon,
-      // Standings is active when hash is #standings
-      isActive: hash === 'standings',
+      href: `${basePath}/team`,
+      label: 'Team',
+      icon: TeamHelmetIcon,
+      isActive: pathname === `${basePath}/team`,
     },
     {
-      href: `${basePath}#matchups`,
-      label: 'Matchups',
+      href: `${basePath}/matchup`,
+      label: 'Matchup',
       icon: MatchupsIcon,
-      // Matchups is active when hash is #matchups
-      isActive: hash === 'matchups',
+      isActive: pathname === `${basePath}/matchup`,
     },
     {
       href: `${basePath}/players`,
-      label: 'Fantasy Points',
+      label: 'Players',
       icon: FantasyPointsIcon,
       isActive: pathname === `${basePath}/players`,
     },
   ]
-
-  if (isCommissioner) {
-    items.push({
-      href: `${basePath}/settings`,
-      label: 'Settings',
-      icon: SettingsGearIcon,
-      isActive: pathname === `${basePath}/settings`,
-    })
-  }
 
   return items
 }
 
 export function LeagueNavigation({ leagueId, isCommissioner = false }: LeagueNavigationProps) {
   const pathname = usePathname()
-  const [hash, setHash] = useState('')
-
-  useEffect(() => {
-    // Get hash from URL
-    const updateHash = () => {
-      const currentHash = window.location.hash.slice(1) // Remove the #
-      setHash(currentHash)
-    }
-
-    updateHash()
-    window.addEventListener('hashchange', updateHash)
-    return () => window.removeEventListener('hashchange', updateHash)
-  }, [])
-
-  const navItems = createNavItems(leagueId, pathname, isCommissioner, hash)
+  const navItems = createNavItems(leagueId, pathname, isCommissioner)
 
   return (
     <nav className="mb-6">

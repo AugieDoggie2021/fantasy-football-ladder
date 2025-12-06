@@ -2,22 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { JoinLeagueForm } from '@/components/join-league-form'
-import { MyTeamRoster } from '@/components/my-team-roster'
-import { RecentTransactions } from '@/components/recent-transactions'
-import { CurrentWeekMatchups } from '@/components/current-week-matchups'
 import { LeagueStandings } from '@/components/league-standings'
-import { CommissionerWeekControls } from '@/components/commissioner-week-controls'
-import { CommissionerScoringControls } from '@/components/commissioner-scoring-controls'
 import { LeagueContextHeader } from '@/components/league-context-header'
-import { CommissionerToolsSection } from '@/components/commissioner-tools-section'
-import { LeagueInvitePanel } from '@/components/league-invite-panel'
-import { LeagueInviteList } from '@/components/league-invite-list'
-import { CommissionerScoringWorkflow } from '@/components/commissioner-scoring-workflow'
-import { LeagueScoringSettingsForm } from '@/components/league-scoring-settings-form'
-import { getLeagueScoringConfig } from '@/app/actions/scoring-config'
 import { LeagueNavigation } from '@/components/league-navigation'
-import { StandingsIcon, MatchupsIcon, HomeFootballIcon } from '@/components/icons'
+import { HomeFootballIcon, SettingsGearIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { CommissionerSetupPanel } from '@/components/commissioner-setup-panel'
 import { LeagueStatusMessage } from '@/components/league-status-message'
@@ -56,13 +44,6 @@ export default async function LeagueDetailPage({
   // Check if user can access commissioner tools
   const canAccessCommissioner = canAccessCommissionerTools(user.id, profile, league)
 
-  // Fetch scoring config for commissioner
-  let scoringConfig = null
-  if (canAccessCommissioner) {
-    const configResult = await getLeagueScoringConfig(params.id)
-    scoringConfig = configResult.data || null
-  }
-
   if (!league) {
     notFound()
   }
@@ -77,6 +58,9 @@ export default async function LeagueDetailPage({
   if (!canView) {
     redirect('/dashboard')
   }
+
+  // Determine if user is commissioner or just a manager
+  const isCommissioner = league.created_by_user_id === user.id
 
   // Check if user already has a team in this league
   const { data: userTeam } = await supabase
@@ -106,13 +90,6 @@ export default async function LeagueDetailPage({
     .eq('is_current', true)
     .single()
 
-  // Check if schedule exists
-  const { data: hasSchedule } = await supabase
-    .from('league_weeks')
-    .select('id')
-    .eq('league_id', params.id)
-    .limit(1)
-    .single()
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -124,11 +101,8 @@ export default async function LeagueDetailPage({
               className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
             >
               <HomeFootballIcon size={20} />
-              <span>Back to Dashboard</span>
+              <span>← Back to Overview</span>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              {league.name}
-            </h1>
             
             <LeagueContextHeader
               seasonYear={league.seasons?.[0]?.year}
@@ -139,10 +113,31 @@ export default async function LeagueDetailPage({
             />
           </div>
 
+          {/* League Header with Settings Button for Commissioners */}
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                League Home
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Standings
+              </p>
+            </div>
+            {canAccessCommissioner && (
+              <Link
+                href={`/leagues/${params.id}/settings`}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium"
+              >
+                <SettingsGearIcon size={18} />
+                <span>League Settings</span>
+              </Link>
+            )}
+          </div>
+
           {/* League Navigation */}
           <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
 
-          {/* Commissioner Setup Panel (for invites_open and draft status) - Primary focus on Home tab */}
+          {/* Commissioner Setup Panel (for invites_open and draft status) */}
           {canAccessCommissioner && (league.status === 'invites_open' || league.status === 'draft') && (
             <CommissionerSetupPanel
               leagueId={params.id}
@@ -160,189 +155,22 @@ export default async function LeagueDetailPage({
             />
           )}
 
-          {/* User's Team Section - Show roster in all states, but gate editing by status */}
-          {userTeam ? (
-            <>
-              <MyTeamRoster 
-                team={userTeam} 
-                leagueId={params.id}
-                leagueStatus={league.status}
-              />
-              
-              {/* Pre-draft informational message */}
-              {league.status !== 'active' && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg shadow p-6 mb-6">
-                  <p className="text-blue-800 dark:text-blue-200">
-                    {league.status === 'invites_open' 
-                      ? canAccessCommissioner
-                        ? "You'll draft players once the league is full. Lineups and waiver wire unlock after the draft."
-                        : "Waiting for the commissioner to start the draft. Your team will be filled after the draft."
-                      : "Draft in progress – your commissioner will finalize rosters."}
-                  </p>
-                </div>
-              )}
-            </>
+          {/* Standings Section - Main content for League Home */}
+          {league.status === 'active' ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+              <LeagueStandings leagueId={params.id} currentUserId={user.id} />
+            </div>
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Join this League
+                Standings
               </h2>
-              {teams && teams.length >= league.max_teams ? (
-                <p className="text-gray-500 dark:text-gray-400">
-                  This league is full ({teams.length}/{league.max_teams} teams).
-                </p>
-              ) : (
-                <JoinLeagueForm leagueId={params.id} />
-              )}
-            </div>
-          )}
-
-          {/* Current Week Matchups Section - Only show in active status */}
-          {league.status === 'active' && (
-            <>
-              <div id="matchups" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <MatchupsIcon size={24} />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Matchups
-                  </h2>
-                </div>
-                <CurrentWeekMatchups leagueId={params.id} currentUserId={user.id} />
-              </div>
-
-              {/* Standings Section */}
-              <div id="standings" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6 scroll-mt-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <StandingsIcon size={24} />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Standings
-                  </h2>
-                </div>
-                <LeagueStandings leagueId={params.id} currentUserId={user.id} />
-              </div>
-
-              {/* Recent Activity Section */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Recent Activity
-                </h2>
-                <RecentTransactions leagueId={params.id} />
-              </div>
-            </>
-          )}
-
-          {/* Teams in League Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Teams ({teams?.length || 0}/{league.max_teams})
-            </h2>
-            
-            {teams && teams.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {teams.map((team: any) => (
-                  <div
-                    key={team.id}
-                    className={`p-4 border rounded-lg ${
-                      team.owner_user_id === user.id
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-gray-200 dark:border-gray-700'
-                    }`}
-                  >
-                    {team.logo_url && (
-                      <Image
-                        src={team.logo_url}
-                        alt={team.name}
-                        width={48}
-                        height={48}
-                        className="w-12 h-12 rounded-full object-cover mb-2"
-                      />
-                    )}
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {team.name}
-                      {team.owner_user_id === user.id && (
-                        <span className="ml-2 text-xs text-indigo-600 dark:text-indigo-400">
-                          (You)
-                        </span>
-                      )}
-                    </h3>
-                    {team.draft_position && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Draft Position: {team.draft_position}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
               <p className="text-gray-500 dark:text-gray-400">
-                No teams have joined this league yet.
+                Standings will update once games are played. The league is currently in {league.status === 'invites_open' ? 'invite' : 'draft'} phase.
               </p>
-            )}
-          </div>
-
-          {/* Commissioner Controls */}
-          {canAccessCommissioner && (
-            <div className="mt-6 space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Commissioner Tools
-                </h2>
-                <div className="space-y-6">
-                  <CommissionerToolsSection title="Schedule & Week Management">
-                    <CommissionerWeekControls
-                      leagueId={params.id}
-                      currentWeekNumber={currentWeek?.week_number || null}
-                      hasSchedule={!!hasSchedule}
-                    />
-                  </CommissionerToolsSection>
-
-                  <CommissionerToolsSection title="Scoring Rules">
-                    {scoringConfig ? (
-                      <LeagueScoringSettingsForm
-                        leagueId={params.id}
-                        currentConfig={scoringConfig}
-                      />
-                    ) : (
-                      <p className="text-gray-500 dark:text-gray-400">
-                        Loading scoring settings...
-                      </p>
-                    )}
-                  </CommissionerToolsSection>
-
-                  <CommissionerToolsSection title="Score Management">
-                    <CommissionerScoringWorkflow
-                      leagueId={params.id}
-                      currentWeekNumber={currentWeek?.week_number}
-                    />
-                  </CommissionerToolsSection>
-
-                  <CommissionerToolsSection title="Score Preview & Finalization">
-                    <CommissionerScoringControls
-                      leagueId={params.id}
-                      currentWeekId={currentWeek?.id || null}
-                      currentWeekNumber={currentWeek?.week_number || null}
-                    />
-                  </CommissionerToolsSection>
-
-                  <CommissionerToolsSection title="Invite Players">
-                    <LeagueInvitePanel leagueId={params.id} />
-                    <div className="mt-6">
-                      <LeagueInviteList leagueId={params.id} />
-                    </div>
-                  </CommissionerToolsSection>
-
-                  <CommissionerToolsSection title="Draft Management">
-                    <Link
-                      href={`/leagues/${params.id}/draft`}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium inline-block"
-                    >
-                      Manage Draft
-                    </Link>
-                  </CommissionerToolsSection>
-                </div>
-              </div>
             </div>
           )}
+
         </div>
       </div>
     </div>

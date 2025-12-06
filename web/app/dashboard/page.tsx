@@ -52,7 +52,7 @@ export default async function DashboardPage() {
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Dashboard
+              Fantasy Football Overview
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Logged in as: {user.email}
@@ -137,12 +137,15 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Leagues I Run */}
+          {/* Leagues I Run (Commissioner) */}
           {leaguesOwned.length > 0 && (
             <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                 Leagues I Run
               </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Leagues where you are the commissioner
+              </p>
               
               <div className="space-y-2">
                 {leaguesOwned.map((league: any) => {
@@ -228,52 +231,60 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          {/* My Teams Section */}
-          <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              My Teams
-            </h2>
+          {/* Leagues I'm In (Manager) - Filter out leagues where user is commissioner */}
+          {(() => {
+            const leaguesOwnedIds = new Set(leaguesOwned.map((l: any) => l.id))
+            const managerOnlyTeams = teams.filter((team: any) => {
+              const league = team.leagues
+              return league && !leaguesOwnedIds.has(league.id)
+            })
             
-            {teams.length > 0 ? (
-              <div className="space-y-3">
-                {teams.map((team: any) => {
-                  const league = team.leagues
-                  const season = league?.seasons
-                  const promotionGroup = league?.promotion_groups
-                  
-                  return (
-                    <Link
-                      key={team.id}
-                      href={`/leagues/${league.id}`}
-                      className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">
-                            {league.name}
-                          </h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {season?.year} Season
-                            {league.tier && ` • Tier ${league.tier}`}
-                            {promotionGroup && ` • ${promotionGroup.name} Ladder`}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Your Team: {team.name}
-                          </p>
+            return managerOnlyTeams.length > 0 ? (
+              <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Leagues I&apos;m In
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Leagues where you are a team manager
+                </p>
+                
+                <div className="space-y-3">
+                  {managerOnlyTeams.map((team: any) => {
+                    const league = team.leagues
+                    const season = league?.seasons
+                    const promotionGroup = league?.promotion_groups
+                    
+                    return (
+                      <Link
+                        key={team.id}
+                        href={`/leagues/${league.id}`}
+                        className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white">
+                              {league.name}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {season?.year} Season
+                              {league.tier && ` • Tier ${league.tier}`}
+                              {promotionGroup && ` • ${promotionGroup.name} Ladder`}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              Your Team: {team.name}
+                            </p>
+                          </div>
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                            {league.status}
+                          </span>
                         </div>
-                        <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                          {league.status}
-                        </span>
-                      </div>
-                    </Link>
-                  )
-                })}
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">
-                You don&apos;t have any teams yet.
-              </p>
-            )}
+            ) : null
+          })()}
 
           </div>
 

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { HomeFootballIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { DeleteLeagueButton } from '@/components/delete-league-button'
+import { LeagueContextHeader } from '@/components/league-context-header'
 
 export default async function LeagueSettingsPage({
   params,
@@ -43,13 +44,22 @@ export default async function LeagueSettingsPage({
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">
             <Link
-              href={`/leagues/${params.id}`}
+              href="/dashboard"
               className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
             >
               <HomeFootballIcon size={20} />
-              <span>Back to League</span>
+              <span>← Back to Overview</span>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            
+            <LeagueContextHeader
+              seasonYear={undefined}
+              promotionGroupName={undefined}
+              leagueName={league.name}
+              tier={undefined}
+              currentWeek={null}
+            />
+            
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               League Settings
             </h1>
           </div>
