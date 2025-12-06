@@ -39,6 +39,14 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
     return { error: 'Only league commissioners can create invites' }
   }
 
+  // Validate email format if provided
+  if (email && email.trim()) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.trim())) {
+      return { error: 'Invalid email address format' }
+    }
+  }
+
   // Generate a secure random token
   const token = randomBytes(32).toString('hex')
 
@@ -63,22 +71,39 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
 
   const commissionerName = commissionerProfile?.display_name || user.email?.split('@')[0] || 'League Commissioner'
 
+  // Prepare invite data - ensure email is null if empty string
+  const inviteData = {
+    league_id: leagueId,
+    email: email && email.trim() ? email.trim() : null,
+    token,
+    status: 'pending' as const,
+    created_by: user.id,
+    expires_at: expiresAt.toISOString(),
+  }
+
+  console.log('Creating invite with data:', { ...inviteData, token: '[REDACTED]' })
+
   // Insert invite
   const { data: invite, error: inviteError } = await supabase
     .from('league_invites')
-    .insert({
-      league_id: leagueId,
-      email: email || null,
-      token,
-      status: 'pending',
-      created_by: user.id,
-      expires_at: expiresAt.toISOString(),
-    })
+    .insert(inviteData)
     .select('id, token')
     .single()
 
-  if (inviteError || !invite) {
-    return { error: 'Failed to create invite' }
+  if (inviteError) {
+    console.error('Invite creation error:', inviteError)
+    // Return more descriptive error message
+    if (inviteError.code === '23505') {
+      return { error: 'An invite with this token already exists. Please try again.' }
+    }
+    if (inviteError.code === '42501') {
+      return { error: 'Permission denied. You may not have permission to create invites for this league.' }
+    }
+    return { error: inviteError.message || 'Failed to create invite' }
+  }
+
+  if (!invite) {
+    return { error: 'Failed to create invite: No data returned' }
   }
 
   // Construct invite URL
