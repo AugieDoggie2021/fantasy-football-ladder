@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { HomeFootballIcon, TeamHelmetIcon, MatchupsIcon, FantasyPointsIcon, SettingsGearIcon } from '@/components/icons'
+import { HomeFootballIcon, TeamHelmetIcon, MatchupsIcon, StandingsIcon, SettingsGearIcon } from '@/components/icons'
 
 interface LeagueNavigationProps {
   leagueId: string
@@ -10,7 +10,7 @@ interface LeagueNavigationProps {
 }
 
 // Centralized nav items configuration to prevent icon/label mismatches
-// League navigation: League Home, Team, Matchup, Players
+// League navigation: Team, Matchup, Players, League Home (in this order)
 const createNavItems = (
   leagueId: string, 
   pathname: string, 
@@ -19,13 +19,6 @@ const createNavItems = (
   const basePath = `/leagues/${leagueId}`
   
   const items = [
-    {
-      href: basePath,
-      label: 'League Home',
-      icon: HomeFootballIcon,
-      // League Home is active when pathname exactly matches basePath
-      isActive: pathname === basePath,
-    },
     {
       href: `${basePath}/team`,
       label: 'Team',
@@ -41,8 +34,15 @@ const createNavItems = (
     {
       href: `${basePath}/players`,
       label: 'Players',
-      icon: FantasyPointsIcon,
+      icon: StandingsIcon,
       isActive: pathname === `${basePath}/players`,
+    },
+    {
+      href: basePath,
+      label: 'League Home',
+      icon: HomeFootballIcon,
+      // League Home is active when pathname exactly matches basePath
+      isActive: pathname === basePath,
     },
   ]
 

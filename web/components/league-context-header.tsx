@@ -37,7 +37,6 @@ export function LeagueContextHeader({
         
         <div className="flex items-center gap-2">
           <LeagueTrophyIcon size={18} />
-          <span className="font-semibold text-indigo-900 dark:text-indigo-200">League:</span>
           <span className="text-lg font-bold text-indigo-900 dark:text-indigo-200">{leagueName}</span>
           {tier !== null && tier !== undefined && tier >= 1 && tier <= 4 && (
             <TierBadge tier={tier as 1 | 2 | 3 | 4} size={28} />
