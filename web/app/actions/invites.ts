@@ -267,6 +267,7 @@ export async function acceptInvite(token: string, teamName: string) {
 
 /**
  * Get all invites for a league (commissioner only)
+ * Also fetches teams to show which invites resulted in teams joining
  */
 export async function getLeagueInvites(leagueId: string) {
   const supabase = await createClient()
@@ -296,7 +297,8 @@ export async function getLeagueInvites(leagueId: string) {
     return { error: 'Only league commissioners can view invites' }
   }
 
-  const { data: invites, error } = await supabase
+  // Fetch invites
+  const { data: invites, error: invitesError } = await supabase
     .from('league_invites')
     .select(`
       id,
@@ -312,11 +314,58 @@ export async function getLeagueInvites(leagueId: string) {
     .eq('league_id', leagueId)
     .order('created_at', { ascending: false })
 
-  if (error) {
+  if (invitesError) {
     return { error: 'Failed to fetch invites' }
   }
 
-  return { data: invites || [] }
+  // Fetch teams in this league
+  const { data: teams, error: teamsError } = await supabase
+    .from('teams')
+    .select(`
+      id,
+      name,
+      owner_user_id,
+      created_at
+    `)
+    .eq('league_id', leagueId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+
+  if (teamsError) {
+    // Don't fail if teams fetch fails, just log it
+    console.error('Failed to fetch teams:', teamsError)
+  }
+
+  // Note: We can't easily get user emails from auth.users without admin access
+  // For now, we'll show teams without emails and match invites by status only
+  const teamsWithEmails = (teams || []).map((team: any) => ({
+    ...team,
+    users: null, // Email not available without admin access
+  }))
+
+  if (teamsError) {
+    // Don't fail if teams fetch fails, just log it
+    console.error('Failed to fetch teams:', teamsError)
+  }
+
+  // Try to match invites to teams
+  // Note: We can't match by email easily without admin access to auth.users
+  // For now, we'll show accepted invites but won't be able to link them to specific teams
+  const invitesWithTeams = (invites || []).map((invite) => {
+    // If invite is accepted, we know a team was created, but we can't match it precisely
+    // without email access. The teams list will show all teams that joined.
+    return {
+      ...invite,
+      team: null, // Can't match without email access
+    }
+  })
+
+  return { 
+    data: {
+      invites: invitesWithTeams,
+      teams: teamsWithEmails,
+    }
+  }
 }
 
 /**
