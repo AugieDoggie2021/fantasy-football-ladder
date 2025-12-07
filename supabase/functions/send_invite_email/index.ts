@@ -176,9 +176,9 @@ Fantasy Football Ladder
       const resend = new Resend(resendApiKey)
       
       // Send email via Resend API
-      // Using custom domain: fantasyladder.app
+      // Using custom domain: mail.fantasyladder.app
       const { data, error: resendError } = await resend.emails.send({
-        from: 'Fantasy Football Ladder <invites@fantasyladder.app>',
+        from: 'Fantasy Football Ladder <invites@mail.fantasyladder.app>',
         to: [to],
         subject: subject,
         html: htmlBody,

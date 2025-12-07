@@ -1,6 +1,15 @@
-# Vercel MCP Configuration Guide
+# MCP Configuration Guide
 
-This guide explains how to configure Vercel MCP tools in Cursor to access deployment logs and manage your Vercel projects.
+This guide explains how to configure MCP (Model Context Protocol) tools in Cursor for various services.
+
+## Available MCP Servers
+
+- **[Vercel MCP](./VERCEL_MCP_SETUP.md)** - Access deployment logs and manage Vercel projects
+- **[GitHub MCP](./GITHUB_MCP_SETUP.md)** - Interact with GitHub repositories, issues, and pull requests
+
+## Vercel MCP Configuration
+
+This section explains how to configure Vercel MCP tools in Cursor to access deployment logs and manage your Vercel projects.
 
 ## Prerequisites
 
