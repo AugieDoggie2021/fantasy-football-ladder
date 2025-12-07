@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { PlayersList } from '@/components/players-list'
-import { HomeFootballIcon } from '@/components/icons'
+import { HomeIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { LeagueNavigation } from '@/components/league-navigation'
@@ -107,7 +107,7 @@ export default async function LeaguePlayersPage({
               href="/dashboard"
               className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
             >
-              <HomeFootballIcon size={20} />
+              <HomeIcon size={20} />
               <span>← Back to Overview</span>
             </Link>
             

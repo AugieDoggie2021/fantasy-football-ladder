@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { HomeFootballIcon } from '@/components/icons'
+import { HomeIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { DeleteLeagueButton } from '@/components/delete-league-button'
 import { LeagueContextHeader } from '@/components/league-context-header'
@@ -47,7 +47,7 @@ export default async function LeagueSettingsPage({
               href="/dashboard"
               className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
             >
-              <HomeFootballIcon size={20} />
+              <HomeIcon size={20} />
               <span>← Back to Overview</span>
             </Link>
             

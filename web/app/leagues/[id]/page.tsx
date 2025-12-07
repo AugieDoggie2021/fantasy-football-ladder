@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { LeagueStandings } from '@/components/league-standings'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { LeagueNavigation } from '@/components/league-navigation'
-import { HomeFootballIcon, SettingsGearIcon } from '@/components/icons'
+import { HomeIcon, SettingsGearIcon, LeagueTrophyIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { CommissionerSetupPanel } from '@/components/commissioner-setup-panel'
 import { LeagueStatusMessage } from '@/components/league-status-message'
@@ -100,7 +100,7 @@ export default async function LeagueDetailPage({
               href="/dashboard"
               className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
             >
-              <HomeFootballIcon size={20} />
+              <HomeIcon size={20} />
               <span>← Back to Overview</span>
             </Link>
             
