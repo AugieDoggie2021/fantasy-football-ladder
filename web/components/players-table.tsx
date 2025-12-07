@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import type { PlayerWeekStats } from '@/lib/scoring'
 import type { ScoringConfig } from '@/lib/scoring-config'
 
@@ -136,12 +136,12 @@ export function PlayersTable({
   }, [players, positionFilter, nflTeamFilter, searchQuery, availabilityFilter, playerOwnershipMap])
 
   // Get stats for selected week
-  const getPlayerWeekData = (playerId: string) => {
+  const getPlayerWeekData = useCallback((playerId: string) => {
     if (!selectedWeek) return null
     const playerWeeks = playerStatsMap.get(playerId)
     if (!playerWeeks) return null
     return playerWeeks.get(selectedWeek.id) || null
-  }
+  }, [selectedWeek, playerStatsMap])
 
   // Sort players
   const sortedPlayers = useMemo(() => {
@@ -204,7 +204,7 @@ export function PlayersTable({
     })
 
     return sorted
-  }, [filteredPlayers, sortBy, sortAscending, playerStatsMap, playerAverages, selectedWeek])
+  }, [filteredPlayers, sortBy, sortAscending, playerStatsMap, playerAverages, selectedWeek, getPlayerWeekData])
 
   const handleSort = (newSortBy: SortOption) => {
     if (sortBy === newSortBy) {

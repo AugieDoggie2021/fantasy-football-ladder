@@ -187,7 +187,7 @@ export function CreateLeagueForm({ ladders }: CreateLeagueFormProps) {
                 </label>
                 {ladders.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    You don't own any ladders yet. Create a new one above.
+                    You don&apos;t own any ladders yet. Create a new one above.
                   </p>
                 ) : (
                   <select
@@ -222,7 +222,7 @@ export function CreateLeagueForm({ ladders }: CreateLeagueFormProps) {
                   placeholder="e.g., 1, 2, 3"
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  The tier determines this league's position in the ladder hierarchy.
+                  The tier determines this league&apos;s position in the ladder hierarchy.
                 </p>
               </div>
             )}

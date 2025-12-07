@@ -30,6 +30,7 @@ export function LeagueInviteList({ leagueId }: LeagueInviteListProps) {
 
   useEffect(() => {
     loadInvites()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leagueId])
 
   const loadInvites = async () => {

@@ -78,7 +78,7 @@ export function CommissionerScoringControls({
           Score Management - Week {currentWeekNumber}
         </h4>
         <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">
-          Preview and finalize scores for this week's matchups based on starting lineups and player stats.
+          Preview and finalize scores for this week&apos;s matchups based on starting lineups and player stats.
         </p>
         <div className="flex gap-2">
           <button

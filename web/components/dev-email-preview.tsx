@@ -54,9 +54,9 @@ export function DevEmailPreview() {
         </div>
       ) : (
         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
             <strong>Note:</strong> Inbucket is only available in local development.
-            In production, emails are sent via Supabase's email service.
+            In production, emails are sent via Supabase&apos;s email service.
           </p>
         </div>
       )}
@@ -67,8 +67,8 @@ export function DevEmailPreview() {
         </h4>
         <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
           <li>Go to a league detail page as a commissioner</li>
-          <li>Use the "Invite Players" section</li>
-          <li>Enter an email address and click "Send via Email"</li>
+          <li>Use the &quot;Invite Players&quot; section</li>
+          <li>Enter an email address and click &quot;Send via Email&quot;</li>
           <li>Check Inbucket (local) or your email inbox (production)</li>
         </ol>
       </div>
