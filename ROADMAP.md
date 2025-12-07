@@ -290,28 +290,80 @@ It evolves alongside development and acts as both **Roadmap** and **Feature Inve
 
 ## Status Tracking
 
-> Update milestone completion here as features ship.
+> Updated as of latest development cycle.
 
-* [ ] Phase 0 — Foundations
+* [x] Phase 0 — Foundations
+  * ✅ Repo structure, Vercel deployment, Supabase project
+  * ✅ Domain configured (fantasyladder.app)
+  * ✅ Environment configuration
 
-* [ ] Phase 1 — Authentication
+* [x] Phase 1 — Authentication
+  * ✅ Email/password authentication
+  * ✅ Google OAuth integration
+  * ✅ User profile management
+  * ✅ Role-based access control (admin, commissioner, manager)
 
-* [ ] Phase 2 — Seasons & Leagues
+* [x] Phase 2 — Seasons & Leagues
+  * ✅ Season creation and management
+  * ✅ League creation (standalone and ladder-based)
+  * ✅ Promotion group structure
+  * ✅ League invite system with email notifications
+  * ✅ Team creation and onboarding
+  * ✅ League dashboard and navigation
 
-* [ ] Phase 3 — Rosters
+* [x] Phase 3 — Rosters
+  * ✅ Player database and seeding
+  * ✅ Roster model (slots, starter/bench)
+  * ✅ Team roster UI
+  * ✅ Comprehensive Players tab with filtering and sorting
+  * ✅ Player stats display and calculations
+  * 🔄 Draft system (manual control implemented, UI in progress)
 
-* [ ] Phase 4 — Scoring
+* [~] Phase 4 — Scoring
+  * ✅ Matchup table and schedule generation
+  * ✅ Scoring engine (calculation functions)
+  * ✅ Standings table and display
+  * ✅ Matchup view UI
+  * 🔄 Automated weekly scoring (manual triggers work, automation pending)
 
-* [ ] Phase 5 — Promotion Engine
+* [~] Phase 5 — Promotion Engine
+  * ✅ Promotion logic edge function
+  * ✅ Ladder movement rules
+  * ✅ Dry-run preview capability
+  * 🔄 Promotion UI and season generation workflow
 
 * [ ] Phase 6 — iOS Feature Parity
+  * ⏳ SwiftUI app structure exists
+  * ⏳ Auth integration pending
+  * ⏳ Core views pending
 
-* [ ] Phase 7 — Testing / Admin Tools
+* [~] Phase 7 — Testing / Admin Tools
+  * ✅ Impersonation mode
+  * ✅ Dry run features
+  * ✅ Test user seeding
+  * ✅ Dev helpers and seed demo data
+  * 🔄 Expanded admin toolkit
 
-* [ ] Phase 8 — Design Polish
+* [~] Phase 8 — Design Polish
+  * ✅ Design system and neon theme
+  * ✅ Icon library complete
+  * ✅ Responsive layouts
+  * ✅ Dark mode support
+  * 🔄 Animation and micro-interactions
 
-* [ ] Phase 9 — Notifications
+* [~] Phase 9 — Notifications
+  * ✅ Email invites
+  * ⏳ Score update notifications
+  * ⏳ Push notifications (iOS)
 
 * [ ] Phase 10 — Season Lifecycle
+  * ⏳ Draft UI enhancements
+  * ⏳ Waiver processing
+  * ⏳ Trade workflows
+  * ⏳ Playoff customization
 
 * [ ] Phase 11 — Release
+  * ⏳ Error handling polish
+  * ⏳ Analytics integration
+  * ⏳ Security review
+  * ⏳ App Store preparation

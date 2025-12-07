@@ -6,78 +6,6 @@ This project includes:
 
 ---
 
-## 🚀 Quickstart
-
-Get the app running locally in just a few steps:
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [Supabase CLI](https://supabase.com/docs/guides/cli) (for local database)
-- A Supabase project (free at [supabase.com](https://supabase.com))
-
-### Step 1: Clone the Repository
-
-```bash
-git clone https://github.com/AugieDoggie2021/fantasy-football-ladder.git
-cd fantasy-football-ladder
-```
-
-### Step 2: Set Up Supabase
-
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to Project Settings → API
-3. Copy your project URL and anon key
-4. Create a `.env.local` file in the `/web` directory (see `.env.example` for template)
-5. Add your Supabase credentials:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_project_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-NEXT_PUBLIC_APP_ENV=dev
-```
-
-### Step 3: Apply Database Migrations
-
-```bash
-cd supabase
-supabase link --project-ref your-project-ref
-supabase db push
-```
-
-Or if using Supabase CLI locally:
-```bash
-supabase start
-supabase db push
-```
-
-### Step 4: Install Web Dependencies & Run
-
-```bash
-cd ../web
-npm install
-npm run dev
-```
-
-The app will be available at [http://localhost:3000](http://localhost:3000)
-
-### Step 5: Seed Demo Data
-
-1. Sign up for a new account at [http://localhost:3000/login](http://localhost:3000/login)
-2. Go to your dashboard
-3. In development mode, click **"Seed Demo Data"** button
-4. This creates a complete demo universe with:
-   - A promotion group with 3 tiers
-   - Leagues, teams, players, schedule
-   - Sample matchups and standings
-
-### What's Next?
-
-- Explore the demo promotion group
-- Create your own seasons and leagues
-- Test the draft and roster management
-- Run promotion/relegation cycles
-
 ---
 
 This project includes:
@@ -106,11 +34,12 @@ Fantasy Football Ladder reimagines traditional fantasy football gameplay:
 
 **Frontend (Web)**
 
-* Framework: Next.js (App Router) + TypeScript
-* Data fetching: Supabase client + React Query
-* Styling: TailwindCSS
-* Auth: Supabase Auth
-* Hosting: Vercel
+* Framework: Next.js 15 (App Router) + TypeScript
+* Data fetching: Supabase client + Server Components
+* Styling: TailwindCSS with custom neon theme
+* Auth: Supabase Auth (Email/Password + Google OAuth)
+* Hosting: Vercel (deployed at `fantasyladder.app`)
+* Domain: `fantasyladder.app` configured and active
 
 **Mobile App (iOS)**
 
@@ -122,12 +51,16 @@ Fantasy Football Ladder reimagines traditional fantasy football gameplay:
 
 * Supabase (Postgres, Auth, Storage, Realtime)
 * Supabase Edge Functions for:
-
-  * Draft operations
-  * Weekly scoring
-  * Standings generation
-  * Promotion/relegation logic
-* Optional API routes (Next.js) acting as a backend-for-frontend
+  * Promotion/relegation logic (`run_promotion`)
+  * Demo data seeding (`seed_demo`)
+  * Test user creation (`seed_test_users`)
+  * Player stats sync (`sync_external_players`, `sync_external_week_stats`)
+  * Email notifications (`send_invite_email`)
+* Server Actions (Next.js) for:
+  * League management
+  * Invite system
+  * Roster operations
+  * Scoring calculations
 
 ---
 
@@ -356,24 +289,12 @@ Testing includes:
 ## Repository Layout
 
 ```
-/web               -> Next.js application (Phase 0-1 complete)
+/web               -> Next.js application (in active development)
 /ios               -> Native SwiftUI app (placeholder - Phase 6)
 /supabase          -> migrations, functions, seed scripts
 /docs              -> design artifacts, diagrams, specs
-/assets            -> image files and generated icons
+/assets            -> image files and generated icons (source of truth)
 ```
-
-**Current Status:**
-- ✅ Phase 0/1 scaffolding complete
-- ✅ Next.js app initialized with TypeScript, TailwindCSS
-- ✅ Supabase client configuration (server & client)
-- ✅ Authentication flows (login/signup)
-- ✅ Protected routes via middleware
-- ✅ Dashboard shell
-- ✅ Environment awareness and feature flags
-- ✅ Impersonation hook placeholder
-- ✅ Supabase migrations (users table)
-- ✅ Edge function stub (run_promotion)
 
 ---
 
@@ -384,24 +305,44 @@ They will be generated and updated here as the platform evolves.
 
 ---
 
-## Status
+## Current Status
 
-This project is **in active development**.
+**Deployment:**
+- ✅ Web app deployed on Vercel at `fantasyladder.app`
+- ✅ Supabase backend configured and running
+- ✅ Domain configured and active
+- ✅ Google OAuth authentication working
+- ✅ Email/password authentication working
 
-The prior project at `github.com/AugieDoggie2021/FantasyFootball` serves as conceptual reference, but this repository represents a ground-up rebuild using modern architecture and design patterns.
+**Completed Features:**
+- ✅ User authentication (email/password + Google OAuth)
+- ✅ User profiles and role management
+- ✅ Fantasy Football Overview dashboard
+- ✅ League creation and management
+- ✅ League invite system with email notifications
+- ✅ Team creation and roster management
+- ✅ League navigation (League Home, Team, Matchup, Players)
+- ✅ Comprehensive Players tab with filtering, sorting, and stats
+- ✅ League standings display
+- ✅ Matchup views
+- ✅ Commissioner tools (invite management, league settings, league deletion)
+- ✅ League status workflow (invites_open → draft → active)
+- ✅ Database schema with RLS policies
+- ✅ Edge functions for promotion/relegation logic
 
----
+**In Progress:**
+- 🔄 Draft system (manual draft flow)
+- 🔄 Scoring automation
+- 🔄 Waiver wire system
+- 🔄 Trade workflows
 
-## Roadmap
+**Planned:**
+- ⏳ iOS SwiftUI app
+- ⏳ Real-time stats integration
+- ⏳ Push notifications
+- ⏳ Advanced analytics
 
-1. Supabase schema setup and migrations
-2. Auth + user state flows
-3. League and promotion group creation
-4. Drafting + roster management
-5. Matchups, scoring, and standings
-6. Promotion and relegation engine
-7. SwiftUI app build out
-8. Polishing, testing harnesses, notifications, and UX refinements
+See [ROADMAP.md](./ROADMAP.md) for detailed phase tracking.
 
 ---
 
