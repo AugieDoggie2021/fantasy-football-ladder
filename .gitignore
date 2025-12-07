@@ -81,3 +81,8 @@ project.xcworkspace
 Thumbs.db
 .DS_Store
 
+# Temporary files (partial filenames, copy-paste artifacts, etc.)
+*status*
+*15.5.7*
+*commissioner workflow*
+
