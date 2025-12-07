@@ -2,12 +2,10 @@
 
 A modern, ad-free fantasy football platform inspired by the usability of Yahoo Fantasy Sports, redesigned from the ground up for flexibility, multi-league ecosystems, and promotion/relegation league play.
 
----
-
 This project includes:
 
-* A **Next.js** web app deployed on **Vercel**
-* A **native SwiftUI iOS app**
+* A **Next.js** web app deployed on **Vercel** at `fantasyladder.app`
+* A **native SwiftUI iOS app** (in development)
 * A **Supabase backend** providing authentication, data, realtime updates, and server logic
 * An architecture designed from day one for **multi-tiered leagues** with **promotion and relegation mechanics**
 * Built-in support for **dry-run operations, impersonation, and testing tooling**
