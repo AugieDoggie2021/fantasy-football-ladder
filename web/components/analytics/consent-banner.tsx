@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 
 export function ConsentBanner() {
   const [showBanner, setShowBanner] = useState(false)
@@ -10,7 +10,6 @@ export function ConsentBanner() {
   useEffect(() => {
     const checkConsent = async () => {
       try {
-        const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
@@ -41,7 +40,6 @@ export function ConsentBanner() {
 
   const handleAccept = async () => {
     try {
-      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) return
@@ -59,7 +57,6 @@ export function ConsentBanner() {
 
   const handleDecline = async () => {
     try {
-      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) return
