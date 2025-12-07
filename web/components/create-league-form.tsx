@@ -58,9 +58,13 @@ export function CreateLeagueForm({ ladders }: CreateLeagueFormProps) {
     if (result.error) {
       setError(result.error)
       setLoading(false)
-    } else {
+    } else if (result.data) {
       // Show success and redirect
       router.push(`/leagues/${result.data.id}`)
+    } else {
+      // Handle case where no data is returned
+      setError('Failed to create league. Please try again.')
+      setLoading(false)
     }
   }
 

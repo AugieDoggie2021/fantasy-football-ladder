@@ -72,8 +72,10 @@ export async function generateDraftPicksForLeague(leagueId: string, rounds: numb
     return { error: insertError.message }
   }
 
-  // Track draft started
-  await trackDraftStarted(leagueId, user.id)
+  // Track draft started (non-blocking - don't await)
+  trackDraftStarted(leagueId, user.id).catch(err => {
+    console.error('Error tracking draft started:', err)
+  })
 
   revalidatePath(`/leagues/${leagueId}/draft`)
   
@@ -180,10 +182,10 @@ export async function assignPlayerToDraftPick(formData: FormData) {
       notes: `Drafted in round ${draftPick.round}, pick ${draftPick.overall_pick}`,
     })
 
-  // Track draft pick made
+  // Track draft pick made (non-blocking - don't await)
   const player = draftPick.players as { id: string; full_name: string; position: string } | null
   if (player) {
-    await trackDraftPickMade(
+    trackDraftPickMade(
       leagueId,
       draftPick.round,
       draftPick.overall_pick,
@@ -191,7 +193,9 @@ export async function assignPlayerToDraftPick(formData: FormData) {
       player.full_name,
       player.position,
       user.id
-    )
+    ).catch(err => {
+      console.error('Error tracking draft pick:', err)
+    })
   }
 
   // Check if draft is complete (all picks have players)
@@ -203,8 +207,10 @@ export async function assignPlayerToDraftPick(formData: FormData) {
     .limit(1)
 
   if (!remainingPicks || remainingPicks.length === 0) {
-    // Draft is complete
-    await trackDraftCompleted(leagueId, user.id)
+    // Draft is complete (non-blocking - don't await)
+    trackDraftCompleted(leagueId, user.id).catch(err => {
+      console.error('Error tracking draft completed:', err)
+    })
   }
 
   revalidatePath(`/leagues/${leagueId}/draft`)

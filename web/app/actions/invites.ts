@@ -212,13 +212,16 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
     }
   }
 
-  // Track invite sent
-  await trackInviteSent(
+  // Track invite sent (non-blocking - don't await)
+  trackInviteSent(
     leagueId,
     email || '',
     email ? 'email' : 'link',
     user.id
-  )
+  ).catch(err => {
+    console.error('Error tracking invite sent:', err)
+    // Don't block the response if tracking fails
+  })
 
   revalidatePath(`/leagues/${leagueId}`)
   
@@ -353,8 +356,10 @@ export async function acceptInvite(token: string, teamName: string) {
     console.error('Failed to update invite status:', updateError)
   }
 
-  // Track invite accepted
-  await trackInviteAccepted(invite.league_id, userId)
+  // Track invite accepted (non-blocking - don't await)
+  trackInviteAccepted(invite.league_id, userId).catch(err => {
+    console.error('Error tracking invite accepted:', err)
+  })
 
   revalidatePath(`/leagues/${invite.league_id}`)
   revalidatePath('/dashboard')

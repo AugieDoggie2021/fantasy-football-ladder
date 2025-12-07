@@ -111,14 +111,17 @@ export async function createLeague(formData: FormData) {
     return { error: error.message }
   }
 
-  // Track league creation
-  await trackLeagueCreated(
+  // Track league creation (non-blocking - don't await)
+  trackLeagueCreated(
     data.id,
     data.name,
     leagueType,
     maxTeams,
     user.id
-  )
+  ).catch(err => {
+    console.error('Error tracking league creation:', err)
+    // Don't block the response if tracking fails
+  })
 
   revalidatePath('/leagues')
   revalidatePath('/dashboard')
@@ -172,8 +175,10 @@ export async function deleteLeague(leagueId: string) {
     return { error: `Failed to delete league: ${deleteError.message}` }
   }
 
-  // Track league deletion
-  await trackLeagueDeleted(leagueId, user.id)
+  // Track league deletion (non-blocking - don't await)
+  trackLeagueDeleted(leagueId, user.id).catch(err => {
+    console.error('Error tracking league deletion:', err)
+  })
 
   revalidatePath('/dashboard', 'page')
   revalidatePath('/leagues', 'page')
