@@ -12,7 +12,7 @@ export default async function CommissionerGetStartedPage() {
     redirect('/login')
   }
 
-  // Check for active season
+  // Check for active season - look for 'active' or 'preseason' status
   const { data: activeSeason } = await supabase
     .from('seasons')
     .select('id, year, status')
@@ -20,17 +20,36 @@ export default async function CommissionerGetStartedPage() {
     .order('status', { ascending: true })
     .order('year', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
+
+  // Also check for any season to determine current year
+  const currentYear = new Date().getFullYear()
+  const { data: currentYearSeason } = await supabase
+    .from('seasons')
+    .select('id, year, status')
+    .eq('year', currentYear)
+    .order('status', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  // Determine if we're too far into the season (after week 4, it's too late to start new leagues)
+  // For now, we'll check if there's an active season. If not, suggest next year.
+  const nextYear = currentYear + 1
+  const isTooLateInSeason = currentYearSeason && 
+    currentYearSeason.status === 'active' && 
+    !activeSeason // If there's a current year season but it's active and not available for new leagues
 
   if (!activeSeason) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            No Active Season
+            {isTooLateInSeason ? 'Season Already Underway' : 'No Active Season'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            There is no active season configured yet. Please contact an administrator to set up a season.
+            {isTooLateInSeason 
+              ? `We're already well into the ${currentYear} fantasy football season. It's too late to start a new league for this year, but we're already looking forward to the ${nextYear} season! Check back soon to create your league for next season.`
+              : `There is no active season configured yet. ${currentYearSeason ? `The ${currentYear} season may have already started or completed. ` : ''}We're looking forward to the ${nextYear} season! Check back soon to create your league.`}
           </p>
           <a
             href="/dashboard"

@@ -32,12 +32,31 @@ export async function createLeague(formData: FormData) {
     .single()
 
   if (!activeSeason) {
+    // Check if we're in the current year and season might be too far along
+    const currentYear = new Date().getFullYear()
+    const { data: currentYearSeason } = await supabase
+      .from('seasons')
+      .select('id, year, status')
+      .eq('year', currentYear)
+      .order('status', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    const nextYear = currentYear + 1
+    const isTooLateInSeason = currentYearSeason && currentYearSeason.status === 'active'
+
+    if (isTooLateInSeason) {
+      return { 
+        error: `We're already well into the ${currentYear} fantasy football season. It's too late to start a new league for this year, but we're looking forward to the ${nextYear} season! Check back soon to create your league.` 
+      }
+    }
+
     // Only show this error to admins/commissioners
     // Regular users should never hit this (they should be gated at the page level)
     if (isAdmin) {
       return { error: 'No active season is configured yet. Go to Season Configuration (Admin) to set the active season.' }
     }
-    return { error: 'You don\'t have permission to create a league. Ask your commissioner to set one up.' }
+    return { error: `There is no active season available for new leagues. ${currentYearSeason ? `The ${currentYear} season may have already started. ` : ''}We're looking forward to the ${nextYear} season! Check back soon.` }
   }
 
   const seasonId = activeSeason.id
