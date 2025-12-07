@@ -45,6 +45,35 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
     if (!emailRegex.test(email.trim())) {
       return { error: 'Invalid email address format' }
     }
+
+    // Check if user is trying to invite themselves (commissioner)
+    const normalizedEmail = email.trim().toLowerCase()
+    const userEmail = user.email?.toLowerCase()
+    if (userEmail && normalizedEmail === userEmail) {
+      return { error: 'You cannot invite yourself. You are already the commissioner of this league.' }
+    }
+
+    // Check if there's already a pending or accepted invite for this email
+    const { data: existingInvite } = await supabase
+      .from('league_invites')
+      .select('id, status')
+      .eq('league_id', leagueId)
+      .eq('email', normalizedEmail)
+      .in('status', ['pending', 'accepted'])
+      .maybeSingle()
+
+    if (existingInvite) {
+      if (existingInvite.status === 'pending') {
+        return { error: 'An invite has already been sent to this email address.' }
+      }
+      if (existingInvite.status === 'accepted') {
+        return { error: 'This email address already has a team in this league.' }
+      }
+    }
+
+    // Note: We can't directly check if a user with this email already has a team
+    // because we can't query auth.users. However, the acceptInvite function will
+    // prevent duplicate teams by checking owner_user_id when the invite is accepted.
   }
 
   // Generate a secure random token
@@ -271,13 +300,14 @@ export async function acceptInvite(token: string, teamName: string) {
   // Check if user already has a team in this league
   const { data: existingTeam } = await supabase
     .from('teams')
-    .select('id')
+    .select('id, name')
     .eq('league_id', invite.league_id)
     .eq('owner_user_id', userId)
-    .single()
+    .eq('is_active', true)
+    .maybeSingle()
 
   if (existingTeam) {
-    return { error: 'You already have a team in this league', data: { leagueId: invite.league_id } }
+    return { error: `You already have a team (${existingTeam.name}) in this league. Each user can only have one team per league.`, data: { leagueId: invite.league_id } }
   }
 
   // Check if league is full

@@ -122,11 +122,13 @@ export function CommissionerSetupPanel({
     if (result.error) {
       setError(result.error)
     } else {
+      const inviteEmailValue = inviteEmail.trim()
       setInviteEmail('')
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
       setInviteSuccess(
         result.data?.emailSent
-          ? `Invite sent to ${inviteEmail.trim()}`
-          : `Invite created! Share this link: ${window.location.origin}/join/${result.data?.token}`
+          ? `Invite sent to ${inviteEmailValue}`
+          : `Invite created! Share this link: ${baseUrl}/join/${result.data?.token}`
       )
       // Reload invites
       const invitesResult = await getLeagueInvites(leagueId)
