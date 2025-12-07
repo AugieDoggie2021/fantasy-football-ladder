@@ -137,8 +137,8 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
   }
 
   // Construct invite URL
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasy-football-ladder.vercel.app'
-  const inviteUrl = `${baseUrl}/join/league/${invite.token}`
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
+  const inviteUrl = `${baseUrl}/join/${invite.token}`
 
   // Send email if email is provided
   let emailResult: { success: boolean; error?: string; devMode?: boolean } | null = null
@@ -544,8 +544,8 @@ export async function resendInviteEmail(inviteId: string) {
   const commissionerName = commissionerProfile?.display_name || user.email?.split('@')[0] || 'League Commissioner'
 
   // Construct invite URL
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasy-football-ladder.vercel.app'
-  const inviteUrl = `${baseUrl}/join/league/${invite.token}`
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
+  const inviteUrl = `${baseUrl}/join/${invite.token}`
 
   // Send email
   const emailResult = await sendLeagueInviteEmail({

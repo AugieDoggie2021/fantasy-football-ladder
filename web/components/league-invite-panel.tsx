@@ -30,8 +30,8 @@ export function LeagueInvitePanel({ leagueId }: LeagueInvitePanelProps) {
       } else if (result.data?.token) {
         const baseUrl = typeof window !== 'undefined' 
           ? window.location.origin 
-          : process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasy-football-ladder.vercel.app'
-        const url = `${baseUrl}/join/league/${result.data.token}`
+          : process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
+        const url = `${baseUrl}/join/${result.data.token}`
         setInviteUrl(url)
         showToast('Invite link generated! Copy it to share with players.', 'success')
         router.refresh()

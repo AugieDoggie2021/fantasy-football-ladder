@@ -25,7 +25,7 @@ export function JoinLeagueByCodeForm({}: JoinLeagueByCodeFormProps) {
     }
 
     // Redirect to the join page with the token
-    router.push(`/join/league/${code.trim()}`)
+    router.push(`/join/${code.trim()}`)
   }
 
   return (
