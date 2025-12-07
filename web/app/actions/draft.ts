@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { generateDraftPicks } from '@/lib/draft-helpers'
+import { trackDraftStarted, trackDraftPickMade, trackDraftCompleted } from '@/lib/analytics/server-track'
 
 /**
  * Generate draft picks for a league (snake draft)
@@ -71,6 +72,9 @@ export async function generateDraftPicksForLeague(leagueId: string, rounds: numb
     return { error: insertError.message }
   }
 
+  // Track draft started
+  await trackDraftStarted(leagueId, user.id)
+
   revalidatePath(`/leagues/${leagueId}/draft`)
   
   return { data: insertedPicks }
@@ -106,10 +110,17 @@ export async function assignPlayerToDraftPick(formData: FormData) {
     return { error: 'Only the league commissioner can assign draft picks' }
   }
 
-  // Get draft pick info
+  // Get draft pick info with player details
   const { data: draftPick, error: pickError } = await supabase
     .from('draft_picks')
-    .select('*')
+    .select(`
+      *,
+      players (
+        id,
+        full_name,
+        position
+      )
+    `)
     .eq('id', draftPickId)
     .eq('league_id', leagueId)
     .single()
@@ -168,6 +179,33 @@ export async function assignPlayerToDraftPick(formData: FormData) {
       player_in_id: playerId,
       notes: `Drafted in round ${draftPick.round}, pick ${draftPick.overall_pick}`,
     })
+
+  // Track draft pick made
+  const player = draftPick.players as { id: string; full_name: string; position: string } | null
+  if (player) {
+    await trackDraftPickMade(
+      leagueId,
+      draftPick.round,
+      draftPick.overall_pick,
+      playerId,
+      player.full_name,
+      player.position,
+      user.id
+    )
+  }
+
+  // Check if draft is complete (all picks have players)
+  const { data: remainingPicks } = await supabase
+    .from('draft_picks')
+    .select('id')
+    .eq('league_id', leagueId)
+    .is('player_id', null)
+    .limit(1)
+
+  if (!remainingPicks || remainingPicks.length === 0) {
+    // Draft is complete
+    await trackDraftCompleted(leagueId, user.id)
+  }
 
   revalidatePath(`/leagues/${leagueId}/draft`)
   revalidatePath(`/leagues/${leagueId}`)

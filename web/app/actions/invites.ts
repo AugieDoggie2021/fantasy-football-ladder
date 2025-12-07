@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
 import { randomBytes } from 'crypto'
 import { sendLeagueInviteEmail } from '@/lib/email'
+import { trackInviteSent, trackInviteAccepted } from '@/lib/analytics/server-track'
 
 /**
  * Create a league invite
@@ -211,6 +212,14 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
     }
   }
 
+  // Track invite sent
+  await trackInviteSent(
+    leagueId,
+    email || '',
+    email ? 'email' : 'link',
+    user.id
+  )
+
   revalidatePath(`/leagues/${leagueId}`)
   
   return { 
@@ -343,6 +352,9 @@ export async function acceptInvite(token: string, teamName: string) {
     // Team was created but invite update failed - log but don't fail
     console.error('Failed to update invite status:', updateError)
   }
+
+  // Track invite accepted
+  await trackInviteAccepted(invite.league_id, userId)
 
   revalidatePath(`/leagues/${invite.league_id}`)
   revalidatePath('/dashboard')

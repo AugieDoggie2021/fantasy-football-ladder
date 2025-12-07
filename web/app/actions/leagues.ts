@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
+import { trackLeagueCreated, trackLeagueDeleted } from '@/lib/analytics/server-track'
 
 /**
  * Create a new league
@@ -110,6 +111,15 @@ export async function createLeague(formData: FormData) {
     return { error: error.message }
   }
 
+  // Track league creation
+  await trackLeagueCreated(
+    data.id,
+    data.name,
+    leagueType,
+    maxTeams,
+    user.id
+  )
+
   revalidatePath('/leagues')
   revalidatePath('/dashboard')
   if (finalPromotionGroupId) {
@@ -161,6 +171,9 @@ export async function deleteLeague(leagueId: string) {
   if (deleteError) {
     return { error: `Failed to delete league: ${deleteError.message}` }
   }
+
+  // Track league deletion
+  await trackLeagueDeleted(leagueId, user.id)
 
   revalidatePath('/dashboard', 'page')
   revalidatePath('/leagues', 'page')
