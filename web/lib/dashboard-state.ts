@@ -40,6 +40,8 @@ export async function getDashboardState(userId: string): Promise<DashboardState>
     .order('created_at', { ascending: false })
 
   // Fetch leagues where user is commissioner
+  // Note: We don't filter by is_active or status here since commissioners should see all their leagues
+  // But we should ensure the league still exists (not soft-deleted)
   const { data: leaguesOwned } = await supabase
     .from('leagues')
     .select(`

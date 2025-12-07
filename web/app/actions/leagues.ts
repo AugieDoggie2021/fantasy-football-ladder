@@ -143,8 +143,9 @@ export async function deleteLeague(leagueId: string) {
     return { error: `Failed to delete league: ${deleteError.message}` }
   }
 
-  revalidatePath('/dashboard')
-  revalidatePath('/leagues')
+  revalidatePath('/dashboard', 'page')
+  revalidatePath('/leagues', 'page')
+  revalidatePath(`/leagues/${leagueId}`, 'page')
   
   return { success: true }
 }

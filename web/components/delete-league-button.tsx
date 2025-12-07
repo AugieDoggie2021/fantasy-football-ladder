@@ -35,8 +35,8 @@ export function DeleteLeagueButton({ leagueId, leagueName }: DeleteLeagueButtonP
       setIsDeleting(false)
     } else {
       showToast('League deleted successfully.', 'success')
-      router.push('/dashboard')
-      router.refresh()
+      // Force a hard refresh to ensure deleted league is removed
+      window.location.href = '/dashboard'
     }
   }
 
