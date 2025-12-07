@@ -2,10 +2,6 @@
 
 A modern, ad-free fantasy football platform inspired by the usability of Yahoo Fantasy Sports, redesigned from the ground up for flexibility, multi-league ecosystems, and promotion/relegation league play.
 
-This project includes:
-
----
-
 ---
 
 This project includes:
