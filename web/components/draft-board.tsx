@@ -370,44 +370,44 @@ export function DraftBoard({
                         
                         const isRecentlyPicked = recentlyPicked.has(pick.id)
                         return (
-                        <button
-                          key={pick.id}
-                          onClick={() => canSelect && !pick.player_id ? setSelectedPick(pick.id) : null}
-                          disabled={!canSelect || !!pick.player_id}
-                          className={`text-left p-3 sm:p-2 rounded border text-xs sm:text-sm transition-all duration-300 touch-manipulation min-h-[44px] ${
-                            isRecentlyPicked
-                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-400 animate-pulse'
-                              : selectedPick === pick.id
-                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                              : isCurrentPick && !pick.player_id
-                              ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400 animate-pulse'
-                              : pick.player_id
-                              ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50'
-                              : canSelect
-                              ? 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:shadow-md'
-                              : 'border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <div className="font-medium text-gray-900 dark:text-white">
-                            #{pick.overall_pick} - {pick.teams?.name}
-                          </div>
-                          {pick.players ? (
-                            <div className={`text-xs mt-1 transition-all ${
+                          <button
+                            key={pick.id}
+                            onClick={() => canSelect && !pick.player_id ? setSelectedPick(pick.id) : null}
+                            disabled={!canSelect || !!pick.player_id}
+                            className={`text-left p-3 sm:p-2 rounded border text-xs sm:text-sm transition-all duration-300 touch-manipulation min-h-[44px] ${
                               isRecentlyPicked
-                                ? 'text-green-700 dark:text-green-300 font-semibold'
-                                : 'text-gray-600 dark:text-gray-400'
-                            }`}>
-                              {pick.players.full_name} ({pick.players.position})
-                              {isRecentlyPicked && (
-                                <span className="ml-2 animate-bounce">✓</span>
-                              )}
+                                ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-400 animate-pulse'
+                                : selectedPick === pick.id
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                : isCurrentPick && !pick.player_id
+                                ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400 animate-pulse'
+                                : pick.player_id
+                                ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50'
+                                : canSelect
+                                ? 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:shadow-md'
+                                : 'border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
+                            }`}
+                          >
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              #{pick.overall_pick} - {pick.teams?.name}
                             </div>
-                          ) : (
-                            <div className="text-xs text-gray-400 dark:text-gray-500 italic mt-1">
-                              {isCurrentPick ? 'On the clock' : 'Not selected'}
-                            </div>
-                          )}
-                        </button>
+                            {pick.players ? (
+                              <div className={`text-xs mt-1 transition-all ${
+                                isRecentlyPicked
+                                  ? 'text-green-700 dark:text-green-300 font-semibold'
+                                  : 'text-gray-600 dark:text-gray-400'
+                              }`}>
+                                {pick.players.full_name} ({pick.players.position})
+                                {isRecentlyPicked && (
+                                  <span className="ml-2 animate-bounce">✓</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-400 dark:text-gray-500 italic mt-1">
+                                {isCurrentPick ? 'On the clock' : 'Not selected'}
+                              </div>
+                            )}
+                          </button>
                         )
                       })}
                     </div>
