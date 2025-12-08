@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { generateDraftPicksForLeague, assignPlayerToDraftPick } from '@/app/actions/draft'
+import { generateDraftPicksForLeague, makeDraftPick } from '@/app/actions/draft'
 
 interface Team {
   id: string
@@ -33,6 +33,10 @@ interface DraftBoardProps {
   teams: Team[]
   draftPicks: DraftPick[]
   availablePlayers: Player[]
+  draftStatus?: string
+  currentPickId?: string | null
+  userTeamId?: string | null
+  isCommissioner?: boolean
 }
 
 export function DraftBoard({
@@ -40,6 +44,10 @@ export function DraftBoard({
   teams,
   draftPicks,
   availablePlayers,
+  draftStatus = 'scheduled',
+  currentPickId = null,
+  userTeamId = null,
+  isCommissioner = false,
 }: DraftBoardProps) {
   const router = useRouter()
   const [selectedPick, setSelectedPick] = useState<string | null>(null)
@@ -69,7 +77,7 @@ export function DraftBoard({
     formData.append('player_id', playerId)
     formData.append('league_id', leagueId)
 
-    const result = await assignPlayerToDraftPick(formData)
+    const result = await makeDraftPick(formData)
     if (result.error) {
       alert(result.error)
     } else {
@@ -140,16 +148,24 @@ export function DraftBoard({
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {draftPicks.filter(p => p.player_id).length} of {draftPicks.length} picks made
                 </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Status: <span className="capitalize">{draftStatus}</span>
+                </p>
               </div>
               {nextPick && (
                 <div className="text-right">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Next Pick:</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Current Pick:</p>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     Round {nextPick.round}, Pick {nextPick.overall_pick}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {nextPick.teams?.name}
                   </p>
+                  {isUserTurn && (
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-1">
+                      ⏰ It's your turn!
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -190,11 +206,12 @@ export function DraftBoard({
                             </div>
                           ) : (
                             <div className="text-xs text-gray-400 dark:text-gray-500 italic mt-1">
-                              Not selected
+                              {isCurrentPick ? 'On the clock' : 'Not selected'}
                             </div>
                           )}
                         </button>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )

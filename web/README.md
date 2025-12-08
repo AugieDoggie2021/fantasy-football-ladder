@@ -36,6 +36,10 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 # Optional: Service Role Key (server-only, never exposed to client)
 # Only needed for admin operations that bypass RLS
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+
+# PostHog Analytics (Optional but Recommended)
+NEXT_PUBLIC_POSTHOG_KEY=phc_your_posthog_key_here
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 ```
 
 Get your Supabase credentials from:
@@ -90,6 +94,8 @@ Create a `.env.local` file in the `web/` directory with the following variables:
 | `NEXT_PUBLIC_APP_ENV` | ✅ Yes | Application environment: `dev`, `staging`, or `prod` |
 | `NEXT_PUBLIC_SITE_URL` | ✅ Yes | Site URL for auth redirects (e.g., `http://localhost:3000` for dev, `https://your-app.vercel.app` for prod) |
 | `SUPABASE_SERVICE_ROLE_KEY` | ⚠️ Optional | Service role key for admin operations (server-only, never expose to client) |
+| `NEXT_PUBLIC_POSTHOG_KEY` | ⚠️ Optional | PostHog Project API Key (from PostHog Dashboard → Project Settings → API Keys) |
+| `NEXT_PUBLIC_POSTHOG_HOST` | ⚠️ Optional | PostHog API host (defaults to `https://app.posthog.com`) |
 
 **Security Notes:**
 - Variables prefixed with `NEXT_PUBLIC_` are exposed to the browser

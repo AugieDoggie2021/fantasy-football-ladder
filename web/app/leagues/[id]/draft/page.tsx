@@ -15,10 +15,10 @@ export default async function DraftPage({
     redirect('/login')
   }
 
-  // Fetch league info
+  // Fetch league info with draft status
   const { data: league } = await supabase
     .from('leagues')
-    .select('id, name, created_by_user_id, seasons(year)')
+    .select('id, name, created_by_user_id, draft_status, current_pick_id, draft_settings, seasons(year)')
     .eq('id', params.id)
     .single()
 
@@ -26,8 +26,20 @@ export default async function DraftPage({
     notFound()
   }
 
-  // Only league creator (commissioner) can access draft page
-  if (league.created_by_user_id !== user.id) {
+  // Check if user has access to this league (RLS should handle this, but we verify)
+  // User can access if they're the commissioner OR they have a team in the league
+  const { data: userTeam } = await supabase
+    .from('teams')
+    .select('id, name, owner_user_id')
+    .eq('league_id', params.id)
+    .eq('owner_user_id', user.id)
+    .eq('is_active', true)
+    .single()
+
+  const isCommissioner = league.created_by_user_id === user.id
+  const hasTeam = !!userTeam
+
+  if (!isCommissioner && !hasTeam) {
     redirect(`/leagues/${params.id}`)
   }
 
@@ -90,7 +102,8 @@ export default async function DraftPage({
               Draft - {league.name}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {league.seasons?.[0]?.year} Season • Commissioner Draft Control
+              {league.seasons?.[0]?.year} Season • Status: {league.draft_status || 'scheduled'}
+              {isCommissioner && ' • Commissioner'}
             </p>
           </div>
 
@@ -99,6 +112,10 @@ export default async function DraftPage({
             teams={teams || []}
             draftPicks={draftPicks || []}
             availablePlayers={availablePlayers}
+            draftStatus={league.draft_status || 'scheduled'}
+            currentPickId={league.current_pick_id || null}
+            userTeamId={userTeam?.id || null}
+            isCommissioner={isCommissioner}
           />
         </div>
       </div>
