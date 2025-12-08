@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { DraftBoard } from '@/components/draft-board'
+import { DraftControls } from '@/components/draft-controls'
+import { DraftSummary } from '@/components/draft-summary'
 
 export default async function DraftPage({
   params,
@@ -18,7 +20,7 @@ export default async function DraftPage({
   // Fetch league info with draft status
   const { data: league } = await supabase
     .from('leagues')
-    .select('id, name, created_by_user_id, draft_status, current_pick_id, draft_settings, seasons(year)')
+    .select('id, name, created_by_user_id, draft_status, current_pick_id, draft_settings, draft_completed_at, seasons(year)')
     .eq('id', params.id)
     .single()
 
@@ -89,8 +91,8 @@ export default async function DraftPage({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
+      <div className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
+        <div className="py-4 sm:py-6">
           <div className="mb-6">
             <Link
               href={`/leagues/${params.id}`}
@@ -107,16 +109,45 @@ export default async function DraftPage({
             </p>
           </div>
 
-          <DraftBoard
-            leagueId={params.id}
-            teams={teams || []}
-            draftPicks={draftPicks || []}
-            availablePlayers={availablePlayers}
-            draftStatus={league.draft_status || 'scheduled'}
-            currentPickId={league.current_pick_id || null}
-            userTeamId={userTeam?.id || null}
-            isCommissioner={isCommissioner}
-          />
+          {/* Show Draft Summary if completed, otherwise show draft board */}
+          {league.draft_status === 'completed' ? (
+            <DraftSummary
+              leagueId={params.id}
+              leagueName={league.name}
+              teams={teams || []}
+              draftPicks={draftPicks || []}
+              draftCompletedAt={league.draft_completed_at}
+            />
+          ) : (
+            <>
+              {/* Commissioner Draft Controls */}
+              {isCommissioner && (
+                <div className="mb-6">
+                  <DraftControls
+                    leagueId={params.id}
+                    draftStatus={league.draft_status || 'scheduled'}
+                    draftSettings={(league.draft_settings as {
+                      timer_seconds?: number
+                      auto_pick_enabled?: boolean
+                      rounds?: number
+                    }) || {}}
+                    isCommissioner={isCommissioner}
+                  />
+                </div>
+              )}
+
+              <DraftBoard
+                leagueId={params.id}
+                teams={teams || []}
+                draftPicks={draftPicks || []}
+                availablePlayers={availablePlayers}
+                draftStatus={league.draft_status || 'scheduled'}
+                currentPickId={league.current_pick_id || null}
+                userTeamId={userTeam?.id || null}
+                isCommissioner={isCommissioner}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>

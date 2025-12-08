@@ -27,8 +27,17 @@ export const AnalyticsEvents = {
 
   // Draft
   DRAFT_STARTED: 'draft_started',
+  DRAFT_PAUSED: 'draft_paused',
+  DRAFT_RESUMED: 'draft_resumed',
   DRAFT_PICK_MADE: 'draft_pick_made',
+  DRAFT_PICK_FAILED: 'draft_pick_failed',
   DRAFT_COMPLETED: 'draft_completed',
+  DRAFT_TIMER_EXTENDED: 'draft_timer_extended',
+  DRAFT_QUEUE_ADDED: 'draft_queue_added',
+  DRAFT_QUEUE_REMOVED: 'draft_queue_removed',
+  DRAFT_QUEUE_REORDERED: 'draft_queue_reordered',
+  DRAFT_AUTO_PICK_TRIGGERED: 'draft_auto_pick_triggered',
+  DRAFT_BOARD_VIEWED: 'draft_board_viewed',
 
   // Roster & Lineup
   LINEUP_CHANGED: 'lineup_changed',
@@ -83,6 +92,8 @@ export interface DraftPickMadeProperties extends BaseEventProperties {
   player_id: string
   player_name: string
   player_position: string
+  pick_method?: 'manual' | 'queue' | 'auto'
+  time_taken_seconds?: number
 }
 
 export interface LineupChangedProperties extends BaseEventProperties {

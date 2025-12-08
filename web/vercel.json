@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/draft/check-expired-picks",
+      "schedule": "* * * * *"
+    }
+  ]
+}
+

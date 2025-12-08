@@ -97,6 +97,78 @@ export async function trackDraftCompleted(leagueId: string, userId?: string) {
   })
 }
 
+export async function trackDraftPaused(leagueId: string, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_PAUSED, {
+    league_id: leagueId,
+    user_id: userId,
+  })
+}
+
+export async function trackDraftResumed(leagueId: string, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_RESUMED, {
+    league_id: leagueId,
+    user_id: userId,
+  })
+}
+
+export async function trackDraftTimerExtended(leagueId: string, extensionSeconds: number, timeRemainingBefore?: number, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_TIMER_EXTENDED, {
+    league_id: leagueId,
+    extension_seconds: extensionSeconds,
+    time_remaining_before: timeRemainingBefore,
+    user_id: userId,
+  })
+}
+
+export async function trackDraftQueueAdded(leagueId: string, teamId: string, playerId: string, queueLength: number, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_QUEUE_ADDED, {
+    league_id: leagueId,
+    team_id: teamId,
+    player_id: playerId,
+    queue_length: queueLength,
+    user_id: userId,
+  })
+}
+
+export async function trackDraftQueueRemoved(leagueId: string, teamId: string, playerId: string, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_QUEUE_REMOVED, {
+    league_id: leagueId,
+    team_id: teamId,
+    player_id: playerId,
+    user_id: userId,
+  })
+}
+
+export async function trackDraftQueueReordered(leagueId: string, teamId: string, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_QUEUE_REORDERED, {
+    league_id: leagueId,
+    team_id: teamId,
+    user_id: userId,
+  })
+}
+
+export async function trackDraftAutoPickTriggered(leagueId: string, pickId: string, playerId: string, reason: string, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_AUTO_PICK_TRIGGERED, {
+    league_id: leagueId,
+    pick_id: pickId,
+    player_id: playerId,
+    reason,
+    user_id: userId,
+  })
+}
+
+export async function trackDraftPickFailed(leagueId: string, errorType: string, errorMessage: string, pickId?: string, playerId?: string, retryCount?: number, userId?: string) {
+  await trackServerEvent(AnalyticsEvents.DRAFT_PICK_FAILED, {
+    league_id: leagueId,
+    error_type: errorType,
+    error_message: errorMessage,
+    pick_id: pickId,
+    player_id: playerId,
+    retry_count: retryCount,
+    user_id: userId,
+  })
+}
+
 export async function trackLineupChanged(leagueId: string, teamId: string, changesCount: number, positionsChanged: string[], userId?: string) {
   await trackServerEvent(AnalyticsEvents.LINEUP_CHANGED, {
     league_id: leagueId,

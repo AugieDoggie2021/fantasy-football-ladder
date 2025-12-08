@@ -12,70 +12,70 @@
 
 ## Stage 1: Database Foundation
 
-### 1.1 League Draft Status Fields
-- [ ] Create migration: Add `draft_status` to `leagues` table
+### 1.1 League Draft Status Fields ✅
+- [x] Create migration: Add `draft_status` to `leagues` table
   - Values: `scheduled`, `in_progress`, `paused`, `completed`
   - Default: `scheduled`
-- [ ] Add `draft_started_at` timestamp field
-- [ ] Add `draft_completed_at` timestamp field
-- [ ] Add `current_pick_id` UUID field (references draft_picks)
-- [ ] Add `draft_settings` JSONB field
+- [x] Add `draft_started_at` timestamp field
+- [x] Add `draft_completed_at` timestamp field
+- [x] Add `current_pick_id` UUID field (references draft_picks)
+- [x] Add `draft_settings` JSONB field
   - `timer_seconds` (default: 90)
   - `auto_pick_enabled` (default: false)
   - `rounds` (default: 14)
 
-### 1.2 Draft Picks Timer Fields
-- [ ] Create migration: Add `pick_due_at` timestamp to `draft_picks`
-- [ ] Add `picked_at` timestamp to `draft_picks`
-- [ ] Add index on `pick_due_at` for timer queries
+### 1.2 Draft Picks Timer Fields ✅
+- [x] Create migration: Add `pick_due_at` timestamp to `draft_picks`
+- [x] Add `picked_at` timestamp to `draft_picks`
+- [x] Add index on `pick_due_at` for timer queries
 
-### 1.3 Draft Queue Table
-- [ ] Create migration: Create `draft_queues` table
+### 1.3 Draft Queue Table ✅
+- [x] Create migration: Create `draft_queues` table
   - `id` UUID primary key
   - `team_id` UUID (references teams)
   - `league_id` UUID (references leagues)
   - `player_id` UUID (references players)
-  - `priority` INTEGER (default: 0, higher = more priority)
+  - `order` INTEGER (for priority ordering)
   - `created_at` TIMESTAMPTZ
   - Unique constraint: (team_id, player_id)
-- [ ] Add indexes:
+- [x] Add indexes:
   - `idx_draft_queues_team_league` on (team_id, league_id)
-  - `idx_draft_queues_priority` on (team_id, priority DESC)
+  - `idx_draft_queues_team_order` on (team_id, order)
 
-### 1.4 RLS Policies for Draft Queue
-- [ ] Policy: Users can view their own team's queue
-- [ ] Policy: Users can manage their own team's queue (insert/update/delete)
-- [ ] Policy: League creators can view all queues
+### 1.4 RLS Policies for Draft Queue ✅
+- [x] Policy: Users can view their own team's queue
+- [x] Policy: Users can manage their own team's queue (insert/update/delete)
+- [x] Policy: League creators can view all queues
 
 ---
 
 ## Stage 2: Backend - Draft State Management
 
-### 2.1 Draft Status Actions
-- [ ] Create `startDraft` server action
+### 2.1 Draft Status Actions ✅
+- [x] Create `startDraft` server action
   - Validate commissioner
   - Set draft_status to `in_progress`
   - Set draft_started_at
   - Set current_pick_id to first pick
   - Set pick_due_at for first pick
   - Track analytics event
-- [ ] Create `pauseDraft` server action
+- [x] Create `pauseDraft` server action
   - Validate commissioner
   - Set draft_status to `paused`
   - Clear pick_due_at timers
-- [ ] Create `resumeDraft` server action
+- [x] Create `resumeDraft` server action
   - Validate commissioner
   - Set draft_status to `in_progress`
   - Recalculate pick_due_at for current pick
-- [ ] Create `completeDraft` server action
+- [x] Create `completeDraft` server action
   - Validate commissioner
   - Set draft_status to `completed`
   - Set draft_completed_at
   - Finalize all rosters
   - Track analytics event
 
-### 2.2 Draft Pick Actions (Team Owners)
-- [ ] Update `assignPlayerToDraftPick` → Rename to `makeDraftPick`
+### 2.2 Draft Pick Actions (Team Owners) ✅
+- [x] Update `assignPlayerToDraftPick` → Rename to `makeDraftPick`
   - Remove commissioner-only restriction
   - Add validation: Check if it's the team's turn
   - Add validation: Check if draft is in_progress
@@ -85,85 +85,113 @@
   - Set `pick_due_at` for next pick
   - Auto-advance if timer expired
   - Track analytics event
-- [ ] Create `getCurrentDraftState` helper function
+- [x] Create `getCurrentDraftState` helper function
   - Returns current pick, next pick, draft status
   - Returns timer info if active
 
-### 2.3 Auto-Pick Logic
-- [ ] Create `processAutoPick` function
+### 2.3 Auto-Pick Logic ✅
+- [x] Create `processAutoPick` function
   - Triggered when timer expires
   - Check team's draft queue
   - Pick highest priority available player
   - Fallback: Pick random available player (if enabled)
   - Fallback: Skip pick (if no auto-pick enabled)
-- [ ] Create background job/edge function for timer expiration
-  - Check for expired picks every 5 seconds
+- [x] Create background job/edge function for timer expiration
+  - API endpoint `/api/draft/check-expired-picks` for cron job
   - Process auto-picks
-  - Or: Use client-side timer with server validation
+  - Client-side timer with server validation
 
-### 2.4 Draft Queue Actions
-- [ ] Create `addPlayerToQueue` server action
+### 2.4 Draft Queue Actions ✅
+- [x] Create `addPlayerToQueue` server action
   - Validate team ownership
   - Add player to queue with priority
   - Handle duplicate prevention
-- [ ] Create `removePlayerFromQueue` server action
+- [x] Create `removePlayerFromQueue` server action
   - Validate team ownership
   - Remove player from queue
-- [ ] Create `reorderQueue` server action
+- [x] Create `reorderQueue` server action
   - Validate team ownership
   - Update priorities
-- [ ] Create `getTeamQueue` server action
+- [x] Create `getTeamQueue` server action
   - Return team's queue ordered by priority
+
+### 2.5 Draft State Helper Functions ✅
+- [x] Create `getCurrentDraftState` helper function
+  - Returns current pick details (pick ID, round, overall pick, team info)
+  - Returns next pick preview (next 3-5 picks)
+  - Returns draft status
+  - Returns timer info (pick_due_at, time remaining if active)
+  - Returns team summaries (picks made per team)
+- [x] Create `getDraftProgress` helper function
+  - Returns picks made / total picks
+  - Returns round progress (current round, picks in round)
+  - Returns team pick counts
+  - Returns estimated time remaining
 
 ---
 
 ## Stage 3: Access Control & Permissions
 
-### 3.1 Update RLS Policies
-- [ ] Update `draft_picks` SELECT policy
+### 3.1 Update RLS Policies ✅
+- [x] Update `draft_picks` SELECT policy
   - Allow all league members to view picks
-- [ ] Update `draft_picks` INSERT/UPDATE policy
+- [x] Update `draft_picks` INSERT/UPDATE policy
   - Allow team owners to update their own picks (when it's their turn)
   - Keep commissioner full access
-- [ ] Add validation in server actions
+- [x] Add validation in server actions
   - Check turn order before allowing pick
   - Check draft status before allowing actions
 
-### 3.2 Draft Page Access
-- [ ] Update `/leagues/[id]/draft/page.tsx`
+### 3.2 Draft Page Access ✅
+- [x] Update `/leagues/[id]/draft/page.tsx`
   - Remove commissioner-only restriction
   - Allow all league members to view
   - Show different UI based on user role
   - Show "on the clock" indicator for current team owner
 
-### 3.3 Permission Helpers
-- [ ] Create `canMakePick` helper function
+### 3.3 Permission Helpers ✅
+- [x] Create `canMakePick` helper function
   - Check if user's team is up
   - Check if draft is active
   - Check if pick is available
-- [ ] Create `isDraftCommissioner` helper function
-- [ ] Create `getUserTeamInLeague` helper function
+- [x] Create `isDraftCommissioner` helper function
+- [x] Create `getUserTeamInLeague` helper function
+
+### 3.4 Commissioner Draft Controls UI ✅
+- [x] Create `DraftControls` component
+  - Start Draft button (when scheduled)
+  - Pause Draft button (when in_progress)
+  - Resume Draft button (when paused)
+  - Complete Draft button (when all picks made or manual completion)
+  - Draft settings configuration panel
+    - Timer duration input
+    - Auto-pick enabled toggle
+    - Rounds setting
+- [x] Add controls to draft page (commissioner only)
+- [x] Show draft status badge with visual indicators
+- [x] Show draft progress indicator (picks made / total)
+- [x] Handle loading states and error messages
 
 ---
 
 ## Stage 4: Realtime Updates
 
-### 4.1 Supabase Realtime Setup
-- [ ] Enable Realtime on `draft_picks` table
+### 4.1 Supabase Realtime Setup ✅
+- [x] Enable Realtime on `draft_picks` table
   - Publish INSERT, UPDATE events
-- [ ] Enable Realtime on `leagues` table
+- [x] Enable Realtime on `leagues` table
   - Publish UPDATE events (for draft_status changes)
 
-### 4.2 Realtime Hook
-- [ ] Create `useDraftRealtime` custom hook
+### 4.2 Realtime Hook ✅
+- [x] Create `useDraftRealtime` custom hook
   - Subscribe to draft_picks changes
   - Subscribe to league draft_status changes
   - Return latest draft state
   - Handle connection errors
   - Auto-reconnect logic
 
-### 4.3 Draft Board Realtime Integration
-- [ ] Update `DraftBoard` component
+### 4.3 Draft Board Realtime Integration ✅
+- [x] Update `DraftBoard` component
   - Use `useDraftRealtime` hook
   - Auto-update when picks are made
   - Show "live" indicator
@@ -174,31 +202,31 @@
 
 ## Stage 5: Draft Timer System
 
-### 5.1 Timer Component
-- [ ] Create `DraftTimer` component
+### 5.1 Timer Component ✅
+- [x] Create `DraftTimer` component
   - Display countdown for current pick
   - Show time remaining
   - Visual countdown (progress bar/circle)
   - Warning states (30s, 10s remaining)
   - Expired state
 
-### 5.2 Timer Logic
-- [ ] Calculate `pick_due_at` when pick becomes active
+### 5.2 Timer Logic ✅
+- [x] Calculate `pick_due_at` when pick becomes active
   - Based on draft_settings.timer_seconds
   - Store in database
-- [ ] Client-side countdown
+- [x] Client-side countdown
   - Calculate from `pick_due_at` timestamp
   - Update every second
   - Handle timezone differences
-- [ ] Server-side validation
+- [x] Server-side validation
   - Verify timer hasn't expired before accepting pick
   - Auto-pick if expired
 
-### 5.3 Timer Management (Commissioner)
-- [ ] Add "Pause Timer" button (commissioner only)
-- [ ] Add "Resume Timer" button (commissioner only)
-- [ ] Add "Extend Timer" button (commissioner only)
-- [ ] Update timer display when paused
+### 5.3 Timer Management (Commissioner) ✅
+- [x] Add "Pause Timer" button (commissioner only)
+- [x] Add "Resume Timer" button (commissioner only)
+- [x] Add "Extend Timer" button (commissioner only)
+- [x] Update timer display when paused
 
 ---
 
@@ -471,6 +499,85 @@
 13. Stage 12: Analytics & Monitoring
 14. Stage 13: Documentation
 15. Stage 14: Deployment
+16. Stage 15: Draft Testing Infrastructure (can be done in parallel with development)
+
+---
+
+## Stage 15: Draft Testing Infrastructure
+
+### 15.1 Create Draft Test League Function
+- [ ] Create Supabase Edge Function `seed_draft_test_league`
+  - Creates a test league in "preseason" status
+  - Sets `draft_status` to `'not_started'`
+  - Creates season for current year (or specified year) with `status: 'preseason'`
+  - Configurable: league name, number of teams, draft settings
+  - Does NOT auto-draft players (unlike `seed_test_users`)
+  - Does NOT create rosters (players will be drafted during test)
+- [ ] Create test teams (4-12 teams, configurable)
+  - Team names: "Test Manager 1", "Test Manager 2", etc.
+  - All teams owned by current user (for testing purposes)
+  - Set `draft_position` for snake draft order
+  - Teams are active but have no rosters yet
+- [ ] Ensure league has draft settings configured
+  - `timer_seconds`: 90 (default)
+  - `auto_pick_enabled`: false (default)
+  - `rounds`: 14 (default)
+- [ ] Return league ID and team IDs for easy navigation
+
+### 15.2 Create Draft Reset Function
+- [ ] Create server action `resetDraftForTesting`
+  - Resets a league's draft to `'not_started'` state
+  - Clears all draft picks (deletes from `draft_picks` table)
+  - Clears all rosters for teams in the league
+  - Clears draft-related transactions
+  - Resets `draft_status`, `draft_started_at`, `draft_completed_at`, `current_pick_id`
+  - Preserves league, teams, and settings
+  - Only available to league commissioner or admin
+- [ ] Add confirmation dialog (destructive action)
+- [ ] Add logging/audit trail for reset operations
+
+### 15.3 Create Draft Test UI Component
+- [ ] Create `DraftTestHelper` component for admin/dev area
+  - Button: "Create Draft Test League"
+    - Prompts for: league name, number of teams (4-12), draft settings
+    - Creates league and teams, then redirects to draft page
+  - Button: "Reset Draft" (for existing test leagues)
+    - Shows list of leagues with `draft_status !== 'completed'`
+    - Allows selecting a league to reset
+    - Confirmation dialog before reset
+  - Display: List of test leagues ready for draft
+    - Shows league name, team count, draft status
+    - Quick link to draft page
+- [ ] Add to `/admin` page or create `/admin/draft-testing` page
+- [ ] Add visual indicators for test leagues (badge/flag)
+
+### 15.4 Preseason Player Data Setup
+- [ ] Ensure player data is available for draft testing
+  - Verify players table has sufficient data (200+ players)
+  - If needed, create function to seed preseason player data
+  - Players should have: `full_name`, `position`, `nfl_team`, `bye_week`
+  - No current season stats needed (preseason state)
+- [ ] Add note/documentation about player data requirements
+
+### 15.5 Multi-User Draft Testing Support (Optional)
+- [ ] Create test user accounts for realistic multi-user testing
+  - Edge function to create 4-12 test user accounts
+  - Each test user gets a team in the test league
+  - Test users can be logged in via impersonation or separate sessions
+  - Useful for testing turn-based picking, permissions, realtime updates
+- [ ] Add impersonation support for test users
+  - Admin can switch to test user account
+  - Visual indicator showing "Test User: [Name]"
+  - Easy switch back to admin account
+
+### 15.6 Draft Test Documentation
+- [ ] Create `docs/draft-testing-guide.md`
+  - Step-by-step guide for creating test league
+  - How to run a test draft
+  - How to reset and re-test
+  - Testing different scenarios (timer expiration, queue picks, etc.)
+  - Troubleshooting common issues
+- [ ] Add to main README or admin documentation
 
 ---
 

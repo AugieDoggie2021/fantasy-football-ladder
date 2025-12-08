@@ -24,17 +24,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AnalyticsProvider>
-          <QueryProvider>
-            <ToastProvider>
-              <EnvironmentBanner />
-              <PageViewTracker />
-              {children}
-              <Analytics />
-              <ConsentBanner />
-            </ToastProvider>
-          </QueryProvider>
-        </AnalyticsProvider>
+        <ErrorBoundary>
+          <AnalyticsProvider>
+            <QueryProvider>
+              <ToastProvider>
+                <EnvironmentBanner />
+                <PageViewTracker />
+                {children}
+                <Analytics />
+                <ConsentBanner />
+              </ToastProvider>
+            </QueryProvider>
+          </AnalyticsProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
