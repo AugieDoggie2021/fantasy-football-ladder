@@ -315,13 +315,13 @@ They will be generated and updated here as the platform evolves.
 - ✅ League creation and management
 - ✅ League invite system with email notifications
 - ✅ Team creation and roster management
-- ✅ League navigation (League Home, Team, Matchup, Players)
+- ✅ League navigation (League Home, Standings, Matchups, Fantasy Points, Settings)
 - ✅ Comprehensive Players tab with filtering, sorting, and stats
 - ✅ League standings display
 - ✅ Matchup views
 - ✅ Commissioner tools (invite management, league settings, league deletion)
 - ✅ League status workflow (invites_open → draft → active)
-- ✅ Database schema with RLS policies
+- ✅ Database schema with RLS policies (optimized to prevent recursion)
 - ✅ Edge functions for promotion/relegation logic
 
 **In Progress:**
