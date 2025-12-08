@@ -8,6 +8,7 @@ import { AnalyticsProvider } from "@/components/analytics/posthog-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { ConsentBanner } from "@/components/analytics/consent-banner";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
