@@ -82,7 +82,14 @@ Thumbs.db
 .DS_Store
 
 # Temporary files (partial filenames, copy-paste artifacts, etc.)
-*status*
+# Ignore temporary files with "status" in name (but not component files)
+*status*.tmp
+*status*.bak
+*status*.old
+*status*.swp
+*status*~
+# Explicitly allow component files with "status" in name
+!web/components/
 *15.5.7*
 *commissioner workflow*
 
