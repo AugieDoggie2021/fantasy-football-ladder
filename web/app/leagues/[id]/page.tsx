@@ -9,6 +9,8 @@ import { HomeIcon, SettingsGearIcon, LeagueTrophyIcon } from '@/components/icons
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { CommissionerSetupPanel } from '@/components/commissioner-setup-panel'
 import { LeagueStatusMessage } from '@/components/league-status-message'
+import { PageEventTracker } from '@/components/analytics/page-event-tracker'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 export default async function LeagueDetailPage({
   params,
@@ -93,6 +95,14 @@ export default async function LeagueDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <PageEventTracker
+        event={AnalyticsEvents.PAGE_VIEWED}
+        properties={{
+          page_path: `/leagues/${params.id}`,
+          page_title: `League: ${league.name}`,
+          league_id: params.id,
+        }}
+      />
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">

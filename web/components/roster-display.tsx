@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { updateRosterSlot, dropPlayerFromRoster } from '@/app/actions/rosters'
 import { useRouter } from 'next/navigation'
+import { track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 interface Player {
   id: string
@@ -49,6 +51,13 @@ export function RosterDisplay({
 
     const result = await updateRosterSlot(formData)
     if (!result.error) {
+      // Track lineup change
+      track(AnalyticsEvents.LINEUP_CHANGED, {
+        league_id: leagueId,
+        team_id: teamId,
+        changes_count: 1,
+        positions_changed: ['BENCH'],
+      })
       router.refresh()
     } else {
       alert(result.error)
@@ -65,6 +74,13 @@ export function RosterDisplay({
 
     const result = await updateRosterSlot(formData)
     if (!result.error) {
+      // Track lineup change
+      track(AnalyticsEvents.LINEUP_CHANGED, {
+        league_id: leagueId,
+        team_id: teamId,
+        changes_count: 1,
+        positions_changed: [position],
+      })
       router.refresh()
     } else {
       alert(result.error)
@@ -77,12 +93,23 @@ export function RosterDisplay({
       return
     }
 
+    // Find the roster entry to get player_id
+    const allEntries = [...Object.values(startersByPosition).flat(), ...bench]
+    const entry = allEntries.find(e => e.id === rosterId)
+    const playerId = entry?.players?.id
+
     setLoading(rosterId)
     const formData = new FormData()
     formData.append('roster_id', rosterId)
 
     const result = await dropPlayerFromRoster(formData)
     if (!result.error) {
+      // Track player dropped
+      track(AnalyticsEvents.PLAYER_DROPPED, {
+        league_id: leagueId,
+        team_id: teamId,
+        player_id: playerId,
+      })
       router.refresh()
     } else {
       alert(result.error)

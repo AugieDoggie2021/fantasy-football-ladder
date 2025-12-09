@@ -122,6 +122,8 @@ export async function createLeague(formData: FormData) {
     console.error('Error tracking league creation:', err)
     // Don't block the response if tracking fails
   })
+  
+  // Note: Funnel context is added in server-track.ts
 
   revalidatePath('/leagues')
   revalidatePath('/dashboard')
@@ -166,13 +168,28 @@ export async function deleteLeague(leagueId: string) {
   }
 
   // Delete the league (cascade will handle related records)
-  const { error: deleteError } = await supabase
+  const { error: deleteError, data: deleteResult } = await supabase
     .from('leagues')
     .delete()
     .eq('id', leagueId)
+    .select()
 
   if (deleteError) {
+    console.error('League deletion error:', deleteError)
     return { error: `Failed to delete league: ${deleteError.message}` }
+  }
+
+  // Verify the league was actually deleted
+  // If RLS blocks the delete, Supabase might return success but not actually delete
+  const { data: verifyLeague } = await supabase
+    .from('leagues')
+    .select('id')
+    .eq('id', leagueId)
+    .single()
+
+  if (verifyLeague) {
+    console.error('League still exists after delete attempt - RLS policy may be blocking deletion')
+    return { error: 'Failed to delete league: Deletion was blocked. Please ensure you have the DELETE policy enabled for leagues.' }
   }
 
   // Track league deletion (non-blocking - don't await)

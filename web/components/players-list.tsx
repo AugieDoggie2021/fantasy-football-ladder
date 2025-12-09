@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { addPlayerToRoster } from '@/app/actions/rosters'
 import { useRouter } from 'next/navigation'
+import { track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 interface Player {
   id: string
@@ -73,6 +75,12 @@ export function PlayersList({
 
     const result = await addPlayerToRoster(formData)
     if (!result.error) {
+      // Track player added
+      track(AnalyticsEvents.PLAYER_ADDED, {
+        league_id: leagueId,
+        team_id: teamId,
+        player_id: playerId,
+      })
       router.refresh()
     } else {
       alert(result.error)

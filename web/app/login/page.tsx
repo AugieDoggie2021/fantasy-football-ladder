@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { identify, track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 type AuthError = {
   type: 'email' | 'password' | 'auth' | 'network' | 'confirmation'
@@ -199,17 +201,65 @@ function LoginForm() {
         }
 
         // User is automatically signed in (email confirmation disabled)
+        // Identify user and track signup event
+        if (data.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('id, display_name, is_admin, created_at')
+            .eq('id', data.user.id)
+            .single()
+
+          identify(data.user.id, {
+            email: data.user.email,
+            user_id: data.user.id,
+            display_name: profile?.display_name || data.user.email?.split('@')[0] || 'User',
+            is_admin: profile?.is_admin || false,
+            created_at: profile?.created_at || data.user.created_at,
+          })
+
+          track(AnalyticsEvents.USER_SIGNED_UP, {
+            user_id: data.user.id,
+            email: data.user.email,
+            funnel_name: 'signup',
+            funnel_step: 'signup_complete',
+          })
+        }
+
         const redirectTo = searchParams.get('redirect') || '/dashboard'
         router.push(redirectTo)
         router.refresh()
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
 
         if (error) {
           throw error
+        }
+
+        // Identify user and track login event
+        if (data.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('id, display_name, is_admin, created_at')
+            .eq('id', data.user.id)
+            .single()
+
+          identify(data.user.id, {
+            email: data.user.email,
+            user_id: data.user.id,
+            display_name: profile?.display_name || data.user.email?.split('@')[0] || 'User',
+            is_admin: profile?.is_admin || false,
+            created_at: profile?.created_at || data.user.created_at,
+          })
+
+          track(AnalyticsEvents.USER_LOGGED_IN, {
+            user_id: data.user.id,
+            email: data.user.email,
+            funnel_name: 'signup',
+            funnel_step: 'login_complete',
+          })
         }
 
         const redirectTo = searchParams.get('redirect') || '/dashboard'

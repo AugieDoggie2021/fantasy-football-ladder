@@ -9,6 +9,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { ConsentBanner } from "@/components/analytics/consent-banner";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { UserIdentification } from "@/components/analytics/user-identification";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
             <QueryProvider>
               <ToastProvider>
                 <EnvironmentBanner />
+                <UserIdentification />
                 <PageViewTracker />
                 {children}
                 <Analytics />

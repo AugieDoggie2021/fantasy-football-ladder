@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { DraftBoard } from '@/components/draft-board'
 import { DraftControls } from '@/components/draft-controls'
 import { DraftSummary } from '@/components/draft-summary'
+import { PageEventTracker } from '@/components/analytics/page-event-tracker'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 export default async function DraftPage({
   params,
@@ -91,6 +93,15 @@ export default async function DraftPage({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <PageEventTracker
+        event={AnalyticsEvents.DRAFT_BOARD_VIEWED}
+        properties={{
+          league_id: params.id,
+          draft_status: league.draft_status || 'scheduled',
+          funnel_name: 'draft',
+          funnel_step: 'draft_board_viewed',
+        }}
+      />
       <div className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
         <div className="py-4 sm:py-6">
           <div className="mb-6">

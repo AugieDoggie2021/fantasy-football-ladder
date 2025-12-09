@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteLeague } from '@/app/actions/leagues'
 import { useToast } from '@/components/toast-provider'
+import { track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 interface DeleteLeagueButtonProps {
   leagueId: string
@@ -34,6 +36,10 @@ export function DeleteLeagueButton({ leagueId, leagueName }: DeleteLeagueButtonP
       showToast(result.error, 'error')
       setIsDeleting(false)
     } else {
+      // Track league deleted
+      track(AnalyticsEvents.LEAGUE_DELETED, {
+        league_id: leagueId,
+      })
       showToast('League deleted successfully.', 'success')
       // Force a hard refresh to ensure deleted league is removed
       window.location.href = '/dashboard'

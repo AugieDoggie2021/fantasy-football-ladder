@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createTeam } from '@/app/actions/teams'
+import { track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 interface JoinLeagueFormProps {
   leagueId: string
@@ -27,6 +29,16 @@ export function JoinLeagueForm({ leagueId }: JoinLeagueFormProps) {
       setError(result.error)
       setLoading(false)
     } else {
+      // Track team creation
+      if (result.data) {
+        track(AnalyticsEvents.TEAM_CREATED, {
+          league_id: leagueId,
+          team_id: result.data.id,
+          team_name: result.data.name,
+          funnel_name: 'league_join',
+          funnel_step: 'team_created',
+        })
+      }
       router.refresh()
     }
   }

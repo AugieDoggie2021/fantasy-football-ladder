@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { acceptInvite } from '@/app/actions/invites'
 import { useToast } from './toast-provider'
+import { track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 interface JoinLeagueInviteFormProps {
   token: string
@@ -38,6 +40,13 @@ export function JoinLeagueInviteForm({ token, leagueId }: JoinLeagueInviteFormPr
           }, 2000)
         }
       } else {
+        // Track league joined
+        track(AnalyticsEvents.LEAGUE_JOINED, {
+          league_id: leagueId,
+          team_id: result.data?.teamId,
+          funnel_name: 'league_join',
+          funnel_step: 'league_joined',
+        })
         showToast('Successfully joined the league!', 'success')
         router.push(`/leagues/${leagueId}#my-team`)
       }

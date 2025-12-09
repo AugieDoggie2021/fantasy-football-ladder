@@ -9,6 +9,8 @@ import { LeagueNavigation } from '@/components/league-navigation'
 import { parseScoringConfig } from '@/lib/scoring-config'
 import { calculatePlayerScoreWithConfig } from '@/lib/scoring'
 import type { PlayerWeekStats } from '@/lib/scoring'
+import { PageEventTracker } from '@/components/analytics/page-event-tracker'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 export default async function LeaguePlayersPage({
   params,
@@ -215,6 +217,12 @@ export default async function LeaguePlayersPage({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <PageEventTracker
+        event={AnalyticsEvents.PLAYERS_VIEWED}
+        properties={{
+          league_id: params.id,
+        }}
+      />
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">

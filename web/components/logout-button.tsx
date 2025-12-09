@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { reset, track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 export function LogoutButton() {
   const router = useRouter()
@@ -11,6 +13,20 @@ export function LogoutButton() {
   const handleLogout = async () => {
     setLoading(true)
     try {
+      // Get user ID before signing out
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
+
+      // Track logout event before resetting
+      if (userId) {
+        track(AnalyticsEvents.USER_LOGGED_OUT, {
+          user_id: userId,
+        })
+      }
+
+      // Reset PostHog session
+      reset()
+
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error('Logout error:', error)
@@ -21,6 +37,8 @@ export function LogoutButton() {
       router.refresh()
     } catch (error) {
       console.error('Logout error:', error)
+      // Still reset PostHog even on error
+      reset()
       // Still redirect on error
       router.push('/login')
       router.refresh()

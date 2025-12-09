@@ -4,6 +4,8 @@ import { LogoutButton } from '@/components/logout-button'
 import Link from 'next/link'
 import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
 import { getDashboardState } from '@/lib/dashboard-state'
+import { PageEventTracker } from '@/components/analytics/page-event-tracker'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -48,6 +50,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <PageEventTracker
+        event={AnalyticsEvents.PAGE_VIEWED}
+        properties={{
+          page_path: '/dashboard',
+          page_title: 'Dashboard',
+          funnel_name: 'signup',
+          funnel_step: 'dashboard_viewed',
+        }}
+      />
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">

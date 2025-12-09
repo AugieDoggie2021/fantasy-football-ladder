@@ -2,10 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { AnalyticsEvents, type BaseEventProperties } from './events'
+import { trackServerEvent as trackPostHogEvent, identifyServerUser } from './posthog-server'
 
 /**
  * Server-side event tracking
- * Logs events to Supabase analytics_events table
+ * Logs events to both Supabase analytics_events table and PostHog
  */
 export async function trackServerEvent(
   event: string,
@@ -15,12 +16,15 @@ export async function trackServerEvent(
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Insert event into analytics_events table
+    const userId = user?.id || properties?.user_id as string | undefined
+    const distinctId = userId || 'anonymous'
+
+    // Insert event into Supabase analytics_events table (for backup/audit)
     const { error } = await supabase
       .from('analytics_events')
       .insert({
         event_type: event,
-        user_id: user?.id || null,
+        user_id: userId || null,
         properties: properties || {},
         league_id: properties?.league_id || null,
         team_id: properties?.team_id || null,
@@ -28,7 +32,20 @@ export async function trackServerEvent(
       })
 
     if (error) {
-      console.error('Error tracking server event:', error)
+      console.error('Error tracking server event to Supabase:', error)
+    }
+
+    // Also send to PostHog (non-blocking, don't fail if PostHog is down)
+    try {
+      await trackPostHogEvent(distinctId, event, {
+        ...properties,
+        $lib: 'server',
+      })
+    } catch (posthogError) {
+      // Log but don't throw - PostHog failures shouldn't break the app
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to track event to PostHog:', posthogError)
+      }
     }
   } catch (error) {
     console.error('Error in trackServerEvent:', error)
@@ -45,6 +62,8 @@ export async function trackLeagueCreated(leagueId: string, leagueName: string, l
     league_type: leagueType,
     team_count: teamCount,
     user_id: userId,
+    funnel_name: 'signup',
+    funnel_step: 'league_created',
   })
 }
 
@@ -68,6 +87,8 @@ export async function trackInviteAccepted(leagueId: string, userId?: string) {
   await trackServerEvent(AnalyticsEvents.INVITE_ACCEPTED, {
     league_id: leagueId,
     user_id: userId,
+    funnel_name: 'league_join',
+    funnel_step: 'invite_accepted',
   })
 }
 
@@ -80,6 +101,8 @@ export async function trackDraftPickMade(leagueId: string, round: number, overal
     player_name: playerName,
     player_position: playerPosition,
     user_id: userId,
+    funnel_name: 'draft',
+    funnel_step: 'pick_made',
   })
 }
 
@@ -94,6 +117,8 @@ export async function trackDraftCompleted(leagueId: string, userId?: string) {
   await trackServerEvent(AnalyticsEvents.DRAFT_COMPLETED, {
     league_id: leagueId,
     user_id: userId,
+    funnel_name: 'draft',
+    funnel_step: 'draft_completed',
   })
 }
 
