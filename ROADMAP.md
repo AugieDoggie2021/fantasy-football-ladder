@@ -256,6 +256,8 @@ It evolves alongside development and acts as both **Roadmap** and **Feature Inve
 
   *(…but football-only is the focus for now)*
 
+* Upgrade Vercel to Pro plan for more frequent cron jobs (currently limited to daily on Hobby plan)
+
 #### Monetization / Editions (Optional Exploration)
 
 * Premium ladder tiers

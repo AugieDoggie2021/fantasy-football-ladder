@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/draft/check-expired-picks",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
