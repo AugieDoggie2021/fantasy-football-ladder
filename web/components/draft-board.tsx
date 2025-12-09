@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { generateDraftPicksForLeague, makeDraftPick } from '@/app/actions/draft'
 import { useDraftRealtime } from '@/lib/hooks/use-draft-realtime'
@@ -107,15 +107,17 @@ export function DraftBoard({
 
   // Client-side expired picks check (replaces server cron job for Hobby accounts)
   // Only check when draft is in progress
+  const handleExpiredPicksError = useCallback((error: Error) => {
+    // Silently handle errors - don't show toasts for background checks
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Expired picks check error:', error)
+    }
+  }, [])
+
   useExpiredPicksCheck({
     enabled: draftStatus === 'in_progress',
     intervalMs: 10000, // Check every 10 seconds
-    onError: (error) => {
-      // Silently handle errors - don't show toasts for background checks
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Expired picks check error:', error)
-      }
-    },
+    onError: handleExpiredPicksError,
   })
 
   // Update available players based on realtime picks

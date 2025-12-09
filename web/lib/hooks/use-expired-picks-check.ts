@@ -96,4 +96,3 @@ export function useExpiredPicksCheck({
     }
   }, [enabled, intervalMs, onError])
 }
-
