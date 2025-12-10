@@ -40,8 +40,8 @@ export function HowItWorks() {
             <div key={index} className="relative">
               {/* Step Number */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-kelly-base/20 border-2 border-kelly-base flex items-center justify-center mb-6">
-                  <span className="text-2xl font-bold text-kelly-neon">
+                <div className="w-16 h-16 rounded-full bg-brand-primary-50 border-2 border-brand-primary-200 flex items-center justify-center mb-6">
+                  <span className="text-2xl font-bold text-brand-primary-500">
                     {step.number}
                   </span>
                 </div>
@@ -57,7 +57,7 @@ export function HowItWorks() {
 
               {/* Connector Line (not shown on last item) */}
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-kelly-base/50 to-transparent" />
+                <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-brand-primary-200 to-transparent" />
               )}
             </div>
           ))}

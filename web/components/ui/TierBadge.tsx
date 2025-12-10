@@ -17,9 +17,8 @@ export default function TierBadge({
     <div className={`inline-flex items-center gap-2 ${className}`.trim()}>
       <TierBadgeIcon tier={tier} size={size} />
       {label && (
-        <span className="ff-neon-text text-sm font-medium">{label}</span>
+        <span className="text-sm font-medium text-brand-nav">{label}</span>
       )}
     </div>
   );
 }
-

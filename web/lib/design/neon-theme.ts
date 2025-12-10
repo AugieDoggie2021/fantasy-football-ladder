@@ -1,91 +1,60 @@
 /**
- * Neon Theme Utilities
- * 
- * Helper functions and style objects for applying the neon design system
+ * Brand-aligned visual accents (replaces legacy neon helpers)
+ * Uses the updated brand palette (Ladder Green, Dark Navy, Trophy Gold).
  */
 
-import { colors, radii, glow } from "./design-tokens";
+import { colors, radii } from "./design-tokens";
 
-/**
- * Style object for a neon panel/card
- * Uses turf gradient background with soft green glow
- */
 export const neonPanelStyle: React.CSSProperties = {
-  background: `radial-gradient(circle at top, ${colors.turfMid}, ${colors.turfDark})`,
-  borderRadius: radii.card,
-  boxShadow: glow.softGreen,
-  border: `1px solid rgba(0, 255, 102, 0.2)`,
+  background: `linear-gradient(180deg, ${colors.brand.primary[50]}, ${colors.brand.navy[50]})`,
+  borderRadius: radii.md,
+  boxShadow: "0 8px 30px rgba(15, 23, 42, 0.08)",
+  border: `1px solid ${colors.brand.primary[100]}`,
 };
 
-/**
- * Style object for neon text
- */
 export const neonTextStyle: React.CSSProperties = {
-  color: colors.textOffWhite,
+  color: colors.brand.text,
   textRendering: "optimizeLegibility" as const,
 };
 
-/**
- * Style object for strong neon green glow (Tier 1, promotion)
- */
 export const strongGreenGlowStyle: React.CSSProperties = {
-  filter: `drop-shadow(${glow.strongGreen})`,
+  filter: `drop-shadow(0 0 18px ${colors.brand.primary[400]}90)`,
 };
 
-/**
- * Style object for medium neon green glow (Tier 2-3, positions)
- */
 export const mediumGreenGlowStyle: React.CSSProperties = {
-  filter: `drop-shadow(${glow.softGreen})`,
+  filter: `drop-shadow(0 0 12px ${colors.brand.primary[300]}70)`,
 };
 
-/**
- * Style object for soft neon green glow (Tier 4, subtle accents)
- */
 export const softGreenGlowStyle: React.CSSProperties = {
-  filter: `drop-shadow(0 0 8px ${colors.kellyGreenSoft}40)`, // 40 = 25% opacity
+  filter: `drop-shadow(0 0 8px ${colors.brand.primary[200]}60)`,
 };
 
-/**
- * Style object for strong neon red glow (relegation)
- */
 export const strongRedGlowStyle: React.CSSProperties = {
-  filter: `drop-shadow(${glow.strongRed})`,
+  filter: `drop-shadow(0 0 18px ${colors.status.error}90)`,
 };
 
-/**
- * Style object for soft neon red glow
- */
 export const softRedGlowStyle: React.CSSProperties = {
-  filter: `drop-shadow(${glow.softRed})`,
+  filter: `drop-shadow(0 0 10px ${colors.status.error}60)`,
 };
 
-/**
- * Get glow strength based on tier
- * @param tier - Tier number (1-4)
- * @returns CSS filter string for appropriate glow strength
- */
 export function getTierGlow(tier: 1 | 2 | 3 | 4): string {
   switch (tier) {
     case 1:
-      return `drop-shadow(${glow.strongGreen})`;
+      return `drop-shadow(0 0 18px ${colors.brand.primary[400]}90)`;
     case 2:
     case 3:
-      return `drop-shadow(${glow.softGreen})`;
+      return `drop-shadow(0 0 12px ${colors.brand.primary[300]}70)`;
     case 4:
-      return `drop-shadow(0 0 8px ${colors.kellyGreenSoft}40)`;
+      return `drop-shadow(0 0 8px ${colors.brand.primary[200]}60)`;
     default:
-      return `drop-shadow(${glow.softGreen})`;
+      return `drop-shadow(0 0 12px ${colors.brand.primary[300]}70)`;
   }
 }
 
-/**
- * Get background gradient for tier badge
- * @param tier - Tier number (1-4)
- * @returns CSS background string
- */
 export function getTierBackground(tier: 1 | 2 | 3 | 4): string {
-  const baseGradient = `radial-gradient(circle, ${colors.kellyGreenNeon}20, ${colors.turfDark})`;
-  return baseGradient;
+  const greens = colors.brand.primary;
+  const start = greens[50];
+  const end = greens[200];
+  return `radial-gradient(circle, ${start}, ${end})`;
 }
 

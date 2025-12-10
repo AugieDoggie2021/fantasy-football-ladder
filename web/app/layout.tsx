@@ -16,6 +16,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Fantasy Football Ladder",
   description: "A modern fantasy football platform with promotion/relegation mechanics",
+  icons: {
+    icon: "/assets/brand/ffl-favicon.svg",
+    apple: "/assets/brand/ffl-app-icon-standard.svg",
+  },
+  themeColor: "#10B981",
 };
 
 export default function RootLayout({
@@ -25,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-brand-surface text-brand-nav`}>
         <ErrorBoundary>
           <AnalyticsProvider>
             <QueryProvider>

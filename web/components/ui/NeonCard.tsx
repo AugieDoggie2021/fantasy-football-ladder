@@ -1,6 +1,10 @@
 import { ReactNode } from "react";
-import { neonPanelStyle } from "@/lib/design/neon-theme";
-import { colors, glow } from "@/lib/design/design-tokens";
+import {
+  neonPanelStyle,
+  softGreenGlowStyle,
+  mediumGreenGlowStyle,
+  strongGreenGlowStyle,
+} from "@/lib/design/neon-theme";
 
 interface NeonCardProps {
   children: ReactNode;
@@ -14,16 +18,14 @@ export default function NeonCard({
   elevation = "soft",
 }: NeonCardProps) {
   const elevationStyles = {
-    soft: { boxShadow: glow.softGreen },
-    medium: { boxShadow: `0 0 16px ${colors.kellyGreenSoft}` },
-    strong: { boxShadow: glow.strongGreen },
+    soft: softGreenGlowStyle,
+    medium: mediumGreenGlowStyle,
+    strong: strongGreenGlowStyle,
   };
-
-  const combinedClassName = `ff-neon-panel ${className}`.trim();
 
   return (
     <div
-      className={combinedClassName}
+      className={className}
       style={{
         ...neonPanelStyle,
         ...elevationStyles[elevation],

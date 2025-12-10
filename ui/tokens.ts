@@ -1,4 +1,4 @@
-// Fantasy Football Ladder Design Tokens (Brand System)
+// Shared design tokens for Fantasy Football Ladder (web + mobile friendly)
 export const colors = {
   brand: {
     surface: "#F8FAFC",
@@ -44,14 +44,7 @@ export const colors = {
     info: "#3B82F6",
     error: "#EF4444",
   },
-  neutral: {
-    white: "#FFFFFF",
-    slate100: "#F1F5F9",
-    slate200: "#E2E8F0",
-    slate300: "#CBD5E1",
-    slate700: "#334155",
-  },
-} as const;
+};
 
 export const radii = {
   xs: 4,
@@ -59,7 +52,7 @@ export const radii = {
   md: 12,
   lg: 16,
   pill: 9999,
-} as const;
+};
 
 export const spacing = {
   xs: 4,
@@ -68,12 +61,43 @@ export const spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
-} as const;
+};
 
 export const shadows = {
   sm: "0 1px 2px rgba(15, 23, 42, 0.08)",
   md: "0 4px 10px rgba(15, 23, 42, 0.12)",
   lg: "0 12px 30px rgba(15, 23, 42, 0.18)",
   xl: "0 18px 44px rgba(15, 23, 42, 0.22)",
-} as const;
+};
 
+export const typography = {
+  family: {
+    heading: "Inter, system-ui, sans-serif",
+    body: "Inter, system-ui, sans-serif",
+  },
+  weight: {
+    regular: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+  },
+  scale: {
+    displayLg: { size: "48px", lineHeight: "56px", weight: 700 },
+    displayMd: { size: "40px", lineHeight: "48px", weight: 700 },
+    h1: { size: "32px", lineHeight: "40px", weight: 700 },
+    h2: { size: "24px", lineHeight: "32px", weight: 700 },
+    h3: { size: "20px", lineHeight: "28px", weight: 600 },
+    bodyLg: { size: "18px", lineHeight: "28px", weight: 500 },
+    body: { size: "16px", lineHeight: "24px", weight: 500 },
+    bodySm: { size: "14px", lineHeight: "20px", weight: 500 },
+    caption: { size: "12px", lineHeight: "16px", weight: 600 },
+  },
+};
+
+export type DesignTokens = {
+  colors: typeof colors;
+  radii: typeof radii;
+  spacing: typeof spacing;
+  shadows: typeof shadows;
+  typography: typeof typography;
+};

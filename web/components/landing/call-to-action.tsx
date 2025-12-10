@@ -12,7 +12,7 @@ export function CallToAction() {
         </p>
         <Link
           href="/login"
-          className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-950 bg-kelly-base hover:bg-kelly-soft rounded-xl transition-all hover:scale-105 shadow-lg shadow-kelly-base/25"
+          className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-brand-primary-500 hover:bg-brand-primary-600 rounded-xl transition-all hover:scale-105 shadow-lg shadow-brand-primary-500/25"
         >
           Sign in or create an account
         </Link>

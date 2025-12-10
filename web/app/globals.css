@@ -3,74 +3,122 @@
 @tailwind utilities;
 
 :root {
-  /* Legacy RGB variables (kept for compatibility) */
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --brand-surface: #F8FAFC;
+  --brand-surface-alt: #FFFFFF;
+  --brand-nav: #0F172A;
+  --brand-text: #0F172A;
 
-  /* Fantasy Football Neon Design System Colors */
-  --ff-kelly-green-base: #00FF66;
-  --ff-kelly-green-neon: #6BFFB3;
-  --ff-kelly-green-soft: #00CC55;
-  --ff-turf-dark: #020812;
-  --ff-turf-mid: #04191A;
-  --ff-white-pure: #FFFFFF;
-  --ff-text-offwhite: #E6F7EE;
-  --ff-relegation-red: #FF1744;
-  --ff-relegation-red-neon: #FF4F7B;
-  --ff-neutral-grey: #4C5A60;
-}
+  --brand-primary-50: #ECFDF5;
+  --brand-primary-100: #D1FAE5;
+  --brand-primary-200: #A7F3D0;
+  --brand-primary-300: #6EE7B7;
+  --brand-primary-400: #34D399;
+  --brand-primary-500: #10B981;
+  --brand-primary-600: #059669;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+  --brand-navy-50: #F8FAFC;
+  --brand-navy-100: #F1F5F9;
+  --brand-navy-200: #E2E8F0;
+  --brand-navy-300: #CBD5E1;
+  --brand-navy-400: #94A3B8;
+  --brand-navy-500: #64748B;
+  --brand-navy-600: #475569;
+  --brand-navy-700: #334155;
+  --brand-navy-800: #1E293B;
+  --brand-navy-900: #0F172A;
+
+  --brand-gold-50: #FEFCE8;
+  --brand-gold-100: #FEF9C3;
+  --brand-gold-200: #FEF08A;
+  --brand-gold-300: #FDE047;
+  --brand-gold-400: #FACC15;
+  --brand-gold-500: #EAB308;
+  --brand-gold-600: #CA8A04;
+
+  --status-success: #10B981;
+  --status-warning: #F59E0B;
+  --status-info: #3B82F6;
+  --status-error: #EF4444;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--brand-text);
+  background: var(--brand-surface);
+  font-family: Inter, system-ui, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Neon Design System Utility Classes */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--brand-nav);
+}
+
+h1 {
+  font-size: 2.5rem;
+  line-height: 3rem;
+}
+
+h2 {
+  font-size: 2rem;
+  line-height: 2.5rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+p,
+span,
+div,
+body {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: #1F2937;
+}
+
+small {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
 @layer utilities {
-  .ff-neon-panel {
-    background: radial-gradient(circle at top, var(--ff-turf-mid), var(--ff-turf-dark));
-    border-radius: 16px;
-    box-shadow: 0 0 16px rgba(0, 255, 102, 0.35);
-    border: 1px solid rgba(0, 255, 102, 0.2);
+  .text-display {
+    font-family: Inter, system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 
-  .ff-neon-text {
-    color: var(--ff-text-offwhite);
-    text-rendering: optimizeLegibility;
+  .text-body {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: #1F2937;
   }
 
-  .ff-neon-green-glow {
-    filter: drop-shadow(0 0 8px rgba(0, 255, 102, 0.8));
+  .elevation-sm {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   }
 
-  .ff-neon-green-glow-strong {
-    filter: drop-shadow(0 0 20px rgba(0, 255, 102, 1));
+  .elevation-md {
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
   }
 
-  .ff-neon-green-glow-soft {
-    filter: drop-shadow(0 0 8px rgba(0, 204, 85, 0.25));
+  .elevation-lg {
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
   }
 
-  .ff-neon-red-glow {
-    filter: drop-shadow(0 0 8px rgba(255, 23, 68, 0.9));
-  }
-
-  .ff-neon-red-glow-strong {
-    filter: drop-shadow(0 0 20px rgba(255, 79, 123, 1));
+  .elevation-xl {
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22);
   }
 
   /* Draft animations */

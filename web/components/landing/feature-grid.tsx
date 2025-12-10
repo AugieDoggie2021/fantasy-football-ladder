@@ -10,7 +10,7 @@ const features: Feature[] = [
     description: 'Competition organized into tiers with automatic promotion and relegation at season end. Win to move up, improve to stay safe.',
     icon: (
       <svg
-        className="w-8 h-8 text-kelly-neon"
+        className="w-8 h-8 text-brand-primary-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -30,7 +30,7 @@ const features: Feature[] = [
     description: 'Real-time scoring updates using official NFL statistics. Your team performance is always current and accurate.',
     icon: (
       <svg
-        className="w-8 h-8 text-kelly-neon"
+        className="w-8 h-8 text-brand-primary-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -50,7 +50,7 @@ const features: Feature[] = [
     description: 'One account, multiple platforms. Manage your team on the web, follow along on your iPhone. Your data stays in sync.',
     icon: (
       <svg
-        className="w-8 h-8 text-kelly-neon"
+        className="w-8 h-8 text-brand-primary-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -70,7 +70,7 @@ const features: Feature[] = [
     description: 'Commissioner controls are part of the platform, not an afterthought. Manage drafts, scoring, and promotion cycles seamlessly.',
     icon: (
       <svg
-        className="w-8 h-8 text-kelly-neon"
+        className="w-8 h-8 text-brand-primary-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -110,10 +110,10 @@ export function FeatureGrid() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="relative bg-slate-800/30 backdrop-blur-sm rounded-2xl p-8 border border-slate-700/50 hover:border-kelly-base/50 transition-all hover:scale-105"
+              className="relative bg-white rounded-2xl p-8 border border-brand-navy-100 hover:border-brand-primary-200 transition-all hover:scale-105"
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-kelly-base/10 rounded-lg flex items-center justify-center">
+                <div className="flex-shrink-0 w-12 h-12 bg-brand-primary-50 rounded-lg flex items-center justify-center">
                   {feature.icon}
                 </div>
                 <div className="flex-1">
