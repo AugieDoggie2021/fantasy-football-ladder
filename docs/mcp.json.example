@@ -1,4 +1,4 @@
-﻿{
+{
   "mcpServers": {
     "github": {
       "url": "https://api.githubcopilot.com/mcp/"
@@ -23,19 +23,7 @@
         "SUPABASE_URL": "${SUPABASE_URL}",
         "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}"
       }
-    },
-    "posthog": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote@latest",
-        "https://mcp.posthog.com/sse",
-        "--header",
-        "Authorization:${POSTHOG_AUTH_HEADER}"
-      ],
-      "env": {
-        "POSTHOG_AUTH_HEADER": "Bearer ${POSTHOG_PERSONAL_API_KEY}"
-      }
     }
   }
 }
+

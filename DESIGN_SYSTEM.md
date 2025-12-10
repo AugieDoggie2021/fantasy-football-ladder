@@ -1,56 +1,59 @@
 # Fantasy Football Ladder Design System
 
-## Visual Principles
+## Visual Identity (Updated)
 
-This design system implements a premium "Apple Sports" style fantasy football app with:
+This design system implements a premium, modern fantasy football app with:
 
-- **Neon Kelly green on deep turf-dark backgrounds** - Electric green (#00FF66) as the primary accent on almost-black turf (#020812)
-- **Soft gradients and glow, not harsh shadows** - Subtle drop-shadows and glows create depth without harsh edges
-- **Simple geometry** - Stadium ovals for badges, rounded rectangles for cards, clean monoline arrows
-- **Athletic, modern typography** - Condensed fonts where appropriate, forward energy
-- **Clean, UI-first iconography** - Monoline outlines with slight motion, stick-figure players for positions
+- **Ladder Green (#10B981)** - Primary emerald green for actions, success states, and primary CTAs
+- **Dark Navy (#0F172A)** - Secondary color for backgrounds, cards, and elevated surfaces
+- **Trophy Gold (#FACC15)** - Accent color for highlights, badges, and special achievements
+- **Inter Typography** - Clean, modern sans-serif font family for all text
+- **Consistent spacing and radii** - Unified border radius (xl, 2xl, 3xl) and spacing scale
+- **Subtle shadows** - Card shadows for depth without harsh edges
 
-This is **not retro arcade**. It's premium, OS-native, sports data driven.
+This design system prioritizes clarity, consistency, and premium feel across all components.
 
 ## Color Palette
 
-### Primary Colors
-- `kellyGreenBase` (#00FF66) - Primary electric Kelly green
-- `kellyGreenNeon` (#6BFFB3) - Lighter edge/highlight green
-- `kellyGreenSoft` (#00CC55) - Midtone for gradients
+### Primary Colors (Ladder Green)
+- `ladder-primary` (#10B981) - Primary emerald green (was kellyGreenBase #00FF66)
+- Full scale: 50-900 available via Tailwind `bg-ladder-primary-50` through `bg-ladder-primary-900`
 
-### Background Colors
-- `turfDark` (#020812) - Almost-black turf background
-- `turfMid` (#04191A) - Slightly lighter turf
+### Secondary Colors (Dark Navy)
+- `ladder-secondary` (#0F172A) - Primary dark navy (was turfDark #020812)
+- Full scale: 50-900 available via Tailwind `bg-ladder-secondary-50` through `bg-ladder-secondary-900`
 
-### Text Colors
-- `whitePure` (#FFFFFF) - Pure white
-- `textOffWhite` (#E6F7EE) - Soft off-white for typography
+### Accent Colors (Trophy Gold)
+- `ladder-accent` (#FACC15) - Trophy gold for highlights (was kellyGreenNeon)
+- Full scale: 50-900 available via Tailwind `bg-ladder-accent-50` through `bg-ladder-accent-900`
 
-### Status Colors
-- `relegationRed` (#FF1744) - Primary neon red for relegation
-- `relegationRedNeon` (#FF4F7B) - Lighter red edge/highlight
-- `neutralGrey` (#4C5A60) - Subtle UI borders, dividers
+### Semantic Colors
+- `success`: #10B981 (matches primary)
+- `warning`: #F59E0B
+- `error`: #EF4444
+
+### Neutral Colors
+- Full neutral ramp using Tailwind's `slate` scale (50-900) for text, borders, and backgrounds
 
 ## Design Tokens
 
+### Typography
+- **Display Font**: `font-display` - Inter, system-ui, sans-serif (for headings)
+- **Body Font**: `font-sans` - Inter, system-ui, sans-serif (for body text)
+- **Font Sizes**: Use Tailwind's responsive text utilities (text-sm md:text-base for body)
+
 ### Radii
-- `card`: 16px - Standard card/panel corner radius
-- `badge`: 20px - Tier badge corner radius (stadium oval)
-- `pill`: 999px - Fully rounded pill shape
+- `rounded-xl`: 1rem (16px) - Standard card/panel corner radius
+- `rounded-2xl`: 1.25rem (20px) - Larger cards, badges
+- `rounded-3xl`: 1.75rem (28px) - Hero sections, major containers
+
+### Shadows
+- `shadow-subtle`: `0 1px 2px rgba(0,0,0,0.12)` - Subtle elevation
+- `shadow-card`: `0 8px 30px rgba(0,0,0,0.16)` - Card elevation
 
 ### Spacing
-- `xs`: 4px
-- `sm`: 8px
-- `md`: 12px
-- `lg`: 16px
-- `xl`: 24px
-
-### Glow Recipes
-- `softGreen`: `0 0 12px #00CC55` - Tier 2-3, positions
-- `strongGreen`: `0 0 20px #00FF66` - Tier 1, promotion
-- `softRed`: `0 0 12px #FF1744` - Subtle relegation
-- `strongRed`: `0 0 20px #FF4F7B` - Strong relegation
+- Use Tailwind's spacing scale consistently: p-4, p-6, etc.
+- Avoid ad-hoc values like p-5, p-7
 
 ## Components
 
@@ -86,24 +89,90 @@ import { PromotionArrowIcon, RelegationArrowIcon } from '@/components/icons';
 <RelegationArrowIcon size={24} />
 ```
 
-### UI Components
+### Shared UI Primitives
 
-#### NeonCard
-A card/panel with turf gradient background and neon green glow.
+All UI primitives use the design tokens defined above. Located in `components/ui/`.
+
+#### Button
+Button component with primary, secondary, and ghost variants.
 
 ```tsx
-import { NeonCard } from '@/components/ui';
+import { Button } from '@/components/ui';
 
-<NeonCard elevation="medium">
-  <h2>Standings</h2>
-  {/* content */}
-</NeonCard>
+<Button variant="primary">Primary Action</Button>
+<Button variant="secondary">Secondary Action</Button>
+<Button variant="ghost">Ghost Button</Button>
 ```
 
 Props:
-- `elevation`: "soft" | "medium" | "strong" - Controls glow intensity
+- `variant`: "primary" | "secondary" | "ghost"
+- Standard HTML button props supported
 
-#### TierBadge
+#### Card
+Standard card component with consistent radius, padding, and shadow.
+
+```tsx
+import { Card } from '@/components/ui';
+
+<Card>
+  <h2>Card Title</h2>
+  <p>Card content</p>
+</Card>
+```
+
+#### Badge
+Badge component for "Tier 1", "Promoted", "Commissioner" labels.
+
+```tsx
+import { Badge } from '@/components/ui';
+
+<Badge variant="tier1">Tier 1</Badge>
+<Badge variant="promoted">Promoted</Badge>
+<Badge variant="commissioner">Commissioner</Badge>
+```
+
+#### SectionTitle
+Standard typography component for h2/h3 section headers.
+
+```tsx
+import { SectionTitle } from '@/components/ui';
+
+<SectionTitle as="h2">Section Title</SectionTitle>
+<SectionTitle as="h3">Subsection Title</SectionTitle>
+```
+
+#### Input
+Labeled input component with error state support.
+
+```tsx
+import { Input } from '@/components/ui';
+
+<Input
+  label="Email"
+  type="email"
+  error="Invalid email"
+  {...props}
+/>
+```
+
+#### Tabs
+League navigation tabs component for consistent navigation.
+
+```tsx
+import { Tabs } from '@/components/ui';
+
+<Tabs>
+  <Tabs.Tab href="/leagues/1">Standings</Tabs.Tab>
+  <Tabs.Tab href="/leagues/1/matchup">Matchups</Tabs.Tab>
+</Tabs>
+```
+
+### Legacy UI Components
+
+#### NeonCard (Deprecated - Use Card)
+A card/panel with turf gradient background and neon green glow. **Deprecated** - migrate to `Card` component.
+
+#### TierBadge (Legacy)
 Wraps TierBadgeIcon with optional label.
 
 ```tsx
@@ -179,9 +248,29 @@ import { TierBadge, MovementArrow } from '@/components/ui';
 
 The design system provides Tailwind utility classes:
 
-- Colors: `bg-kelly-base`, `text-kelly-neon`, `bg-turf-dark`, `text-text-offwhite`
-- Shadows: `shadow-neon-green-soft`, `shadow-neon-green-strong`
-- Spacing: Use `xs`, `sm`, `md`, `lg`, `xl` from spacing tokens
+### Colors
+- **Primary**: `bg-ladder-primary`, `text-ladder-primary`, `border-ladder-primary`
+- **Secondary**: `bg-ladder-secondary`, `text-ladder-secondary`
+- **Accent**: `bg-ladder-accent`, `text-ladder-accent`
+- **Full scales**: Use `bg-ladder-primary-50` through `bg-ladder-primary-900` for all color scales
+- **Neutrals**: Use Tailwind's `slate` scale: `text-slate-200`, `bg-slate-800`, etc.
+
+### Typography
+- **Display**: `font-display font-semibold` for headings
+- **Body**: `font-sans text-sm md:text-base text-slate-200/90`
+
+### Radii
+- `rounded-xl` - Standard cards
+- `rounded-2xl` - Larger cards, badges
+- `rounded-3xl` - Hero sections
+
+### Shadows
+- `shadow-subtle` - Subtle elevation
+- `shadow-card` - Card elevation
+
+### Spacing
+- Use consistent increments: `p-4`, `p-6`, `px-4`, `py-2`, etc.
+- Avoid: `p-5`, `p-7`, `p-9` - use standard scale only
 
 ## CSS Utility Classes
 
