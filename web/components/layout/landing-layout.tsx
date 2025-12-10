@@ -8,7 +8,7 @@ export interface LandingLayoutProps {
 
 export function LandingLayout({ children }: LandingLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-brand-surface via-brand-surface-alt to-brand-surface">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <SiteHeader />
       <main className="flex-1 pt-16">{children}</main>
       <SiteFooter />

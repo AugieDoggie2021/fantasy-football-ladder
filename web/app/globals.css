@@ -2,93 +2,103 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --brand-surface: #F8FAFC;
-  --brand-surface-alt: #FFFFFF;
-  --brand-nav: #0F172A;
-  --brand-text: #0F172A;
+@layer base {
+  :root {
+    /* Dark mode as default base */
+    --background: 222 70% 6%;
+    --foreground: 210 40% 98%;
 
-  --brand-primary-50: #ECFDF5;
-  --brand-primary-100: #D1FAE5;
-  --brand-primary-200: #A7F3D0;
-  --brand-primary-300: #6EE7B7;
-  --brand-primary-400: #34D399;
-  --brand-primary-500: #10B981;
-  --brand-primary-600: #059669;
+    --surface: 222 50% 10%;
+    --surface-muted: 222 40% 14%;
+    --card: 222 40% 16%;
 
-  --brand-navy-50: #F8FAFC;
-  --brand-navy-100: #F1F5F9;
-  --brand-navy-200: #E2E8F0;
-  --brand-navy-300: #CBD5E1;
-  --brand-navy-400: #94A3B8;
-  --brand-navy-500: #64748B;
-  --brand-navy-600: #475569;
-  --brand-navy-700: #334155;
-  --brand-navy-800: #1E293B;
-  --brand-navy-900: #0F172A;
+    /* Brand palette (existing tokens) */
+    --brand-surface: #0f172a;
+    --brand-surface-alt: #0b1220;
+    --brand-nav: #0f172a;
+    --brand-text: #e2e8f0;
 
-  --brand-gold-50: #FEFCE8;
-  --brand-gold-100: #FEF9C3;
-  --brand-gold-200: #FEF08A;
-  --brand-gold-300: #FDE047;
-  --brand-gold-400: #FACC15;
-  --brand-gold-500: #EAB308;
-  --brand-gold-600: #CA8A04;
+    --brand-primary-50: #ecfdf5;
+    --brand-primary-100: #d1fae5;
+    --brand-primary-200: #a7f3d0;
+    --brand-primary-300: #6ee7b7;
+    --brand-primary-400: #34d399;
+    --brand-primary-500: #10b981;
+    --brand-primary-600: #059669;
 
-  --status-success: #10B981;
-  --status-warning: #F59E0B;
-  --status-info: #3B82F6;
-  --status-error: #EF4444;
-}
+    --brand-navy-50: #f8fafc;
+    --brand-navy-100: #f1f5f9;
+    --brand-navy-200: #e2e8f0;
+    --brand-navy-300: #cbd5e1;
+    --brand-navy-400: #94a3b8;
+    --brand-navy-500: #64748b;
+    --brand-navy-600: #475569;
+    --brand-navy-700: #334155;
+    --brand-navy-800: #1e293b;
+    --brand-navy-900: #0f172a;
 
-body {
-  color: var(--brand-text);
-  background: var(--brand-surface);
-  font-family: Inter, system-ui, sans-serif;
-  font-feature-settings: "rlig" 1, "calt" 1;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+    --brand-gold-50: #fefce8;
+    --brand-gold-100: #fef9c3;
+    --brand-gold-200: #fef08a;
+    --brand-gold-300: #fde047;
+    --brand-gold-400: #facc15;
+    --brand-gold-500: #eab308;
+    --brand-gold-600: #ca8a04;
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: Inter, system-ui, sans-serif;
-  font-weight: 700;
-  color: var(--brand-nav);
-}
+    --status-success: #10b981;
+    --status-warning: #f59e0b;
+    --status-info: #3b82f6;
+    --status-error: #ef4444;
+  }
 
-h1 {
-  font-size: 2.5rem;
-  line-height: 3rem;
-}
+  body {
+    @apply bg-background text-foreground;
+    font-family: Inter, system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-h2 {
-  font-size: 2rem;
-  line-height: 2.5rem;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: Inter, system-ui, sans-serif;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+  }
 
-h3 {
-  font-size: 1.5rem;
-  line-height: 2rem;
-}
+  h1 {
+    font-size: 2.5rem;
+    line-height: 3rem;
+  }
 
-p,
-span,
-div,
-body {
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 1rem;
-  line-height: 1.5rem;
-  color: #1F2937;
-}
+  h2 {
+    font-size: 2rem;
+    line-height: 2.5rem;
+  }
 
-small {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  h3 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  p,
+  span,
+  div,
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: hsl(var(--foreground));
+  }
+
+  small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
 }
 
 @layer utilities {

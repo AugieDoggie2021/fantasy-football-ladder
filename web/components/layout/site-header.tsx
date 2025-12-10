@@ -42,21 +42,21 @@ export function SiteHeader() {
           <div className="hidden md:flex items-center gap-8">
             <button
               onClick={() => scrollToSection('how-it-works')}
-              className="text-sm font-sans text-brand-navy-100 hover:text-white transition-colors"
+              className="text-sm font-sans text-foreground/80 hover:text-foreground transition-colors"
               aria-label="Scroll to How It Works section"
             >
               How It Works
             </button>
             <button
               onClick={() => scrollToSection('features')}
-              className="text-sm font-sans text-brand-navy-100 hover:text-white transition-colors"
+              className="text-sm font-sans text-foreground/80 hover:text-foreground transition-colors"
               aria-label="Scroll to Features section"
             >
               Features
             </button>
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-sans font-semibold text-brand-nav bg-brand-primary-400 hover:bg-brand-primary-500 rounded-md transition-colors shadow-sm"
+              className="px-4 py-2 text-sm font-sans font-semibold text-foreground bg-brand-primary-500 hover:bg-brand-primary-600 rounded-md transition-colors shadow-sm"
               aria-label="Sign in to your account"
             >
               Login
@@ -67,7 +67,7 @@ export function SiteHeader() {
           <div className="md:hidden">
             <Link
               href="/login"
-              className="px-3 py-2 text-sm font-sans font-semibold text-brand-nav bg-brand-primary-400 hover:bg-brand-primary-500 rounded-md transition-colors shadow-sm"
+              className="px-3 py-2 text-sm font-sans font-semibold text-foreground bg-brand-primary-500 hover:bg-brand-primary-600 rounded-md transition-colors shadow-sm"
               aria-label="Sign in to your account"
             >
               Login

@@ -95,13 +95,13 @@ const features: Feature[] = [
 
 export function FeatureGrid() {
   return (
-    <section id="features" className="py-20 sm:py-32 bg-slate-900/50">
+    <section id="features" className="py-20 sm:py-32 bg-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+          <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
             Built for Competition
           </h2>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xl text-foreground/70 max-w-2xl mx-auto">
             Everything you need for a season-long fantasy football experience with the excitement of promotion and relegation.
           </p>
         </div>
@@ -110,17 +110,17 @@ export function FeatureGrid() {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="relative bg-white rounded-2xl p-8 border border-brand-navy-100 hover:border-brand-primary-200 transition-all hover:scale-105"
+              className="relative bg-card rounded-2xl p-8 border border-surface-muted hover:border-brand-primary-300 transition-all hover:scale-105 shadow-lg shadow-black/20"
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-brand-primary-50 rounded-lg flex items-center justify-center">
+                <div className="flex-shrink-0 w-12 h-12 bg-brand-primary-500/10 rounded-lg flex items-center justify-center">
                   {feature.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-slate-400 leading-relaxed">
+                  <p className="text-foreground/70 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

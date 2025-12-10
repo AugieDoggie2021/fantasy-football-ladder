@@ -9,6 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        surface: "hsl(var(--surface))",
+        "surface-muted": "hsl(var(--surface-muted))",
+        card: "hsl(var(--card))",
         brand: {
           surface: "#F8FAFC",
           "surface-alt": "#FFFFFF",
