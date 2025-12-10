@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Input, Tabs } from "@/components/ui";
+import { Badge, Button, Card, Input } from "@/components/ui";
 import { SiteFooter } from "@/components/layout";
 
 export default function UIShowcasePage() {
@@ -73,11 +73,17 @@ export default function UIShowcasePage() {
 
           <div>
             <h2 className="text-xl font-semibold text-brand-nav">Tabs</h2>
-            <Tabs>
-              <Tabs.Tab href="/ui#standings">Standings</Tabs.Tab>
-              <Tabs.Tab href="/ui#schedule">Schedule</Tabs.Tab>
-              <Tabs.Tab href="/ui#settings">Settings</Tabs.Tab>
-            </Tabs>
+            <div className="flex flex-wrap gap-4 border-b border-brand-navy-100 pb-2">
+              <span className="px-1 py-3 text-sm font-semibold text-brand-navy-900 border-b-2 border-brand-primary-500">
+                Standings
+              </span>
+              <span className="px-1 py-3 text-sm font-semibold text-brand-navy-500">
+                Schedule
+              </span>
+              <span className="px-1 py-3 text-sm font-semibold text-brand-navy-500">
+                Settings
+              </span>
+            </div>
             <p className="text-sm text-brand-navy-600">
               Tabs use underline treatment with muted inactive states.
             </p>

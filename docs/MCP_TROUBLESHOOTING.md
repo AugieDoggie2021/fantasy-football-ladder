@@ -1,108 +1,89 @@
 # MCP Troubleshooting Guide
 
-## Current Configuration
+This guide helps troubleshoot common issues with MCP (Model Context Protocol) servers in Cursor.
 
-Your `.cursor/mcp.json` currently uses:
-```json
-{
-  "mcpServers": {
-    "vercel": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-vercel"],
-      "env": {
-        "VERCEL_API_TOKEN": "your_token"
-      }
-    }
-  }
-}
-```
+## Common Issues
 
-## Issue
+### MCP Servers Not Loading
 
-MCP resources are not showing up after restart. This suggests the package might not exist or the connection isn't working.
+If MCP servers are not showing up or not working after configuration:
 
-## Alternative Configuration to Try
+### Solution Steps
 
-### Option 1: URL-Based with Headers
+1. **Verify Configuration File**
+   - Check that `.cursor/mcp.json` exists and has valid JSON syntax
+   - Ensure no trailing commas or syntax errors
+   - See [MCP Configuration Guide](./MCP_CONFIGURATION.md) for correct format
 
-Try this configuration instead:
+2. **Check Environment Variables**
+   - Verify all required environment variables are set
+   - For Vercel: `VERCEL_API_TOKEN`
+   - For Supabase: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+   - Restart Cursor after setting environment variables
 
-```json
-{
-  "mcpServers": {
-    "vercel": {
-      "url": "https://mcp.vercel.com",
-      "headers": {
-        "Authorization": "Bearer YOUR_VERCEL_API_TOKEN_HERE"
-      }
-    }
-  }
-}
-```
+3. **Verify Package Availability**
+   - Ensure Node.js and `npx` are installed
+   - Try running the server manually: `npx -y @modelcontextprotocol/server-vercel`
+   - Check that packages exist in npm registry
 
-### Option 2: Check Cursor's MCP Settings
+4. **Check Cursor's MCP Settings**
+   - Open Cursor Settings
+   - Navigate to **Features** → **Model Context Protocol (MCP)**
+   - Check MCP server status indicators
+   - Review any error messages in the MCP output
 
-1. Open Cursor Settings
-2. Navigate to **Features** → **Model Context Protocol (MCP)**
-3. Check if Vercel MCP is listed there
-4. You might need to configure it through the UI instead of just the JSON file
+### GitHub MCP Issues
 
-### Option 3: Verify Package Exists
+- **Hosted Server**: Ensure you're signed into GitHub Copilot in Cursor
+- **Local Server**: Verify your Personal Access Token is valid and has correct scopes
+- **Organization**: Check that "MCP servers in Copilot" policy is enabled
 
-The package `@modelcontextprotocol/server-vercel` might not exist. Try checking:
+### Vercel MCP Issues
 
-```bash
-npm search @modelcontextprotocol/server-vercel
-```
+- **Token Invalid**: Regenerate your Vercel API token
+- **Token Expired**: Create a new token and update environment variable
+- **Package Not Found**: The `npx` command will automatically download the package
 
-Or try manually running:
-```bash
-npx -y @modelcontextprotocol/server-vercel
-```
+### Supabase MCP Issues
 
-If it fails, the package name might be different.
+- **Connection Error**: Verify `SUPABASE_URL` is correct and includes `https://`
+- **Authentication Error**: Verify `SUPABASE_SERVICE_ROLE_KEY` is the service role key (not anon key)
+- **Package Not Found**: The `npx` command will automatically download the package
+- **Permission Denied**: Ensure you're using the service role key, not the anon key
 
-## Manual Vercel API Access
+## Environment Variables Not Working
 
-While troubleshooting MCP, you can use the provided script:
+### Windows
+- Use `[System.Environment]::SetEnvironmentVariable(..., 'User')` for permanent setting
+- Verify in a new PowerShell window: `$env:VARIABLE_NAME`
+- System environment variables require restarting Cursor
 
-1. Set your token:
-   ```powershell
-   $env:VERCEL_API_TOKEN="your_token_here"
-   ```
+### macOS/Linux
+- Add to `~/.bashrc` or `~/.zshrc` and run `source ~/.bashrc`
+- Verify: `echo $VARIABLE_NAME`
 
-2. Run the script:
-   ```powershell
-   node scripts/check-vercel-deployment.js
-   ```
+## Restarting Cursor
 
-Or use Vercel CLI directly:
-```bash
-npm i -g vercel
-vercel login
-vercel list
-vercel logs [deployment-url]
-```
-
-## Checking MCP Connection Status
-
-After updating the configuration:
-1. **Completely close Cursor** (not just restart, fully quit)
+After making configuration changes:
+1. **Completely close Cursor** (not just minimize - fully quit)
 2. **Reopen Cursor**
-3. Check for MCP connection indicators in the UI
-4. Try listing resources again
+3. Wait a few seconds for MCP servers to initialize
+4. Check MCP status indicators in Cursor settings
 
-## Security Note
+## Security Best Practices
 
-⚠️ **Important**: Your Vercel API token is visible in terminal output. For security:
-1. Consider rotating your token
-2. Use environment variables instead of hardcoding
-3. Add `.cursor/mcp.json` to `.gitignore` if it contains tokens
+⚠️ **Important Security Notes**:
+- Never commit tokens to version control
+- Use environment variables instead of hardcoding tokens
+- Add `.cursor/mcp.json` to `.gitignore` if it contains tokens
+- Rotate tokens if they've been exposed
+- Use service role keys only when necessary (they bypass RLS)
 
-## Next Steps
+## Still Having Issues?
 
-1. Try the URL-based configuration (Option 1)
-2. Check Cursor's MCP settings UI (Option 2)
-3. Verify package exists (Option 3)
-4. Use manual API access while troubleshooting
+1. Check Cursor's MCP output/logs for detailed error messages
+2. Verify Node.js and `npx` are installed: `npx --version`
+3. Try removing the MCP configuration file and recreating it
+4. Check that your `.cursor/mcp.json` file has valid JSON (no trailing commas)
+5. Review the [MCP Configuration Guide](./MCP_CONFIGURATION.md) for setup instructions
 

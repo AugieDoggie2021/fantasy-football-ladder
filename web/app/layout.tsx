@@ -20,6 +20,9 @@ export const metadata: Metadata = {
     icon: "/assets/brand/ffl-favicon.svg",
     apple: "/assets/brand/ffl-app-icon-standard.svg",
   },
+};
+
+export const viewport = {
   themeColor: "#10B981",
 };
 
