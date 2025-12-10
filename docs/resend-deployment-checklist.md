@@ -27,10 +27,21 @@ supabase secrets set RESEND_API_KEY=re_xxxxx
 
 ### 2. Verify Domain in Resend
 
+**This step is REQUIRED before emails can be sent.**
+
 1. Log in to [Resend Dashboard](https://resend.com)
-2. Navigate to **Domains**
-3. Verify `fantasyladder.app` shows as "Verified"
-4. Check that all DNS records (SPF, DKIM, DMARC) are correctly configured
+2. Navigate to **Domains** (or go directly to https://resend.com/domains)
+3. Click **"Add Domain"** if `fantasyladder.app` is not listed
+4. Enter `fantasyladder.app` and click **"Add"**
+5. Resend will provide DNS records that need to be added to your domain:
+   - **SPF record** (TXT record)
+   - **DKIM record** (TXT record)
+   - **DMARC record** (TXT record) - optional but recommended
+6. Add these DNS records to your domain registrar (where you purchased fantasyladder.app)
+7. Wait for DNS propagation (can take 5 minutes to 48 hours)
+8. Once verified, `fantasyladder.app` will show as **"Verified"** in Resend dashboard
+
+**Note:** Until the domain is verified, emails will fail with "Email domain not verified" error.
 
 ### 3. Deploy Edge Function
 

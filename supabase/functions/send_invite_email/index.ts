@@ -3,7 +3,7 @@
  * 
  * Sends league invitation emails via Resend API.
  * In development, emails are logged to Inbucket for testing.
- * In production, emails are sent via Resend using the custom domain (fantasyladder.app).
+ * In production, emails are sent via Resend using the verified domain (mail.fantasyladder.app).
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -131,12 +131,25 @@ If you didn't expect this invitation, you can safely ignore this email.
 Fantasy Football Ladder
     `.trim()
 
-    // Check environment
-    const env = Deno.env.get('ENVIRONMENT') || Deno.env.get('SUPABASE_ENVIRONMENT') || 'dev'
-    const isDev = env === 'dev' || env === 'local'
+    // Check for Resend API key first - if it exists, try to send via Resend
+    // This allows production emails to be sent even if ENVIRONMENT is not set
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
     
-    // In development, log to Inbucket
-    if (isDev) {
+    // Debug logging to help diagnose issues
+    console.log('Checking RESEND_API_KEY...')
+    console.log('RESEND_API_KEY exists:', !!resendApiKey)
+    console.log('RESEND_API_KEY length:', resendApiKey ? resendApiKey.length : 0)
+    console.log('RESEND_API_KEY starts with re_:', resendApiKey ? resendApiKey.startsWith('re_') : false)
+    
+    // Check environment for dev mode fallback
+    const env = Deno.env.get('ENVIRONMENT') || Deno.env.get('SUPABASE_ENVIRONMENT') || ''
+    const isDev = env === 'dev' || env === 'local'
+    console.log('Environment:', env || '(not set)')
+    console.log('Is dev mode:', isDev)
+    
+    // If no Resend API key, fall back to dev mode logging
+    if (!resendApiKey) {
+      console.log('RESEND_API_KEY not set - using dev mode')
       console.log('DEV MODE: Email would be sent to:', to)
       console.log('DEV MODE: Subject:', subject)
       console.log('DEV MODE: Invite URL:', inviteUrl)
@@ -144,39 +157,27 @@ Fantasy Football Ladder
       
       return new Response(
         JSON.stringify({ 
-          success: true, 
-          message: 'Email logged (dev mode - check Inbucket at http://localhost:54324)',
-          devMode: true 
+          success: false,  // Changed to false - email was not actually sent
+          error: 'Email service not configured. RESEND_API_KEY secret is not set in Supabase Edge Functions.',
+          devMode: true,
+          message: 'Email logged (dev mode - check Inbucket at http://localhost:54324)'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      )
-    }
-
-    // In production, use Resend API
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
-    
-    if (!resendApiKey) {
-      console.error('RESEND_API_KEY is not set')
-      return new Response(
-        JSON.stringify({ 
-          error: 'Email service not configured',
-          details: 'RESEND_API_KEY secret is not set in Supabase Edge Functions'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
+          status: 200,  // Still return 200 so the invite is created, but success: false indicates email wasn't sent
         }
       )
     }
 
     try {
+      console.log('Attempting to send email via Resend API')
+      console.log('To:', to)
+      console.log('From: Fantasy Football Ladder <invites@mail.fantasyladder.app>')
+      
       const resend = new Resend(resendApiKey)
       
       // Send email via Resend API
-      // Using custom domain: mail.fantasyladder.app
+      // Using verified domain: mail.fantasyladder.app (subdomain verified in Resend)
       const { data, error: resendError } = await resend.emails.send({
         from: 'Fantasy Football Ladder <invites@mail.fantasyladder.app>',
         to: [to],
@@ -187,7 +188,7 @@ Fantasy Football Ladder
       })
 
       if (resendError) {
-        console.error('Resend API error:', resendError)
+        console.error('Resend API error:', JSON.stringify(resendError, null, 2))
         
         // Handle specific Resend errors
         let errorMessage = 'Failed to send email'
@@ -209,8 +210,8 @@ Fantasy Football Ladder
           }
           
           // Handle domain verification issues
-          if (resendError.message.includes('domain') || resendError.message.includes('verify')) {
-            errorMessage = 'Email domain not verified. Please verify fantasyladder.app in Resend dashboard.'
+          if (resendError.message.includes('domain') || resendError.message.includes('verify') || resendError.message.includes('not verified')) {
+            errorMessage = 'Email domain not verified. Please verify mail.fantasyladder.app in Resend dashboard (https://resend.com/domains). Add the required DNS records (SPF, DKIM, DMARC) to your domain.'
           }
         }
         
@@ -227,7 +228,9 @@ Fantasy Football Ladder
       }
 
       // Success
-      console.log('Email sent successfully via Resend:', data?.id)
+      console.log('Email sent successfully via Resend')
+      console.log('Resend email ID:', data?.id)
+      console.log('To:', to)
       
       return new Response(
         JSON.stringify({ 

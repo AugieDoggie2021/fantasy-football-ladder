@@ -67,12 +67,16 @@ export async function sendLeagueInviteEmail(
     if (!response.ok) {
       return { 
         success: false, 
-        error: data.error || 'Failed to send email' 
+        error: data.error || 'Failed to send email',
+        devMode: data.devMode || false,
       }
     }
 
+    // Check the actual success field from the Edge Function response
+    // The Edge Function may return HTTP 200 but success: false in dev mode
     return { 
-      success: true,
+      success: data.success === true,  // Explicitly check for true
+      error: data.error,
       devMode: data.devMode || false,
     }
   } catch (error: any) {

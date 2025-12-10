@@ -182,8 +182,8 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
         commissionerEmail: user.email || undefined,
       })
 
-      // Update invite with email sending status
-      if (emailResult.success) {
+      // Only update invite as sent if email was actually sent (not just logged in dev mode)
+      if (emailResult.success && !emailResult.devMode) {
         await supabase
           .from('league_invites')
           .update({
@@ -193,10 +193,11 @@ export async function createLeagueInvite(leagueId: string, email?: string) {
           })
           .eq('id', invite.id)
       } else {
+        // Email failed or was only logged in dev mode
         await supabase
           .from('league_invites')
           .update({
-            last_email_error: emailResult.error || 'Unknown error',
+            last_email_error: emailResult.error || (emailResult.devMode ? 'Email service not configured (dev mode)' : 'Unknown error'),
           })
           .eq('id', invite.id)
       }
@@ -603,8 +604,8 @@ export async function resendInviteEmail(inviteId: string) {
     commissionerEmail: user.email || undefined,
   })
 
-  // Update invite with email sending status
-  if (emailResult.success) {
+  // Only update invite as sent if email was actually sent (not just logged in dev mode)
+  if (emailResult.success && !emailResult.devMode) {
     await supabase
       .from('league_invites')
       .update({
@@ -614,10 +615,11 @@ export async function resendInviteEmail(inviteId: string) {
       })
       .eq('id', inviteId)
   } else {
+    // Email failed or was only logged in dev mode
     await supabase
       .from('league_invites')
       .update({
-        last_email_error: emailResult.error || 'Failed to send email',
+        last_email_error: emailResult.error || (emailResult.devMode ? 'Email service not configured (dev mode)' : 'Failed to send email'),
       })
       .eq('id', inviteId)
   }

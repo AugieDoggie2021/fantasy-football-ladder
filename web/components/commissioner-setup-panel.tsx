@@ -126,11 +126,15 @@ export function CommissionerSetupPanel({
       setInviteEmail('')
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
       
-      if (result.data?.emailSent) {
+      if (result.data?.emailSent && !result.data?.devMode) {
+        // Email was actually sent
         setInviteSuccess(`Invite sent to ${inviteEmailValue}`)
-      } else if (result.data?.emailError) {
-        setError(`Invite created but email failed: ${result.data.emailError}. Share this link instead: ${baseUrl}/join/${result.data?.token}`)
+      } else if (result.data?.emailError || result.data?.devMode) {
+        // Email failed or service not configured
+        const errorMsg = result.data?.emailError || 'Email service not configured'
+        setError(`Invite created but email was not sent: ${errorMsg}. Share this link instead: ${baseUrl}/join/${result.data?.token}`)
       } else {
+        // No email provided or other case
         setInviteSuccess(`Invite created! Share this link: ${baseUrl}/join/${result.data?.token}`)
       }
       

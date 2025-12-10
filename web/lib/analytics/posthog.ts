@@ -1,13 +1,25 @@
 'use client'
 
-import posthog from 'posthog-js'
+import posthog, { PostHog } from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
 
-export function initPostHog() {
-  if (typeof window === 'undefined') return
-
+/**
+ * Get PostHog configuration from environment variables
+ */
+function getPostHogConfig() {
   const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
   const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com'
+  return { posthogKey, posthogHost }
+}
+
+/**
+ * Create a PostHog client instance
+ * This should only be called on the client side
+ */
+export function createPostHogClient(): PostHog | null {
+  if (typeof window === 'undefined') return null
+
+  const { posthogKey, posthogHost } = getPostHogConfig()
 
   if (!posthogKey) {
     console.warn(
@@ -15,7 +27,7 @@ export function initPostHog() {
       'Please add NEXT_PUBLIC_POSTHOG_KEY to your .env.local file.\n' +
       'Get your key from: https://app.posthog.com → Project Settings → API Keys'
     )
-    return
+    return null
   }
 
   // Log initialization details in development
@@ -27,7 +39,7 @@ export function initPostHog() {
   }
 
   try {
-    posthog.init(posthogKey, {
+    const client = posthog.init(posthogKey, {
       api_host: posthogHost,
       loaded: (posthog) => {
         console.log('✅ PostHog loaded and ready', {
@@ -45,8 +57,10 @@ export function initPostHog() {
       // Enable debug mode in development
       debug: process.env.NODE_ENV === 'development',
     })
+    return client
   } catch (error) {
     console.error('❌ Error initializing PostHog:', error)
+    return null
   }
 }
 
