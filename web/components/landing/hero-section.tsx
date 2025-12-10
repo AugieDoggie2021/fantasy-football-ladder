@@ -12,17 +12,17 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative overflow-hidden py-20 sm:py-32 lg:py-40">
+    <section className="relative overflow-hidden py-20 sm:py-32 lg:py-40 bg-gradient-to-br from-brand-navy-50 via-white to-brand-primary-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text Content */}
           <div className="text-center lg:text-left">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-brand-nav mb-6 leading-tight">
               Fantasy Football,
               <br />
-              <span className="text-brand-primary-500">Promoted.</span>
+              <span className="text-brand-primary-600">Promoted.</span>
             </h1>
-            <p className="text-xl sm:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-xl sm:text-2xl text-brand-navy-700 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
               Fantasy Football Ladder brings promotion and relegation to your leagues — multi-tier competition, automatic movement up and down, and a season that never feels flat.
             </p>
             
@@ -36,7 +36,7 @@ export function HeroSection() {
               </Link>
               <button
                 onClick={() => scrollToSection('how-it-works')}
-                className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-slate-800/50 hover:bg-slate-800 rounded-xl transition-all border border-slate-700 backdrop-blur-sm"
+                className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-brand-nav bg-brand-navy-50 hover:bg-brand-navy-100 rounded-xl transition-all border border-brand-navy-200"
               >
                 How Ladder Leagues Work
               </button>
@@ -46,7 +46,7 @@ export function HeroSection() {
             <div className="mt-6 text-center lg:text-left">
               <Link
                 href="/login"
-                className="text-sm text-slate-400 hover:text-white transition-colors"
+                className="text-sm text-brand-navy-600 hover:text-brand-nav transition-colors"
               >
                 Already have an account? Log in
               </Link>
@@ -84,3 +84,4 @@ export function HeroSection() {
     </section>
   )
 }
+
