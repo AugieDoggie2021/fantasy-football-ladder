@@ -19,25 +19,25 @@ export function LeagueContextHeader({
   currentWeek,
 }: LeagueContextHeaderProps) {
   return (
-    <div className="mb-6 rounded-lg border border-brand-navy-800 bg-brand-surface-alt/80 p-4 shadow-md">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+    <div className="mb-6 rounded-2xl border border-slate-700/40 bg-slate-900/60 p-4 shadow-md backdrop-blur-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
         {seasonYear && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-brand-nav">Season:</span>
-            <span className="text-brand-navy-600">{seasonYear}</span>
+            <span className="font-semibold text-white">Season:</span>
+            <span className="text-slate-300">{seasonYear}</span>
           </div>
         )}
         
         {promotionGroupName && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-brand-nav">Ladder:</span>
-            <span className="text-brand-navy-600">{promotionGroupName}</span>
+            <span className="font-semibold text-white">Ladder:</span>
+            <span className="text-slate-300">{promotionGroupName}</span>
           </div>
         )}
         
         <div className="flex items-center gap-2">
           <LeagueTrophyIcon size={18} />
-          <span className="text-lg font-bold text-brand-nav">{leagueName}</span>
+          <span className="text-lg font-bold text-white">{leagueName}</span>
           {tier !== null && tier !== undefined && tier >= 1 && tier <= 4 && (
             <TierBadge tier={tier as 1 | 2 | 3 | 4} size={28} />
           )}
@@ -45,8 +45,8 @@ export function LeagueContextHeader({
         
         {currentWeek !== null && currentWeek !== undefined && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-brand-nav">Week:</span>
-            <span className="text-brand-navy-600">{currentWeek}</span>
+            <span className="font-semibold text-white">Week:</span>
+            <span className="text-slate-300">{currentWeek}</span>
           </div>
         )}
       </div>

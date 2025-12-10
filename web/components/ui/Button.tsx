@@ -15,23 +15,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseClasses =
-      "inline-flex items-center justify-center gap-2 rounded-md font-sans font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-surface-alt disabled:opacity-60 disabled:cursor-not-allowed";
+      "inline-flex items-center justify-center gap-2 rounded-full font-sans font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-60 disabled:cursor-not-allowed";
 
     const sizeClasses: Record<ButtonSize, string> = {
-      sm: "h-9 px-3 text-sm",
-      md: "h-10 px-4 text-sm",
-      lg: "h-11 px-5 text-base",
+      sm: "h-9 px-4 text-sm",
+      md: "h-10 px-5 text-sm",
+      lg: "h-11 px-6 text-base",
     };
 
     const variantClasses: Record<ButtonVariant, string> = {
       primary:
-        "bg-brand-primary-500 text-white shadow-md hover:bg-brand-primary-600 focus:ring-brand-primary-200",
+        "bg-ladder-primary text-slate-950 shadow-md hover:bg-emerald-400",
       secondary:
-        "bg-brand-navy-800 text-white shadow-sm hover:bg-brand-navy-700 border border-brand-navy-600 focus:ring-brand-navy-300",
+        "bg-slate-800 text-slate-200 shadow-sm hover:bg-slate-700 border border-slate-700/60",
       ghost:
-        "bg-transparent text-brand-navy-700 hover:bg-brand-navy-50 focus:ring-brand-navy-200",
+        "bg-transparent text-slate-300 hover:bg-slate-800/60",
       destructive:
-        "bg-status-error text-white shadow-sm hover:bg-red-600 focus:ring-red-200",
+        "bg-status-error text-white shadow-sm hover:bg-red-600",
     };
 
     return (
@@ -49,4 +49,3 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
-

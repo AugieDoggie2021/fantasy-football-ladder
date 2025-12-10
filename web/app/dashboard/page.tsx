@@ -6,6 +6,8 @@ import { getCurrentUserWithProfile, isGlobalAdmin } from '@/lib/auth-roles'
 import { getDashboardState } from '@/lib/dashboard-state'
 import { PageEventTracker } from '@/components/analytics/page-event-tracker'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -42,14 +44,14 @@ export default async function DashboardPage() {
     .eq('created_by_user_id', user.id)
     .order('created_at', { ascending: false })
 
-  const isCommissioner = isAdmin || 
+  const isCommissioner = isAdmin ||
     (leaguesOwned && leaguesOwned.length > 0) ||
     (myPromotionGroups && myPromotionGroups.length > 0)
 
   const env = process.env.NEXT_PUBLIC_APP_ENV || 'dev'
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
       <PageEventTracker
         event={AnalyticsEvents.PAGE_VIEWED}
         properties={{
@@ -59,21 +61,21 @@ export default async function DashboardPage() {
           funnel_step: 'dashboard_viewed',
         }}
       />
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Fantasy Football Overview
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Logged in as: {user.email}
-            </p>
+      <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+        <div className="space-y-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-display font-semibold text-white tracking-tight">
+                Fantasy Football Overview
+              </h1>
+              <p className="text-sm text-slate-400">Logged in as: {user.email}</p>
+            </div>
           </div>
 
           {/* Pending Invites Section */}
           {pendingInvites.length > 0 && (
-            <div className="mb-8 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <Card>
+              <h2 className="text-xl font-display font-semibold text-white tracking-tight mb-4">
                 You&apos;ve been invited to join a league
               </h2>
               <div className="space-y-3">
@@ -82,79 +84,72 @@ export default async function DashboardPage() {
                   return (
                     <div
                       key={invite.id}
-                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-indigo-200 dark:border-indigo-700"
+                      className="flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-900/50 px-4 py-3 text-slate-300"
                     >
                       <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">
+                        <h3 className="font-semibold text-white">
                           {league?.name}
                         </h3>
                         {league?.promotion_groups && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-sm text-slate-400">
                             Ladder: {league.promotion_groups.name}
                           </p>
                         )}
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        <p className="text-xs text-slate-500 mt-1">
                           Invited {new Date(invite.created_at).toLocaleDateString()}
                         </p>
                       </div>
-                      <Link
-                        href={`/join/${invite.token}`}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
-                      >
-                        View
-                      </Link>
+                      <Button asChild size="sm">
+                        <Link href={`/join/${invite.token}`}>View</Link>
+                      </Button>
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Quick Actions - Always Visible */}
-          <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <Card>
+            <h2 className="text-xl font-display font-semibold text-white tracking-tight mb-4">
               Quick Actions
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link
                 href="/commissioner/get-started"
-                className="flex flex-col items-center justify-center p-6 border-2 border-indigo-300 dark:border-indigo-700 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition text-center"
+                className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center hover:border-slate-700 hover:bg-slate-800/60 transition"
               >
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Create New League
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <h3 className="text-lg font-semibold text-white">Create New League</h3>
+                <p className="text-sm text-slate-400">
                   Start your own league and invite managers
                 </p>
-                <span className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium">
+                <Button variant="primary" size="md" className="mx-auto">
                   Create League
-                </span>
+                </Button>
               </Link>
               
               <Link
                 href="/join"
-                className="flex flex-col items-center justify-center p-6 border-2 border-indigo-300 dark:border-indigo-700 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition text-center"
+                className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center hover:border-slate-700 hover:bg-slate-800/60 transition"
               >
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Join a League
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <h3 className="text-lg font-semibold text-white">Join a League</h3>
+                <p className="text-sm text-slate-400">
                   Join a league using a code or invite link
                 </p>
-                <span className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium">
+                <Button variant="secondary" size="md" className="mx-auto">
                   Join League
-                </span>
+                </Button>
               </Link>
             </div>
-          </div>
+          </Card>
 
           {/* Leagues I Run (Commissioner) */}
           {leaguesOwned.length > 0 && (
-            <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <Card>
+              <h2 className="text-xl font-display font-semibold text-white tracking-tight mb-2">
                 Leagues I Run
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <p className="text-sm text-slate-400 mb-4">
                 Leagues where you are the commissioner
               </p>
               
@@ -166,12 +161,12 @@ export default async function DashboardPage() {
                     <Link
                       key={league.id}
                       href={`/leagues/${league.id}`}
-                      className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                      className="block rounded-xl border border-slate-800 bg-slate-900/50 p-4 hover:border-slate-700 hover:bg-slate-800/60 transition"
                     >
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                      <h4 className="font-semibold text-white mb-1">
                         {league.name}
                       </h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-slate-400">
                         {season?.year} Season
                         {league.tier && ` • Tier ${league.tier}`}
                         {promotionGroup && ` • ${promotionGroup.name} Ladder`}
@@ -180,22 +175,19 @@ export default async function DashboardPage() {
                   )
                 })}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Ladders I Manage (if commissioner) */}
           {isCommissioner && myPromotionGroups && myPromotionGroups.length > 0 && (
-            <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <Card>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-display font-semibold text-white tracking-tight">
                   My Ladders
                 </h2>
-                <Link
-                  href="/promotion-groups"
-                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
-                >
-                  Create Ladder
-                </Link>
+                <Button asChild size="sm">
+                  <Link href="/promotion-groups">Create Ladder</Link>
+                </Button>
               </div>
               
               <div className="space-y-2">
@@ -203,43 +195,43 @@ export default async function DashboardPage() {
                   <Link
                     key={group.id}
                     href={`/promotion-groups/${group.id}`}
-                    className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                    className="block rounded-xl border border-slate-800 bg-slate-900/50 p-4 hover:border-slate-700 hover:bg-slate-800/60 transition"
                   >
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                    <h4 className="font-semibold text-white mb-1">
                       {group.name}
                     </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-slate-400">
                       {group.seasons?.[0]?.year} Season
                     </p>
                   </Link>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Admin Links */}
           {isAdmin && (
-            <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <Card>
+              <h2 className="text-xl font-display font-semibold text-white tracking-tight mb-4">
                 Admin Tools
               </h2>
               <div className="space-y-2">
                 <Link
                   href="/seasons"
-                  className="block px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm"
+                  className="block rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-2 text-sm text-slate-300 hover:border-slate-700 hover:bg-slate-800/60 transition"
                 >
                   Manage Seasons (Admin)
                 </Link>
                 {env === 'dev' && (
                   <Link
                     href="/admin"
-                    className="block px-4 py-2 border border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition text-sm text-yellow-800 dark:text-yellow-200"
+                    className="block rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-200 hover:border-amber-300/50 hover:bg-amber-500/20 transition"
                   >
                     Developer Tools (Admin)
                   </Link>
                 )}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Leagues I'm In (Manager) - Filter out leagues where user is commissioner */}
@@ -251,11 +243,11 @@ export default async function DashboardPage() {
             })
             
             return managerOnlyTeams.length > 0 ? (
-              <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              <Card>
+                <h2 className="text-xl font-display font-semibold text-white tracking-tight mb-2">
                   Leagues I&apos;m In
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                <p className="text-sm text-slate-400 mb-4">
                   Leagues where you are a team manager
                 </p>
                 
@@ -269,23 +261,23 @@ export default async function DashboardPage() {
                       <Link
                         key={team.id}
                         href={`/leagues/${league.id}`}
-                        className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                        className="block rounded-xl border border-slate-800 bg-slate-900/50 p-4 hover:border-slate-700 hover:bg-slate-800/60 transition"
                       >
                         <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white">
+                          <div className="space-y-1">
+                            <h4 className="font-semibold text-white">
                               {league.name}
                             </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <p className="text-sm text-slate-400">
                               {season?.year} Season
                               {league.tier && ` • Tier ${league.tier}`}
                               {promotionGroup && ` • ${promotionGroup.name} Ladder`}
                             </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            <p className="text-sm text-slate-400">
                               Your Team: {team.name}
                             </p>
                           </div>
-                          <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-slate-800 text-slate-200 border border-slate-700">
                             {league.status}
                           </span>
                         </div>
@@ -293,11 +285,11 @@ export default async function DashboardPage() {
                     )
                   })}
                 </div>
-              </div>
+              </Card>
             ) : null
           })()}
 
-          <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-8 pt-8 border-t border-slate-800">
             <LogoutButton />
           </div>
         </div>

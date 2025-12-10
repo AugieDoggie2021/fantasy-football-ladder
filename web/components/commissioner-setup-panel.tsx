@@ -149,7 +149,9 @@ export function CommissionerSetupPanel({
         setInviteSuccess(`Invite sent to ${inviteEmailValue}`)
       } else if (result.data?.emailError || result.data?.devMode) {
         const errorMsg = result.data?.emailError || 'Email service not configured'
-        setError(`Invite created but email was not sent: ${errorMsg}. Share this link instead: ${baseUrl}/join/${result.data?.token}`)
+        setError(
+          `Invite created but email was not sent: ${errorMsg}. Share this link instead: ${baseUrl}/join/${result.data?.token}`,
+        )
       } else {
         setInviteSuccess(`Invite created! Share this link: ${baseUrl}/join/${result.data?.token}`)
       }
@@ -201,18 +203,18 @@ export function CommissionerSetupPanel({
     const isFull = teamCount >= maxTeams
 
     return (
-      <Card className="bg-brand-surface-alt/90 border-brand-navy-800 text-brand-nav shadow-lg" padding="lg">
+      <Card padding="lg">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-display font-semibold text-brand-nav">Step 1: Invite Managers</h2>
-            <p className="text-sm text-brand-navy-500 mt-1">
+            <h2 className="text-2xl font-display font-semibold text-white tracking-tight">Step 1: Invite Managers</h2>
+            <p className="text-sm text-slate-400 mt-1">
               Teams joined:{' '}
-              <span className="font-semibold text-brand-nav">
+              <span className="font-semibold text-white">
                 {teamCount} / {maxTeams}
               </span>
             </p>
             {!isFull && (
-              <p className="text-sm text-brand-navy-500">
+              <p className="text-sm text-slate-400">
                 Invite managers until the league is full, then start the draft.
               </p>
             )}
@@ -240,7 +242,6 @@ export function CommissionerSetupPanel({
               placeholder="manager@team.com"
               aria-label="Invite by email"
               disabled={sendingInvite}
-              className="bg-white"
             />
             <Button
               type="submit"
@@ -255,33 +256,33 @@ export function CommissionerSetupPanel({
         </form>
 
         {error && (
-          <div className="mb-4 rounded-md border border-status-error/40 bg-red-50 px-4 py-3 text-sm text-status-error">
+          <div className="mb-4 rounded-md border border-status-error/40 bg-red-900/30 px-4 py-3 text-sm text-status-error">
             {error}
           </div>
         )}
 
         {inviteSuccess && (
-          <div className="mb-4 rounded-md border border-brand-primary-200 bg-brand-primary-50 px-4 py-3 text-sm text-brand-nav">
+          <div className="mb-4 rounded-md border border-emerald-500/40 bg-emerald-900/20 px-4 py-3 text-sm text-emerald-100">
             {inviteSuccess}
           </div>
         )}
 
         {loadingInvites ? (
-          <p className="text-sm text-brand-navy-500">Loading invites...</p>
+          <p className="text-sm text-slate-400">Loading invites...</p>
         ) : invitesData ? (
           <div className="space-y-6">
             {invitesData.invites.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-brand-nav">Invites Sent</h3>
-                  <p className="text-sm text-brand-navy-500">
+                  <h3 className="text-base font-semibold text-white">Invites Sent</h3>
+                  <p className="text-sm text-slate-400">
                     Email sends count the last sent email, not attempts.
                   </p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase text-brand-navy-500 tracking-wide border-b border-brand-navy-100">
+                      <tr className="text-left text-xs uppercase text-slate-400 tracking-wide border-b border-slate-700/40">
                         <th className="px-3 py-2">Email / Invite</th>
                         <th className="px-3 py-2">Status</th>
                         <th className="px-3 py-2">Team Joined</th>
@@ -289,17 +290,17 @@ export function CommissionerSetupPanel({
                         <th className="px-3 py-2 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-brand-navy-100">
+                    <tbody className="divide-y divide-slate-800/60">
                       {invitesData.invites.map((invite) => {
                         const canResend = !!invite.email && invite.status !== 'revoked'
                         return (
-                          <tr key={invite.id} className="text-brand-nav">
+                          <tr key={invite.id} className="text-slate-300 bg-slate-900/40 hover:bg-slate-800/40">
                             <td className="px-3 py-2">
                               <div className="flex flex-col">
-                                <span className="font-semibold">
+                                <span className="font-semibold text-white">
                                   {invite.email || 'Link invite (no email)'}
                                 </span>
-                                <span className="text-xs text-brand-navy-500">
+                                <span className="text-xs text-slate-400">
                                   Token ending in {invite.token.slice(-6)}
                                 </span>
                               </div>
@@ -309,16 +310,16 @@ export function CommissionerSetupPanel({
                                 {invite.status}
                               </Badge>
                             </td>
-                            <td className="px-3 py-2 text-brand-navy-600">
+                            <td className="px-3 py-2 text-slate-300">
                               {invite.team ? (
-                                <span className="font-semibold text-brand-nav">{invite.team.name}</span>
+                                <span className="font-semibold text-white">{invite.team.name}</span>
                               ) : invite.status === 'accepted' ? (
-                                <span className="text-brand-primary-700 font-semibold">Team joined</span>
+                                <span className="text-emerald-300 font-semibold">Team joined</span>
                               ) : (
-                                <span className="text-brand-navy-400">—</span>
+                                <span className="text-slate-500">—</span>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-brand-navy-600">
+                            <td className="px-3 py-2 text-slate-300">
                               {formatDate(invite.email_sent_at || invite.created_at)}
                             </td>
                             <td className="px-3 py-2 text-right">
@@ -334,7 +335,7 @@ export function CommissionerSetupPanel({
                                   {resendingInviteId === invite.id ? 'Resending...' : 'Resend'}
                                 </Button>
                               ) : (
-                                <span className="text-xs text-brand-navy-400">Link only</span>
+                                <span className="text-xs text-slate-500">Link only</span>
                               )}
                             </td>
                           </tr>
@@ -348,22 +349,22 @@ export function CommissionerSetupPanel({
 
             {invitesData.teams.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-base font-semibold text-brand-nav">
+                <h3 className="text-base font-semibold text-white">
                   Teams Joined ({invitesData.teams.length})
                 </h3>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase text-brand-navy-500 tracking-wide border-b border-brand-navy-100">
+                      <tr className="text-left text-xs uppercase text-slate-400 tracking-wide border-b border-slate-700/40">
                         <th className="px-3 py-2">Team Name</th>
                         <th className="px-3 py-2">Joined</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-brand-navy-100">
+                    <tbody className="divide-y divide-slate-800/60">
                       {invitesData.teams.map((team) => (
-                        <tr key={team.id} className="text-brand-nav">
-                          <td className="px-3 py-2 font-semibold">{team.name}</td>
-                          <td className="px-3 py-2 text-brand-navy-600">{formatDate(team.created_at)}</td>
+                        <tr key={team.id} className="text-slate-300 bg-slate-900/40 hover:bg-slate-800/40">
+                          <td className="px-3 py-2 font-semibold text-white">{team.name}</td>
+                          <td className="px-3 py-2 text-slate-300">{formatDate(team.created_at)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -373,13 +374,13 @@ export function CommissionerSetupPanel({
             )}
 
             {invitesData.invites.length === 0 && invitesData.teams.length === 0 && (
-              <p className="text-sm text-brand-navy-500">
+              <p className="text-sm text-slate-400">
                 No invites sent yet. Use the form above to invite managers.
               </p>
             )}
           </div>
         ) : (
-          <p className="text-sm text-brand-navy-500">
+          <p className="text-sm text-slate-400">
             No invites sent yet. Use the form above to invite managers.
           </p>
         )}
@@ -389,17 +390,17 @@ export function CommissionerSetupPanel({
 
   if (leagueStatus === 'draft') {
     return (
-      <Card className="bg-brand-accent-gold-50 text-brand-nav border-brand-accent-gold-200 shadow-md" padding="lg">
-        <h2 className="text-2xl font-display font-semibold text-brand-nav mb-3">
+      <Card className="bg-slate-900/80 text-slate-300 border-slate-700 shadow-md" padding="lg">
+        <h2 className="text-2xl font-display font-semibold text-white tracking-tight mb-3">
           Draft in Progress
         </h2>
 
-        <p className="text-brand-navy-600 mb-4">
+        <p className="text-slate-400 mb-4">
           Draft flow coming soon. For now, you can manage teams manually after setting the league to active.
         </p>
 
         {error && (
-          <div className="mb-4 rounded-md border border-status-error/40 bg-red-50 px-4 py-3 text-sm text-status-error">
+          <div className="mb-4 rounded-md border border-status-error/40 bg-red-900/30 px-4 py-3 text-sm text-status-error">
             {error}
           </div>
         )}
@@ -418,3 +419,4 @@ export function CommissionerSetupPanel({
 
   return null
 }
+

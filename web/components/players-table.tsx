@@ -52,7 +52,7 @@ interface PlayersTableProps {
 }
 
 type AvailabilityFilter = 'available' | 'all' | 'my_team' | string // string is team ID
-type SortOption = 
+type SortOption =
   | 'fantasy_points_current'
   | 'fantasy_points_actual_current'
   | 'fantasy_points_season_avg'
@@ -86,48 +86,32 @@ export function PlayersTable({
   const [sortBy, setSortBy] = useState<SortOption>('fantasy_points_current')
   const [sortAscending, setSortAscending] = useState(false)
 
-  // Get unique NFL teams for filter
   const nflTeams = useMemo(() => {
     const teams = new Set<string>()
-    players.forEach(p => {
-      if (p.nfl_team) {
-        teams.add(p.nfl_team)
-      }
+    players.forEach((p) => {
+      if (p.nfl_team) teams.add(p.nfl_team)
     })
     return Array.from(teams).sort()
   }, [players])
 
-  // Filter players
   const filteredPlayers = useMemo(() => {
-    return players.filter(player => {
-      // Position filter
-      if (positionFilter !== 'All' && player.position !== positionFilter) {
-        return false
-      }
+    return players.filter((player) => {
+      if (positionFilter !== 'All' && player.position !== positionFilter) return false
+      if (nflTeamFilter !== 'All' && player.nfl_team !== nflTeamFilter) return false
 
-      // NFL team filter
-      if (nflTeamFilter !== 'All' && player.nfl_team !== nflTeamFilter) {
-        return false
-      }
-
-      // Search query
       if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesName = player.full_name.toLowerCase().includes(query)
-        const matchesTeam = player.nfl_team?.toLowerCase().includes(query) || false
-        if (!matchesName && !matchesTeam) {
-          return false
-        }
+        const q = searchQuery.toLowerCase()
+        const nameMatch = player.full_name.toLowerCase().includes(q)
+        const teamMatch = player.nfl_team?.toLowerCase().includes(q) || false
+        if (!nameMatch && !teamMatch) return false
       }
 
-      // Availability filter
       const ownership = playerOwnershipMap.get(player.id)
       if (availabilityFilter === 'available') {
         if (ownership) return false
       } else if (availabilityFilter === 'my_team') {
         if (!ownership || !ownership.isMyTeam) return false
       } else if (availabilityFilter !== 'all') {
-        // Filter by specific team
         if (!ownership || ownership.teamId !== availabilityFilter) return false
       }
 
@@ -135,18 +119,19 @@ export function PlayersTable({
     })
   }, [players, positionFilter, nflTeamFilter, searchQuery, availabilityFilter, playerOwnershipMap])
 
-  // Get stats for selected week
-  const getPlayerWeekData = useCallback((playerId: string) => {
-    if (!selectedWeek) return null
-    const playerWeeks = playerStatsMap.get(playerId)
-    if (!playerWeeks) return null
-    return playerWeeks.get(selectedWeek.id) || null
-  }, [selectedWeek, playerStatsMap])
+  const getPlayerWeekData = useCallback(
+    (playerId: string) => {
+      if (!selectedWeek) return null
+      const playerWeeks = playerStatsMap.get(playerId)
+      if (!playerWeeks) return null
+      return playerWeeks.get(selectedWeek.id) || null
+    },
+    [selectedWeek, playerStatsMap],
+  )
 
-  // Sort players
   const sortedPlayers = useMemo(() => {
     const sorted = [...filteredPlayers]
-    
+
     sorted.sort((a, b) => {
       let aValue: number | string = 0
       let bValue: number | string = 0
@@ -156,12 +141,13 @@ export function PlayersTable({
           aValue = a.full_name
           bValue = b.full_name
           break
-        case 'fantasy_points_current':
+        case 'fantasy_points_current': {
           const aWeekData = getPlayerWeekData(a.id)
           const aAvg = playerAverages.get(a.id)
           aValue = aWeekData?.fantasyPoints ?? aAvg?.seasonAvg ?? 0
           bValue = getPlayerWeekData(b.id)?.fantasyPoints ?? playerAverages.get(b.id)?.seasonAvg ?? 0
           break
+        }
         case 'fantasy_points_actual_current':
           aValue = getPlayerWeekData(a.id)?.fantasyPoints ?? 0
           bValue = getPlayerWeekData(b.id)?.fantasyPoints ?? 0
@@ -197,7 +183,7 @@ export function PlayersTable({
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortAscending ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
       }
-      
+
       const numA = typeof aValue === 'number' ? aValue : 0
       const numB = typeof bValue === 'number' ? bValue : 0
       return sortAscending ? numA - numB : numB - numA
@@ -211,7 +197,7 @@ export function PlayersTable({
       setSortAscending(!sortAscending)
     } else {
       setSortBy(newSortBy)
-      setSortAscending(false) // Default to descending for numbers
+      setSortAscending(false)
     }
   }
 
@@ -221,23 +207,35 @@ export function PlayersTable({
   }
 
   const getFantasyPoints = (player: Player): number | null => {
-    if (sortBy === 'fantasy_points_season_avg') {
-      return playerAverages.get(player.id)?.seasonAvg ?? null
-    }
-    if (sortBy === 'fantasy_points_last4_avg') {
-      return playerAverages.get(player.id)?.last4Avg ?? null
-    }
+    if (sortBy === 'fantasy_points_season_avg') return playerAverages.get(player.id)?.seasonAvg ?? null
+    if (sortBy === 'fantasy_points_last4_avg') return playerAverages.get(player.id)?.last4Avg ?? null
     return getPlayerWeekData(player.id)?.fantasyPoints ?? null
   }
 
+  const inputClasses =
+    'block w-full rounded-xl border border-slate-600/40 bg-slate-800/70 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 sm:text-sm px-3 py-2'
+
+  const headerClasses =
+    'px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide cursor-pointer hover:bg-slate-800/60'
+
+  const headerLabel = (label: string, sortKey?: SortOption) => (
+    <div className="flex items-center gap-1">
+      <span>{label}</span>
+      {sortKey && sortBy === sortKey ? <span>{sortAscending ? '^' : 'v'}</span> : null}
+    </div>
+  )
+
+  const renderValue = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined || value === 0) return ''
+    return value
+  }
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      {/* Filters and Controls */}
-      <div className="mb-6 space-y-4">
+    <div className="rounded-2xl border border-slate-700/40 bg-slate-900/60 backdrop-blur-sm p-6 md:p-8 shadow-xl space-y-6 text-slate-300">
+      <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
           <div>
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="search" className="block text-sm font-semibold text-slate-200 mb-1">
               Search
             </label>
             <input
@@ -246,295 +244,242 @@ export function PlayersTable({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Player name or team..."
-              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm px-3 py-2"
+              className={inputClasses}
             />
           </div>
-
-          {/* Position Filter */}
           <div>
-            <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="position" className="block text-sm font-semibold text-slate-200 mb-1">
               Position
             </label>
             <select
               id="position"
               value={positionFilter}
               onChange={(e) => setPositionFilter(e.target.value)}
-              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm px-3 py-2"
+              className={inputClasses}
             >
-              {POSITIONS.map(pos => (
-                <option key={pos} value={pos}>{pos}</option>
+              {POSITIONS.map((pos) => (
+                <option key={pos} value={pos}>
+                  {pos}
+                </option>
               ))}
             </select>
           </div>
-
-          {/* Availability Filter */}
           <div>
-            <label htmlFor="availability" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="availability" className="block text-sm font-semibold text-slate-200 mb-1">
               Availability
             </label>
             <select
               id="availability"
               value={availabilityFilter}
               onChange={(e) => setAvailabilityFilter(e.target.value as AvailabilityFilter)}
-              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm px-3 py-2"
+              className={inputClasses}
             >
               <option value="available">Available</option>
               <option value="all">All Players</option>
               <option value="my_team">On My Team</option>
-              {leagueTeams.map(team => (
-                <option key={team.id} value={team.id}>{team.name}</option>
+              {leagueTeams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
               ))}
             </select>
           </div>
-
-          {/* NFL Team Filter */}
           <div>
-            <label htmlFor="nflTeam" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="nflTeam" className="block text-sm font-semibold text-slate-200 mb-1">
               NFL Team
             </label>
             <select
               id="nflTeam"
               value={nflTeamFilter}
               onChange={(e) => setNflTeamFilter(e.target.value)}
-              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm px-3 py-2"
+              className={inputClasses}
             >
               <option value="All">All Teams</option>
-              {nflTeams.map(team => (
-                <option key={team} value={team}>{team}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Week Selector */}
-          <div>
-            <label htmlFor="week" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Week
-            </label>
-            <select
-              id="week"
-              value={selectedWeek?.id || ''}
-              onChange={(e) => {
-                const week = allWeeks.find(w => w.id === e.target.value)
-                setSelectedWeek(week || null)
-              }}
-              className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm px-3 py-2"
-            >
-              {allWeeks.map(week => (
-                <option key={week.id} value={week.id}>
-                  Week {week.week_number} {week.is_current && '(Current)'}
+              {nflTeams.map((team) => (
+                <option key={team} value={team}>
+                  {team}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Sort By */}
-        <div>
-          <label htmlFor="sort" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Sort By
-          </label>
-          <select
-            id="sort"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm px-3 py-2"
-          >
-            <option value="fantasy_points_current">Projected Fantasy Points (Current Week)</option>
-            <option value="fantasy_points_actual_current">Actual Fantasy Points (Current Week)</option>
-            <option value="fantasy_points_season_avg">Average Fantasy Points (Season)</option>
-            <option value="fantasy_points_last4_avg">Average Fantasy Points (Last 4 Games)</option>
-            <option value="name">Player Name (A-Z)</option>
-            <option value="passing_yards">Passing Yards</option>
-            <option value="rushing_yards">Rushing Yards</option>
-            <option value="receiving_yards">Receiving Yards</option>
-            <option value="receptions">Receptions</option>
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="week" className="block text-sm font-semibold text-slate-200 mb-1">
+              Week
+            </label>
+            <select
+              id="week"
+              value={selectedWeek?.id || ''}
+              onChange={(e) => {
+                const week = allWeeks.find((w) => w.id === e.target.value)
+                setSelectedWeek(week || null)
+              }}
+              className={inputClasses}
+            >
+              {allWeeks.map((week) => (
+                <option key={week.id} value={week.id}>
+                  Week {week.week_number} {week.is_current ? '(Current)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="sort" className="block text-sm font-semibold text-slate-200 mb-1">
+              Sort By
+            </label>
+            <select
+              id="sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className={inputClasses}
+            >
+              <option value="fantasy_points_current">Projected Fantasy Points (Current Week)</option>
+              <option value="fantasy_points_actual_current">Actual Fantasy Points (Current Week)</option>
+              <option value="fantasy_points_season_avg">Average Fantasy Points (Season)</option>
+              <option value="fantasy_points_last4_avg">Average Fantasy Points (Last 4 Games)</option>
+              <option value="name">Player Name (A-Z)</option>
+              <option value="passing_yards">Passing Yards</option>
+              <option value="rushing_yards">Rushing Yards</option>
+              <option value="receiving_yards">Receiving Yards</option>
+              <option value="receptions">Receptions</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Players Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900">
+        <table className="min-w-full divide-y divide-slate-800/60">
+          <thead className="bg-slate-900/60">
             <tr>
-              <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => handleSort('name')}
-              >
-                Player {sortBy === 'name' && (sortAscending ? '↑' : '↓')}
+              <th className={headerClasses} onClick={() => handleSort('name')}>
+                {headerLabel('Player', 'name')}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Pos
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Team
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Bye
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Owned
-              </th>
-              {/* Position-specific stat columns will be added dynamically */}
-              {positionFilter === 'All' || positionFilter === 'QB' ? (
+              <th className={headerClasses}>Pos</th>
+              <th className={headerClasses}>Team</th>
+              <th className={headerClasses}>Bye</th>
+              <th className={headerClasses}>Owned</th>
+              {(positionFilter === 'All' || positionFilter === 'QB') && (
                 <>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => handleSort('passing_yards')}
-                  >
-                    Pass Yds {sortBy === 'passing_yards' && (sortAscending ? '↑' : '↓')}
+                  <th className={headerClasses} onClick={() => handleSort('passing_yards')}>
+                    {headerLabel('Pass Yds', 'passing_yards')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Pass TD
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    INT
-                  </th>
+                  <th className={headerClasses}>Pass TD</th>
+                  <th className={headerClasses}>INT</th>
                 </>
-              ) : null}
+              )}
               {(positionFilter === 'All' || ['QB', 'RB', 'WR', 'TE'].includes(positionFilter)) && (
                 <>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => handleSort('rushing_yards')}
-                  >
-                    Rush Yds {sortBy === 'rushing_yards' && (sortAscending ? '↑' : '↓')}
+                  <th className={headerClasses} onClick={() => handleSort('rushing_yards')}>
+                    {headerLabel('Rush Yds', 'rushing_yards')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Rush TD
-                  </th>
+                  <th className={headerClasses}>Rush TD</th>
                 </>
               )}
               {(positionFilter === 'All' || ['RB', 'WR', 'TE'].includes(positionFilter)) && (
                 <>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => handleSort('receiving_yards')}
-                  >
-                    Rec Yds {sortBy === 'receiving_yards' && (sortAscending ? '↑' : '↓')}
+                  <th className={headerClasses} onClick={() => handleSort('receiving_yards')}>
+                    {headerLabel('Rec Yds', 'receiving_yards')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Rec TD
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => handleSort('receptions')}
-                  >
-                    Rec {sortBy === 'receptions' && (sortAscending ? '↑' : '↓')}
+                  <th className={headerClasses}>Rec TD</th>
+                  <th className={headerClasses} onClick={() => handleSort('receptions')}>
+                    {headerLabel('Rec', 'receptions')}
                   </th>
                 </>
               )}
-              {(positionFilter === 'All' || positionFilter === 'K') && (
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Kicking Pts
-                </th>
-              )}
-              {(positionFilter === 'All' || positionFilter === 'DEF') && (
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Defense Pts
-                </th>
-              )}
-              <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => handleSort('fantasy_points_current')}
-              >
-                FP {sortBy.startsWith('fantasy_points') && (sortAscending ? '↑' : '↓')}
+              {(positionFilter === 'All' || positionFilter === 'K') && <th className={headerClasses}>Kicking Pts</th>}
+              {(positionFilter === 'All' || positionFilter === 'DEF') && <th className={headerClasses}>Defense Pts</th>}
+              <th className={headerClasses} onClick={() => handleSort('fantasy_points_current')}>
+                {headerLabel('FP', 'fantasy_points_current')}
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedPlayers.map(player => {
+          <tbody className="bg-slate-900/40 divide-y divide-slate-800/60">
+            {sortedPlayers.map((player) => {
               const ownership = playerOwnershipMap.get(player.id)
               const isMyPlayer = ownership?.isMyTeam || false
               const isOwned = !!ownership
-              const weekData = getPlayerWeekData(player.id)
               const fantasyPoints = getFantasyPoints(player)
 
               return (
                 <tr
                   key={player.id}
-                  className={`
-                    ${isMyPlayer ? 'bg-green-50 dark:bg-green-900/20' : ''}
-                    ${isOwned && !isMyPlayer ? 'opacity-60' : ''}
-                    hover:bg-gray-50 dark:hover:bg-gray-700/50
-                  `}
+                  className={`${isMyPlayer ? 'bg-emerald-900/30' : ''} ${
+                    isOwned && !isMyPlayer ? 'opacity-70' : ''
+                  } hover:bg-slate-800/40`}
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {player.full_name}
-                    </div>
+                    <div className="text-sm font-semibold text-white">{player.full_name}</div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-medium rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-slate-800 text-slate-200 border border-slate-700">
                       {player.position}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {player.nfl_team || '—'}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">
+                    {player.nfl_team || ''}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {player.bye_week ? `W${player.bye_week}` : '—'}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-400">
+                    {player.bye_week ? `W${player.bye_week}` : ''}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm">
                     {isMyPlayer ? (
-                      <span className="text-green-600 dark:text-green-400 font-medium">My Team</span>
+                      <span className="text-emerald-300 font-semibold">My Team</span>
                     ) : ownership ? (
-                      <span className="text-gray-500 dark:text-gray-400">{ownership.teamName}</span>
+                      <span className="text-slate-400">{ownership.teamName}</span>
                     ) : (
-                      <span className="text-indigo-600 dark:text-indigo-400 font-medium">Available</span>
+                      <span className="text-emerald-300 font-semibold">Available</span>
                     )}
                   </td>
-                  {/* Position-specific stats */}
                   {(positionFilter === 'All' || positionFilter === 'QB') && (
                     <>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'passing_yards') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'passing_yards'))}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'passing_tds') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'passing_tds'))}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'interceptions') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'interceptions'))}
                       </td>
                     </>
                   )}
                   {(positionFilter === 'All' || ['QB', 'RB', 'WR', 'TE'].includes(positionFilter)) && (
                     <>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'rushing_yards') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'rushing_yards'))}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'rushing_tds') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'rushing_tds'))}
                       </td>
                     </>
                   )}
                   {(positionFilter === 'All' || ['RB', 'WR', 'TE'].includes(positionFilter)) && (
                     <>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'receiving_yards') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'receiving_yards'))}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'receiving_tds') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'receiving_tds'))}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {getStatValue(player, 'receptions') || '—'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                        {renderValue(getStatValue(player, 'receptions'))}
                       </td>
                     </>
                   )}
                   {(positionFilter === 'All' || positionFilter === 'K') && (
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {getStatValue(player, 'kicking_points') || '—'}
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                      {renderValue(getStatValue(player, 'kicking_points'))}
                     </td>
                   )}
                   {(positionFilter === 'All' || positionFilter === 'DEF') && (
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {getStatValue(player, 'defense_points') || '—'}
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-white">
+                      {renderValue(getStatValue(player, 'defense_points'))}
                     </td>
                   )}
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    {fantasyPoints !== null ? fantasyPoints.toFixed(1) : '—'}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-white">
+                    {fantasyPoints !== null ? fantasyPoints.toFixed(1) : ''}
                   </td>
                 </tr>
               )
@@ -544,9 +489,7 @@ export function PlayersTable({
       </div>
 
       {sortedPlayers.length === 0 && (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          No players found matching your filters.
-        </div>
+        <div className="text-center py-8 text-slate-400">No players found matching your filters.</div>
       )}
     </div>
   )

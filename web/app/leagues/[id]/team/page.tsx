@@ -6,6 +6,7 @@ import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/aut
 import { MyTeamRoster } from '@/components/my-team-roster'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { LeagueNavigation } from '@/components/league-navigation'
+import { Card } from '@/components/ui/Card'
 
 export default async function TeamPage({
   params,
@@ -63,55 +64,48 @@ export default async function TeamPage({
     .single()
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="mb-6">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
-            >
-              <HomeIcon size={20} />
-              <span>← Back to Overview</span>
-            </Link>
-            
-            <LeagueContextHeader
-              seasonYear={league.seasons?.[0]?.year}
-              promotionGroupName={league.promotion_groups?.name}
-              leagueName={league.name}
-              tier={league.tier}
-              currentWeek={currentWeek?.week_number || null}
-            />
-          </div>
-
-          {/* League Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Team
-            </h1>
-          </div>
-
-          {/* League Navigation */}
-          <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
-
-          {/* Team Roster Section */}
-          {userTeam ? (
-            <MyTeamRoster 
-              team={userTeam} 
-              leagueId={params.id}
-              leagueStatus={league.status}
-            />
-          ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Join this League
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                You need to join this league before you can manage your team.
-              </p>
-            </div>
-          )}
+    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
+      <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6">
+        <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 transition-colors"
+          >
+            <HomeIcon size={20} />
+            <span className="text-sm font-semibold">Back to Overview</span>
+          </Link>
+          
+          <LeagueContextHeader
+            seasonYear={league.seasons?.[0]?.year}
+            promotionGroupName={league.promotion_groups?.name}
+            leagueName={league.name}
+            tier={league.tier}
+            currentWeek={currentWeek?.week_number || null}
+          />
         </div>
+
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-display font-semibold text-white">Team</h1>
+        </div>
+
+        <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
+
+        {userTeam ? (
+          <MyTeamRoster 
+            team={userTeam} 
+            leagueId={params.id}
+            leagueStatus={league.status}
+          />
+        ) : (
+          <Card>
+            <h2 className="text-xl font-semibold text-white mb-3">
+              Join this League
+            </h2>
+            <p className="text-slate-400">
+              You need to join this league before you can manage your team.
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   )

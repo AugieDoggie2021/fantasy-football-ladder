@@ -90,7 +90,7 @@ export default async function LeagueDetailPage({
     .single()
 
   return (
-    <div className="min-h-screen bg-brand-nav text-foreground">
+    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
       <PageEventTracker
         event={AnalyticsEvents.PAGE_VIEWED}
         properties={{
@@ -104,7 +104,7 @@ export default async function LeagueDetailPage({
           <div>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-brand-primary-200 hover:text-brand-primary-100 transition-colors"
+              className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 transition-colors"
             >
               <HomeIcon size={20} />
               <span className="text-sm font-semibold">Back to Overview</span>
@@ -123,12 +123,12 @@ export default async function LeagueDetailPage({
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-display font-semibold text-white">League Home</h1>
-              <p className="text-sm text-brand-navy-200/80">Standings</p>
+              <p className="text-sm text-slate-400">Standings</p>
             </div>
             {canAccessCommissioner && (
               <Link
                 href={`/leagues/${params.id}/settings`}
-                className="inline-flex items-center gap-2 rounded-md border border-brand-navy-200 bg-brand-surface-alt px-4 py-2 text-sm font-semibold text-brand-nav shadow-sm transition-colors hover:bg-brand-navy-100"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 shadow-sm transition-colors hover:bg-slate-700"
               >
                 <SettingsGearIcon size={18} />
                 <span>League Settings</span>
@@ -158,13 +158,13 @@ export default async function LeagueDetailPage({
           )}
 
           {/* Standings Section - Main content for League Home */}
-          <Card className="bg-brand-surface-alt/80 border-brand-navy-800 text-brand-nav">
+          <Card>
             {league.status === 'active' ? (
               <LeagueStandings leagueId={params.id} currentUserId={user.id} />
             ) : (
               <div>
-                <h2 className="text-xl font-semibold text-brand-nav mb-3">Standings</h2>
-                <p className="text-brand-navy-500">
+                <h2 className="text-xl font-semibold text-white mb-3">Standings</h2>
+                <p className="text-slate-400">
                   Standings will update once games are played. The league is currently in{' '}
                   {league.status === 'invites_open' ? 'invite' : 'draft'} phase.
                 </p>
