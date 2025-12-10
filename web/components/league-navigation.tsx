@@ -55,7 +55,7 @@ export function LeagueNavigation({ leagueId, isCommissioner = false }: LeagueNav
 
   return (
     <nav className="mb-6">
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
+      <div className="flex flex-wrap gap-2 rounded-lg border border-brand-navy-800 bg-brand-surface-alt/70 p-2 shadow-md">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = item.isActive
@@ -64,16 +64,14 @@ export function LeagueNavigation({ leagueId, isCommissioner = false }: LeagueNav
               key={item.href}
               href={item.href}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
-                ${
-                  isActive
-                    ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 font-semibold'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }
+                flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors
+                ${isActive
+                  ? 'bg-brand-primary-100 text-brand-nav shadow-sm border border-brand-primary-200'
+                  : 'text-brand-navy-500 hover:bg-brand-navy-100 hover:text-brand-nav border border-transparent'}
               `}
             >
               <Icon size={20} className={isActive ? '' : 'opacity-70'} />
-              <span className="text-sm font-medium">{item.label}</span>
+              <span>{item.label}</span>
             </Link>
           )
         })}
@@ -81,4 +79,3 @@ export function LeagueNavigation({ leagueId, isCommissioner = false }: LeagueNav
     </nav>
   )
 }
-

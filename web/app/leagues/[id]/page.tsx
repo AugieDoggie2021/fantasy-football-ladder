@@ -1,16 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { LeagueStandings } from '@/components/league-standings'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { LeagueNavigation } from '@/components/league-navigation'
-import { HomeIcon, SettingsGearIcon, LeagueTrophyIcon } from '@/components/icons'
+import { HomeIcon, SettingsGearIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { CommissionerSetupPanel } from '@/components/commissioner-setup-panel'
 import { LeagueStatusMessage } from '@/components/league-status-message'
 import { PageEventTracker } from '@/components/analytics/page-event-tracker'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { Card } from '@/components/ui/Card'
 
 export default async function LeagueDetailPage({
   params,
@@ -61,9 +61,6 @@ export default async function LeagueDetailPage({
     redirect('/dashboard')
   }
 
-  // Determine if user is commissioner or just a manager
-  const isCommissioner = league.created_by_user_id === user.id
-
   // Check if user already has a team in this league
   const { data: userTeam } = await supabase
     .from('teams')
@@ -92,9 +89,8 @@ export default async function LeagueDetailPage({
     .eq('is_current', true)
     .single()
 
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-brand-nav text-foreground">
       <PageEventTracker
         event={AnalyticsEvents.PAGE_VIEWED}
         properties={{
@@ -103,17 +99,17 @@ export default async function LeagueDetailPage({
           league_id: params.id,
         }}
       />
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="mb-6">
+      <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+        <div className="space-y-6">
+          <div>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mb-4"
+              className="inline-flex items-center gap-2 text-brand-primary-200 hover:text-brand-primary-100 transition-colors"
             >
               <HomeIcon size={20} />
-              <span>← Back to Overview</span>
+              <span className="text-sm font-semibold">Back to Overview</span>
             </Link>
-            
+
             <LeagueContextHeader
               seasonYear={league.seasons?.[0]?.year}
               promotionGroupName={league.promotion_groups?.name}
@@ -124,19 +120,15 @@ export default async function LeagueDetailPage({
           </div>
 
           {/* League Header with Settings Button for Commissioners */}
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                League Home
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Standings
-              </p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-display font-semibold text-white">League Home</h1>
+              <p className="text-sm text-brand-navy-200/80">Standings</p>
             </div>
             {canAccessCommissioner && (
               <Link
                 href={`/leagues/${params.id}/settings`}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium"
+                className="inline-flex items-center gap-2 rounded-md border border-brand-navy-200 bg-brand-surface-alt px-4 py-2 text-sm font-semibold text-brand-nav shadow-sm transition-colors hover:bg-brand-navy-100"
               >
                 <SettingsGearIcon size={18} />
                 <span>League Settings</span>
@@ -166,24 +158,21 @@ export default async function LeagueDetailPage({
           )}
 
           {/* Standings Section - Main content for League Home */}
-          {league.status === 'active' ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+          <Card className="bg-brand-surface-alt/80 border-brand-navy-800 text-brand-nav">
+            {league.status === 'active' ? (
               <LeagueStandings leagueId={params.id} currentUserId={user.id} />
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Standings
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                Standings will update once games are played. The league is currently in {league.status === 'invites_open' ? 'invite' : 'draft'} phase.
-              </p>
-            </div>
-          )}
-
+            ) : (
+              <div>
+                <h2 className="text-xl font-semibold text-brand-nav mb-3">Standings</h2>
+                <p className="text-brand-navy-500">
+                  Standings will update once games are played. The league is currently in{' '}
+                  {league.status === 'invites_open' ? 'invite' : 'draft'} phase.
+                </p>
+              </div>
+            )}
+          </Card>
         </div>
       </div>
     </div>
   )
 }
-

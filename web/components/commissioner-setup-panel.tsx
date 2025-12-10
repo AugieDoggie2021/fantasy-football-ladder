@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateLeagueStatus } from '@/app/actions/leagues'
-import { createLeagueInvite, getLeagueInvites } from '@/app/actions/invites'
+import { createLeagueInvite, getLeagueInvites, resendInviteEmail } from '@/app/actions/invites'
+import { Card } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 
 interface CommissionerSetupPanelProps {
   leagueId: string
@@ -44,6 +48,21 @@ interface InvitesData {
   teams: Team[]
 }
 
+const formatDate = (value: string | null) => (value ? new Date(value).toLocaleDateString() : '—')
+
+const getStatusVariant = (status: Invite['status']) => {
+  switch (status) {
+    case 'accepted':
+      return 'success'
+    case 'revoked':
+      return 'destructive'
+    case 'expired':
+      return 'neutral'
+    default:
+      return 'warning'
+  }
+}
+
 export function CommissionerSetupPanel({
   leagueId,
   leagueStatus,
@@ -58,6 +77,7 @@ export function CommissionerSetupPanel({
   const [inviteEmail, setInviteEmail] = useState('')
   const [sendingInvite, setSendingInvite] = useState(false)
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null)
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null)
 
   const handleStartDraft = async () => {
     setIsUpdating(true)
@@ -87,7 +107,6 @@ export function CommissionerSetupPanel({
     }
   }
 
-  // Load invites when component mounts or league status changes
   useEffect(() => {
     const loadInvites = async () => {
       if (leagueStatus === 'invites_open') {
@@ -125,20 +144,16 @@ export function CommissionerSetupPanel({
       const inviteEmailValue = inviteEmail.trim()
       setInviteEmail('')
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
-      
+
       if (result.data?.emailSent && !result.data?.devMode) {
-        // Email was actually sent
         setInviteSuccess(`Invite sent to ${inviteEmailValue}`)
       } else if (result.data?.emailError || result.data?.devMode) {
-        // Email failed or service not configured
         const errorMsg = result.data?.emailError || 'Email service not configured'
         setError(`Invite created but email was not sent: ${errorMsg}. Share this link instead: ${baseUrl}/join/${result.data?.token}`)
       } else {
-        // No email provided or other case
         setInviteSuccess(`Invite created! Share this link: ${baseUrl}/join/${result.data?.token}`)
       }
-      
-      // Reload invites
+
       const invitesResult = await getLeagueInvites(leagueId)
       if (!invitesResult.error) {
         setInvitesData(invitesResult.data as InvitesData)
@@ -148,166 +163,207 @@ export function CommissionerSetupPanel({
     setSendingInvite(false)
   }
 
+  const handleResendInvite = async (invite: Invite) => {
+    if (!invite.email) {
+      setError('This invite does not have an email address to resend.')
+      return
+    }
+
+    setResendingInviteId(invite.id)
+    setError(null)
+    setInviteSuccess(null)
+
+    const result = await resendInviteEmail(invite.id)
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
+
+    if (result.error) {
+      setError(result.error)
+    } else if (result.data?.error) {
+      setError(result.data.error)
+    } else {
+      const inviteLink = `${baseUrl}/join/${invite.token}`
+      if (result.data?.devMode) {
+        setInviteSuccess(`Email service not configured (dev mode). Copy this invite link to share: ${inviteLink}`)
+      } else {
+        setInviteSuccess(`Invite re-sent to ${invite.email}`)
+      }
+
+      const invitesResult = await getLeagueInvites(leagueId)
+      if (!invitesResult.error) {
+        setInvitesData(invitesResult.data as InvitesData)
+      }
+    }
+
+    setResendingInviteId(null)
+  }
+
   if (leagueStatus === 'invites_open') {
     const isFull = teamCount >= maxTeams
 
     return (
-      <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Step 1: Invite Managers
-        </h2>
-        
-        <div className="mb-4">
-          <p className="text-gray-600 dark:text-gray-400 mb-2">
-            Teams joined: <span className="font-semibold text-gray-900 dark:text-white">{teamCount} / {maxTeams}</span>
-          </p>
-          {!isFull && (
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              Invite managers until the league is full, then start the draft.
+      <Card className="bg-brand-surface-alt/90 border-brand-navy-800 text-brand-nav shadow-lg" padding="lg">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-display font-semibold text-brand-nav">Step 1: Invite Managers</h2>
+            <p className="text-sm text-brand-navy-500 mt-1">
+              Teams joined:{' '}
+              <span className="font-semibold text-brand-nav">
+                {teamCount} / {maxTeams}
+              </span>
             </p>
+            {!isFull && (
+              <p className="text-sm text-brand-navy-500">
+                Invite managers until the league is full, then start the draft.
+              </p>
+            )}
+          </div>
+
+          {isFull && (
+            <Button
+              onClick={handleStartDraft}
+              disabled={isUpdating}
+              variant="primary"
+              size="md"
+              className="whitespace-nowrap"
+            >
+              {isUpdating ? 'Starting Draft...' : 'Start Draft'}
+            </Button>
           )}
         </div>
 
-        {/* Invite Form */}
         <form onSubmit={handleSendInvite} className="mb-6">
-          <div className="flex gap-2 mb-2">
-            <input
+          <div className="flex flex-col md:flex-row gap-3">
+            <Input
               type="email"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="Invite by email"
-              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="manager@team.com"
+              aria-label="Invite by email"
               disabled={sendingInvite}
+              className="bg-white"
             />
-            <button
+            <Button
               type="submit"
               disabled={sendingInvite || !inviteEmail.trim()}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              size="md"
+              className="md:w-auto"
             >
               {sendingInvite ? 'Sending...' : 'Send Invite'}
-            </button>
+            </Button>
           </div>
         </form>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          <div className="mb-4 rounded-md border border-status-error/40 bg-red-50 px-4 py-3 text-sm text-status-error">
+            {error}
           </div>
         )}
 
         {inviteSuccess && (
-          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-            <p className="text-sm text-green-800 dark:text-green-200">{inviteSuccess}</p>
+          <div className="mb-4 rounded-md border border-brand-primary-200 bg-brand-primary-50 px-4 py-3 text-sm text-brand-nav">
+            {inviteSuccess}
           </div>
         )}
 
-        {/* Invites and Teams List */}
         {loadingInvites ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading invites...</p>
+          <p className="text-sm text-brand-navy-500">Loading invites...</p>
         ) : invitesData ? (
-          <div className="mb-4 space-y-4">
-            {/* Invites List */}
+          <div className="space-y-6">
             {invitesData.invites.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Invites Sent
-                </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-brand-nav">Invites Sent</h3>
+                  <p className="text-sm text-brand-navy-500">
+                    Email sends count the last sent email, not attempts.
+                  </p>
+                </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Email / Invite
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Team Joined
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Sent
-                        </th>
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase text-brand-navy-500 tracking-wide border-b border-brand-navy-100">
+                        <th className="px-3 py-2">Email / Invite</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2">Team Joined</th>
+                        <th className="px-3 py-2">Sent</th>
+                        <th className="px-3 py-2 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                      {invitesData.invites.map((invite) => (
-                        <tr key={invite.id}>
-                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
-                            {invite.email || 'Link invite (no email)'}
-                          </td>
-                          <td className="px-3 py-2 text-sm">
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded ${
-                                invite.status === 'accepted'
-                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                                  : invite.status === 'expired'
-                                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                                  : invite.status === 'revoked'
-                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
-                                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
-                              }`}
-                            >
-                              {invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                            {invite.team ? (
-                              <span className="text-green-600 dark:text-green-400 font-medium">
-                                ✓ {invite.team.name}
-                              </span>
-                            ) : invite.status === 'accepted' ? (
-                              <span className="text-green-600 dark:text-green-400 font-medium">
-                                ✓ Team joined
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 dark:text-gray-500">—</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                            {invite.email_sent_at
-                              ? new Date(invite.email_sent_at).toLocaleDateString()
-                              : invite.created_at
-                              ? new Date(invite.created_at).toLocaleDateString()
-                              : '—'}
-                          </td>
-                        </tr>
-                      ))}
+                    <tbody className="divide-y divide-brand-navy-100">
+                      {invitesData.invites.map((invite) => {
+                        const canResend = !!invite.email && invite.status !== 'revoked'
+                        return (
+                          <tr key={invite.id} className="text-brand-nav">
+                            <td className="px-3 py-2">
+                              <div className="flex flex-col">
+                                <span className="font-semibold">
+                                  {invite.email || 'Link invite (no email)'}
+                                </span>
+                                <span className="text-xs text-brand-navy-500">
+                                  Token ending in {invite.token.slice(-6)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <Badge variant={getStatusVariant(invite.status)} className="uppercase tracking-tight">
+                                {invite.status}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2 text-brand-navy-600">
+                              {invite.team ? (
+                                <span className="font-semibold text-brand-nav">{invite.team.name}</span>
+                              ) : invite.status === 'accepted' ? (
+                                <span className="text-brand-primary-700 font-semibold">Team joined</span>
+                              ) : (
+                                <span className="text-brand-navy-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-brand-navy-600">
+                              {formatDate(invite.email_sent_at || invite.created_at)}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              {canResend ? (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-9 px-3"
+                                  disabled={resendingInviteId === invite.id}
+                                  onClick={() => handleResendInvite(invite)}
+                                >
+                                  {resendingInviteId === invite.id ? 'Resending...' : 'Resend'}
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-brand-navy-400">Link only</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
             )}
 
-            {/* Teams List */}
             {invitesData.teams.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-brand-nav">
                   Teams Joined ({invitesData.teams.length})
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Team Name
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Joined
-                        </th>
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase text-brand-navy-500 tracking-wide border-b border-brand-navy-100">
+                        <th className="px-3 py-2">Team Name</th>
+                        <th className="px-3 py-2">Joined</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody className="divide-y divide-brand-navy-100">
                       {invitesData.teams.map((team) => (
-                        <tr key={team.id}>
-                          <td className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-white">
-                            {team.name}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                            {team.created_at
-                              ? new Date(team.created_at).toLocaleDateString()
-                              : '—'}
-                          </td>
+                        <tr key={team.id} className="text-brand-nav">
+                          <td className="px-3 py-2 font-semibold">{team.name}</td>
+                          <td className="px-3 py-2 text-brand-navy-600">{formatDate(team.created_at)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -317,58 +373,48 @@ export function CommissionerSetupPanel({
             )}
 
             {invitesData.invites.length === 0 && invitesData.teams.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <p className="text-sm text-brand-navy-500">
                 No invites sent yet. Use the form above to invite managers.
               </p>
             )}
           </div>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-sm text-brand-navy-500">
             No invites sent yet. Use the form above to invite managers.
           </p>
         )}
-
-        {isFull && (
-          <button
-            onClick={handleStartDraft}
-            disabled={isUpdating}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium disabled:opacity-50"
-          >
-            {isUpdating ? 'Starting Draft...' : 'Start Draft'}
-          </button>
-        )}
-      </div>
+      </Card>
     )
   }
 
   if (leagueStatus === 'draft') {
     return (
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+      <Card className="bg-brand-accent-gold-50 text-brand-nav border-brand-accent-gold-200 shadow-md" padding="lg">
+        <h2 className="text-2xl font-display font-semibold text-brand-nav mb-3">
           Draft in Progress
         </h2>
-        
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
+
+        <p className="text-brand-navy-600 mb-4">
           Draft flow coming soon. For now, you can manage teams manually after setting the league to active.
         </p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          <div className="mb-4 rounded-md border border-status-error/40 bg-red-50 px-4 py-3 text-sm text-status-error">
+            {error}
           </div>
         )}
 
-        <button
+        <Button
           onClick={handleStartSeason}
           disabled={isUpdating}
-          className="px-6 py-3 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 font-medium disabled:opacity-50"
+          variant="primary"
+          size="md"
         >
           {isUpdating ? 'Starting Season...' : 'Mark Draft Complete / Start Season'}
-        </button>
-      </div>
+        </Button>
+      </Card>
     )
   }
 
   return null
 }
-

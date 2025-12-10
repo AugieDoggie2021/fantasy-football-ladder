@@ -19,25 +19,25 @@ export function LeagueContextHeader({
   currentWeek,
 }: LeagueContextHeaderProps) {
   return (
-    <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4 mb-6">
+    <div className="mb-6 rounded-lg border border-brand-navy-800 bg-brand-surface-alt/80 p-4 shadow-md">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         {seasonYear && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-indigo-900 dark:text-indigo-200">Season:</span>
-            <span className="text-indigo-700 dark:text-indigo-300">{seasonYear}</span>
+            <span className="font-semibold text-brand-nav">Season:</span>
+            <span className="text-brand-navy-600">{seasonYear}</span>
           </div>
         )}
         
         {promotionGroupName && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-indigo-900 dark:text-indigo-200">Ladder:</span>
-            <span className="text-indigo-700 dark:text-indigo-300">{promotionGroupName}</span>
+            <span className="font-semibold text-brand-nav">Ladder:</span>
+            <span className="text-brand-navy-600">{promotionGroupName}</span>
           </div>
         )}
         
         <div className="flex items-center gap-2">
           <LeagueTrophyIcon size={18} />
-          <span className="text-lg font-bold text-indigo-900 dark:text-indigo-200">{leagueName}</span>
+          <span className="text-lg font-bold text-brand-nav">{leagueName}</span>
           {tier !== null && tier !== undefined && tier >= 1 && tier <= 4 && (
             <TierBadge tier={tier as 1 | 2 | 3 | 4} size={28} />
           )}
@@ -45,12 +45,11 @@ export function LeagueContextHeader({
         
         {currentWeek !== null && currentWeek !== undefined && (
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-indigo-900 dark:text-indigo-200">Week:</span>
-            <span className="text-indigo-700 dark:text-indigo-300">{currentWeek}</span>
+            <span className="font-semibold text-brand-nav">Week:</span>
+            <span className="text-brand-navy-600">{currentWeek}</span>
           </div>
         )}
       </div>
     </div>
   )
 }
-
