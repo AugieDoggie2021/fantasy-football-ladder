@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   const env = process.env.NEXT_PUBLIC_APP_ENV || 'dev'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
+    <div className="min-h-screen bg-[#020617]">
       <PageEventTracker
         event={AnalyticsEvents.PAGE_VIEWED}
         properties={{
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
                   return (
                     <div
                       key={invite.id}
-                      className="flex items-center justify-between rounded-xl border border-slate-700/50 bg-slate-900/50 px-4 py-3 text-slate-300"
+                      className="flex items-center justify-between rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-[0_12px_30px_rgba(0,0,0,0.55)] px-4 py-3 text-slate-300"
                     >
                       <div>
                         <h3 className="font-semibold text-white">
@@ -110,38 +110,41 @@ export default async function DashboardPage() {
           )}
 
           {/* Quick Actions - Always Visible */}
-          <Card>
-            <h2 className="text-xl font-display font-semibold text-white tracking-tight mb-4">
-              Quick Actions
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link
-                href="/commissioner/get-started"
-                className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center hover:border-slate-700 hover:bg-slate-800/60 transition"
-              >
-                <h3 className="text-lg font-semibold text-white">Create New League</h3>
-                <p className="text-sm text-slate-400">
-                  Start your own league and invite managers
-                </p>
-                <Button variant="primary" size="md" className="mx-auto">
-                  Create League
-                </Button>
-              </Link>
-              
-              <Link
-                href="/join"
-                className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center hover:border-slate-700 hover:bg-slate-800/60 transition"
-              >
-                <h3 className="text-lg font-semibold text-white">Join a League</h3>
-                <p className="text-sm text-slate-400">
-                  Join a league using a code or invite link
-                </p>
-                <Button variant="secondary" size="md" className="mx-auto">
-                  Join League
-                </Button>
-              </Link>
-            </div>
-          </Card>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-0 blur-3xl bg-gradient-to-b from-emerald-500/10 via-transparent to-indigo-500/10" />
+            <Card className="relative">
+              <h2 className="text-xl font-display font-semibold text-white tracking-tight mb-4">
+                Quick Actions
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Link
+                  href="/commissioner/get-started"
+                  className="flex flex-col gap-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-[0_12px_30px_rgba(0,0,0,0.55)] p-5 text-center hover:border-slate-600 hover:bg-slate-800 transition"
+                >
+                  <h3 className="text-lg font-semibold text-white">Create New League</h3>
+                  <p className="text-sm text-slate-300">
+                    Start your own league and invite managers
+                  </p>
+                  <Button variant="primary" size="md" className="mx-auto">
+                    Create League
+                  </Button>
+                </Link>
+                
+                <Link
+                  href="/join"
+                  className="flex flex-col gap-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-[0_12px_30px_rgba(0,0,0,0.55)] p-5 text-center hover:border-slate-600 hover:bg-slate-800 transition"
+                >
+                  <h3 className="text-lg font-semibold text-white">Join a League</h3>
+                  <p className="text-sm text-slate-300">
+                    Join a league using a code or invite link
+                  </p>
+                  <Button variant="secondary" size="md" className="mx-auto">
+                    Join League
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </div>
 
           {/* Leagues I Run (Commissioner) */}
           {leaguesOwned.length > 0 && (
@@ -161,7 +164,7 @@ export default async function DashboardPage() {
                     <Link
                       key={league.id}
                       href={`/leagues/${league.id}`}
-                      className="block rounded-xl border border-slate-800 bg-slate-900/50 p-4 hover:border-slate-700 hover:bg-slate-800/60 transition"
+                      className="block rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-[0_12px_30px_rgba(0,0,0,0.55)] p-5 hover:border-slate-600 hover:bg-slate-800 transition"
                     >
                       <h4 className="font-semibold text-white mb-1">
                         {league.name}
@@ -195,7 +198,7 @@ export default async function DashboardPage() {
                   <Link
                     key={group.id}
                     href={`/promotion-groups/${group.id}`}
-                    className="block rounded-xl border border-slate-800 bg-slate-900/50 p-4 hover:border-slate-700 hover:bg-slate-800/60 transition"
+                    className="block rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-[0_12px_30px_rgba(0,0,0,0.55)] p-5 hover:border-slate-600 hover:bg-slate-800 transition"
                   >
                     <h4 className="font-semibold text-white mb-1">
                       {group.name}
@@ -261,7 +264,7 @@ export default async function DashboardPage() {
                       <Link
                         key={team.id}
                         href={`/leagues/${league.id}`}
-                        className="block rounded-xl border border-slate-800 bg-slate-900/50 p-4 hover:border-slate-700 hover:bg-slate-800/60 transition"
+                        className="block rounded-2xl bg-slate-800/80 border border-slate-700/60 shadow-[0_12px_30px_rgba(0,0,0,0.55)] p-5 hover:border-slate-600 hover:bg-slate-800 transition"
                       >
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
@@ -297,4 +300,3 @@ export default async function DashboardPage() {
     </div>
   )
 }
-

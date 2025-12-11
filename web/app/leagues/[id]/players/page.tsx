@@ -201,7 +201,7 @@ export default async function LeaguePlayersPage({
     .order('name', { ascending: true })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
+    <div className="min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220]">
       <PageEventTracker
         event={AnalyticsEvents.PLAYERS_VIEWED}
         properties={{
@@ -250,4 +250,3 @@ export default async function LeaguePlayersPage({
     </div>
   )
 }
-

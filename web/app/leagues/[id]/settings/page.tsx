@@ -38,7 +38,7 @@ export default async function LeagueSettingsPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
+    <div className="min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220]">
       <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6">
         <div>
           <Link
@@ -83,4 +83,3 @@ export default async function LeagueSettingsPage({
     </div>
   )
 }
-

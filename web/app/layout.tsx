@@ -34,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.className} min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827] text-slate-300`}
+        className={`${inter.className} min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220] text-slate-300`}
       >
         <ErrorBoundary>
           <AnalyticsProvider>

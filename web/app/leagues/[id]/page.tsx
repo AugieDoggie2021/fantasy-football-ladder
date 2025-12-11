@@ -92,7 +92,7 @@ export default async function LeagueDetailPage({
     .single()
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
+    <div className="min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220]">
       <PageEventTracker
         event={AnalyticsEvents.PAGE_VIEWED}
         properties={{

@@ -82,11 +82,11 @@ export default function PostHogTestPage() {
       })
       setTestEventSent(true)
       setTestEventResult(
-        `✅ Test event "${eventName}" sent successfully! Check your PostHog dashboard. ` +
+        ` Test event "${eventName}" sent successfully! Check your PostHog dashboard. ` +
         `It may take a few seconds to appear.`
       )
     } catch (error: any) {
-      setTestEventResult(`❌ Error sending test event: ${error.message}`)
+      setTestEventResult(` Error sending test event: ${error.message}`)
     }
   }
 
@@ -98,12 +98,12 @@ export default function PostHogTestPage() {
           timestamp: new Date().toISOString(),
           source: 'posthog_test_page_direct',
         })
-        setTestEventResult('✅ Direct PostHog event sent successfully!')
+        setTestEventResult(' Direct PostHog event sent successfully!')
       } else {
-        setTestEventResult('❌ PostHog is not initialized. Cannot send direct event.')
+        setTestEventResult(' PostHog is not initialized. Cannot send direct event.')
       }
     } catch (error: any) {
-      setTestEventResult(`❌ Error sending direct event: ${error.message}`)
+      setTestEventResult(` Error sending direct event: ${error.message}`)
     }
   }
 
@@ -143,7 +143,7 @@ export default function PostHogTestPage() {
                     : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                 }`}
               >
-                {status.keyPresent ? '✅ Yes' : '❌ No'}
+                {status.keyPresent ? ' Yes' : ' No'}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -157,7 +157,7 @@ export default function PostHogTestPage() {
                     : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                 }`}
               >
-                {status.initialized ? '✅ Yes' : '⏳ No'}
+                {status.initialized ? ' Yes' : ' No'}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -189,7 +189,7 @@ export default function PostHogTestPage() {
             {status.error && (
               <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <p className="text-sm text-red-800 dark:text-red-200 font-medium">
-                  ⚠️ {status.error}
+                   {status.error}
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-300 mt-2">
                   <strong>For local development:</strong> Add NEXT_PUBLIC_POSTHOG_KEY to your .env.local file in the web/ directory.
@@ -201,16 +201,16 @@ export default function PostHogTestPage() {
             {!status.error && status.keyPresent && !status.initialized && (
               <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
-                  ⏳ PostHog key is present but not initialized yet.
+                   PostHog key is present but not initialized yet.
                 </p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-2">
                   If you just added the environment variables, you may need to:
                   <br />
-                  • Refresh the page
+                   Refresh the page
                   <br />
-                  • Clear your browser cache
+                   Clear your browser cache
                   <br />
-                  • Wait a few seconds for PostHog to load
+                   Wait a few seconds for PostHog to load
                 </p>
               </div>
             )}
@@ -242,7 +242,7 @@ export default function PostHogTestPage() {
             {testEventResult && (
               <div
                 className={`p-4 rounded-lg ${
-                  testEventResult.includes('✅')
+                  testEventResult.includes('')
                     ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200'
                     : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
                 }`}
@@ -271,7 +271,7 @@ export default function PostHogTestPage() {
             to see if events appear (may take a few seconds).
           </p>
           <p className="text-xs text-green-700 dark:text-green-400">
-            💡 Tip: Open your browser's Network tab to see PostHog API requests being sent.
+             Tip: Open your browser&apos;s Network tab to see PostHog API requests being sent.
           </p>
         </div>
 
@@ -286,7 +286,7 @@ export default function PostHogTestPage() {
             </p>
             <ol className="list-decimal list-inside ml-4 space-y-1">
               <li>Go to <a href="https://app.posthog.com" target="_blank" rel="noopener noreferrer" className="underline">app.posthog.com</a></li>
-              <li>Navigate to Project Settings → API Keys</li>
+              <li>Navigate to Project Settings  API Keys</li>
               <li>Copy your Project API Key</li>
             </ol>
             <p className="mt-4">
@@ -311,4 +311,5 @@ NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com`}
     </div>
   )
 }
+
 
