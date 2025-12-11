@@ -1,8 +1,10 @@
+const normalize = (value: string | undefined | null) =>
+  typeof value === 'string' && value.toLowerCase() === 'true'
+
 export function isTestTeamsEnabled() {
-  return process.env.ENABLE_TEST_TEAMS === 'true'
+  return normalize(process.env.ENABLE_TEST_TEAMS)
 }
 
 export function isTestTeamsEnabledClient() {
-  return process.env.NEXT_PUBLIC_ENABLE_TEST_TEAMS === 'true'
+  return normalize(process.env.NEXT_PUBLIC_ENABLE_TEST_TEAMS)
 }
-

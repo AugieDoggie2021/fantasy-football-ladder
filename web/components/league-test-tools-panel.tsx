@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
+// Renders commissioner-only bot-fill tools when feature flag is enabled and user is commissioner/admin.
 interface LeagueTestToolsPanelProps {
   leagueId: string
   maxTeams: number
@@ -86,4 +87,3 @@ export function LeagueTestToolsPanel({
     </Card>
   )
 }
-
