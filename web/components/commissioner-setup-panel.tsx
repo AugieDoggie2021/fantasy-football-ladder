@@ -90,8 +90,7 @@ export function CommissionerSetupPanel({
       setError(result.error)
       setIsUpdating(false)
     } else {
-      router.refresh()
-      setIsUpdating(false)
+      router.push(`/leagues/${leagueId}/draft`)
     }
   }
 

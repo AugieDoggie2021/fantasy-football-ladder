@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { LeagueStandings } from '@/components/league-standings'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { LeagueNavigation } from '@/components/league-navigation'
-import { HomeIcon, SettingsGearIcon } from '@/components/icons'
+import { HomeIcon } from '@/components/icons'
 import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/auth-roles'
 import { CommissionerSetupPanel } from '@/components/commissioner-setup-panel'
 import { LeagueStatusMessage } from '@/components/league-status-message'
@@ -129,15 +129,6 @@ export default async function LeagueDetailPage({
                   showLeagueName={false}
                 />
               </div>
-              {canAccessCommissioner && (
-                <Link
-                  href={`/leagues/${params.id}/settings`}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 shadow-sm transition-colors hover:bg-slate-700"
-                >
-                  <SettingsGearIcon size={18} />
-                  <span>League Settings</span>
-                </Link>
-              )}
             </div>
           </div>
 
