@@ -11,6 +11,8 @@ import { LeagueStatusMessage } from '@/components/league-status-message'
 import { PageEventTracker } from '@/components/analytics/page-event-tracker'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 import { Card } from '@/components/ui/Card'
+import { LeagueTestToolsPanel } from '@/components/league-test-tools-panel'
+import { isTestTeamsEnabledClient } from '@/lib/feature-flags'
 
 export default async function LeagueDetailPage({
   params,
@@ -146,6 +148,16 @@ export default async function LeagueDetailPage({
               leagueStatus={league.status as 'invites_open' | 'draft' | 'active'}
               teamCount={teams?.length || 0}
               maxTeams={league.max_teams}
+            />
+          )}
+
+          {canAccessCommissioner && isTestTeamsEnabledClient() && (
+            <LeagueTestToolsPanel
+              leagueId={params.id}
+              maxTeams={league.max_teams}
+              existingTeamCount={teams?.length || 0}
+              isCommissionerOrAdmin={canAccessCommissioner}
+              testToolsEnabled={isTestTeamsEnabledClient()}
             />
           )}
 
