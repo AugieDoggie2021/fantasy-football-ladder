@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 import { isGlobalAdmin } from '@/lib/auth-roles'
 import { isTestTeamsEnabled } from './feature-flags'
 import { randomUUID } from 'crypto'
@@ -107,10 +108,12 @@ export async function fillLeagueWithTestTeams({
     return { error: insertError.message || 'Failed to create test teams' }
   }
 
+  revalidatePath(`/leagues/${leagueId}`)
+  revalidatePath('/dashboard')
+
   return {
     created: missing,
     totalTeams: targetCount,
     message: `Created ${missing} test team(s)`,
   }
 }
-

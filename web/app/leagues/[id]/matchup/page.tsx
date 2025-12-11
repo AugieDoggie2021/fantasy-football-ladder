@@ -97,7 +97,7 @@ export default async function MatchupPage({
         }}
       />
       <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6">
-        <div>
+        <div className="space-y-3">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 transition-colors"
@@ -106,23 +106,19 @@ export default async function MatchupPage({
             <span className="text-sm font-semibold">Back to Overview</span>
           </Link>
           
-          <LeagueContextHeader
-            seasonYear={league.seasons?.[0]?.year}
-            promotionGroupName={league.promotion_groups?.name}
-            leagueName={league.name}
-            tier={league.tier}
-            currentWeek={currentWeek?.week_number || null}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-display font-semibold text-white">Matchup</h1>
-            {currentWeek && (
-              <p className="text-sm text-slate-400">
-                Week {currentWeek.week_number}
-              </p>
-            )}
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-display font-semibold text-white">{league.name}</h1>
+              <p className="text-sm text-slate-400">Matchup</p>
+              <LeagueContextHeader
+                seasonYear={league.seasons?.[0]?.year}
+                promotionGroupName={league.promotion_groups?.name}
+                leagueName={league.name}
+                tier={league.tier}
+                currentWeek={currentWeek?.week_number || null}
+                showLeagueName={false}
+              />
+            </div>
           </div>
         </div>
 

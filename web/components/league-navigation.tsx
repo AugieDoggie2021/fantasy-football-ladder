@@ -1,35 +1,51 @@
 'use client'
 
+import type { ComponentType } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LeagueTrophyIcon, HomeFootballIcon, MatchupsIcon, StandingsIcon } from '@/components/icons'
+import {
+  LeagueTrophyIcon,
+  HomeFootballIcon,
+  MatchupsIcon,
+  StandingsIcon,
+  SettingsGearIcon,
+} from '@/components/icons'
 
 interface LeagueNavigationProps {
   leagueId: string
   isCommissioner?: boolean
 }
 
-// Centralized nav items configuration to prevent icon/label mismatches
-// League navigation: League Home, Team, Matchup, Players (in this order, left to right)
+type NavItem = {
+  href: string
+  label: string
+  icon: ComponentType<{ size?: number; className?: string }>
+  isActive: boolean
+}
+
+// Centralized nav items configuration with explicit icon mapping
+// Icons rotated per request:
+// - Settings icon -> League Home
+// - League trophy icon -> Team
+// - Home football icon -> League Settings
 const createNavItems = (
-  leagueId: string, 
-  pathname: string, 
-  isCommissioner: boolean
-) => {
+  leagueId: string,
+  pathname: string,
+  isCommissioner: boolean,
+): NavItem[] => {
   const basePath = `/leagues/${leagueId}`
-  
-  const items = [
+
+  const items: NavItem[] = [
     {
       href: basePath,
       label: 'League Home',
-      icon: LeagueTrophyIcon,
-      // League Home is active when pathname exactly matches basePath
+      icon: SettingsGearIcon,
       isActive: pathname === basePath,
     },
     {
       href: `${basePath}/team`,
       label: 'Team',
-      icon: HomeFootballIcon,
+      icon: LeagueTrophyIcon,
       isActive: pathname === `${basePath}/team`,
     },
     {
@@ -45,6 +61,15 @@ const createNavItems = (
       isActive: pathname === `${basePath}/players`,
     },
   ]
+
+  if (isCommissioner) {
+    items.push({
+      href: `${basePath}/settings`,
+      label: 'League Settings',
+      icon: HomeFootballIcon,
+      isActive: pathname === `${basePath}/settings`,
+    })
+  }
 
   return items
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { fillLeagueWithTestTeamsAction } from '@/app/actions/test-league-tools'
 import { Card } from '@/components/ui/Card'
@@ -22,10 +23,12 @@ export function LeagueTestToolsPanel({
   isCommissionerOrAdmin,
   testToolsEnabled,
 }: LeagueTestToolsPanelProps) {
+  const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [targetCount, setTargetCount] = useState<number>(maxTeams)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [currentCount, setCurrentCount] = useState<number>(existingTeamCount)
 
   if (!isCommissionerOrAdmin || !testToolsEnabled) {
     return null
@@ -39,9 +42,13 @@ export function LeagueTestToolsPanel({
       if ((result as any)?.error) {
         setError((result as any).error)
       } else {
+        const created = (result as any)?.created ?? 0
+        const total = (result as any)?.totalTeams ?? targetCount
+        setCurrentCount(total)
         setMessage(
-          `Created ${(result as any)?.created ?? 0} test team(s). Total teams: ${(result as any)?.totalTeams ?? targetCount}.`,
+          `Created ${created} test team(s). Total teams: ${total}.`,
         )
+        router.refresh()
       }
     })
   }
@@ -66,7 +73,7 @@ export function LeagueTestToolsPanel({
             value={targetCount}
             onChange={(e) => setTargetCount(Number(e.target.value))}
             label="Number of teams to simulate"
-            helperText={`Current teams: ${existingTeamCount} / ${maxTeams}`}
+            helperText={`Current teams: ${currentCount} / ${maxTeams}`}
           />
         </div>
         <Button type="button" onClick={onSubmit} disabled={pending}>

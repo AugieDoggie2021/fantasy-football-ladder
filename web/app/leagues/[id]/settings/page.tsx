@@ -6,6 +6,7 @@ import { getCurrentUserWithProfile, canAccessCommissionerTools } from '@/lib/aut
 import { DeleteLeagueButton } from '@/components/delete-league-button'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { Card } from '@/components/ui/Card'
+import { LeagueNavigation } from '@/components/league-navigation'
 
 export default async function LeagueSettingsPage({
   params,
@@ -39,8 +40,8 @@ export default async function LeagueSettingsPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220]">
-      <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6">
-        <div>
+      <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+        <div className="space-y-3">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 transition-colors"
@@ -48,19 +49,22 @@ export default async function LeagueSettingsPage({
             <HomeIcon size={20} />
             <span className="text-sm font-semibold">Back to Overview</span>
           </Link>
-          
-          <LeagueContextHeader
-            seasonYear={undefined}
-            promotionGroupName={undefined}
-            leagueName={league.name}
-            tier={undefined}
-            currentWeek={null}
-          />
+
+          <div className="space-y-2">
+            <h1 className="text-3xl font-display font-semibold text-white">{league.name}</h1>
+            <p className="text-sm text-slate-400">League Settings</p>
+            <LeagueContextHeader
+              seasonYear={undefined}
+              promotionGroupName={undefined}
+              leagueName={league.name}
+              tier={undefined}
+              currentWeek={null}
+              showLeagueName={false}
+            />
+          </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-display font-semibold text-white">League Settings</h1>
-        </div>
+        <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
 
         <Card>
           <h2 className="text-xl font-display font-semibold text-white mb-4">League Information</h2>

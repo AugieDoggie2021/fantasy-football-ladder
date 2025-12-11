@@ -7,6 +7,7 @@ import { MyTeamRoster } from '@/components/my-team-roster'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { LeagueNavigation } from '@/components/league-navigation'
 import { Card } from '@/components/ui/Card'
+import { LeagueTeamsPanel } from '@/components/league-teams-panel'
 
 export default async function TeamPage({
   params,
@@ -55,6 +56,13 @@ export default async function TeamPage({
     .eq('is_active', true)
     .single()
 
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, name, owner_user_id, is_bot, created_at, is_active')
+    .eq('league_id', params.id)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
   // Fetch current week info
   const { data: currentWeek } = await supabase
     .from('league_weeks')
@@ -65,8 +73,8 @@ export default async function TeamPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220]">
-      <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6">
-        <div>
+      <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+        <div className="space-y-3">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 transition-colors"
@@ -74,38 +82,56 @@ export default async function TeamPage({
             <HomeIcon size={20} />
             <span className="text-sm font-semibold">Back to Overview</span>
           </Link>
-          
-          <LeagueContextHeader
-            seasonYear={league.seasons?.[0]?.year}
-            promotionGroupName={league.promotion_groups?.name}
-            leagueName={league.name}
-            tier={league.tier}
-            currentWeek={currentWeek?.week_number || null}
-          />
-        </div>
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-display font-semibold text-white">Team</h1>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-display font-semibold text-white">{league.name}</h1>
+              <p className="text-sm text-slate-400">Team</p>
+              <LeagueContextHeader
+                seasonYear={league.seasons?.[0]?.year}
+                promotionGroupName={league.promotion_groups?.name}
+                leagueName={league.name}
+                tier={league.tier}
+                currentWeek={currentWeek?.week_number || null}
+                showLeagueName={false}
+              />
+            </div>
+          </div>
         </div>
 
         <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
 
-        {userTeam ? (
-          <MyTeamRoster 
-            team={userTeam} 
+        <div className="space-y-6">
+          {userTeam ? (
+            <MyTeamRoster 
+              team={userTeam} 
+              leagueId={params.id}
+              leagueStatus={league.status}
+            />
+          ) : (
+            <Card>
+              <h2 className="text-xl font-semibold text-white mb-3">
+                Join this League
+              </h2>
+              <p className="text-slate-400">
+                You need to join this league before you can manage your team.
+              </p>
+              {canAccessCommissioner && (
+                <p className="text-sm text-slate-400 mt-2">
+                  As commissioner, you can create your team below to appear in drafts.
+                </p>
+              )}
+            </Card>
+          )}
+
+          <LeagueTeamsPanel
             leagueId={params.id}
-            leagueStatus={league.status}
+            commissionerUserId={league.created_by_user_id}
+            currentUserId={user.id}
+            teams={teams || []}
+            maxTeams={league.max_teams}
           />
-        ) : (
-          <Card>
-            <h2 className="text-xl font-semibold text-white mb-3">
-              Join this League
-            </h2>
-            <p className="text-slate-400">
-              You need to join this league before you can manage your team.
-            </p>
-          </Card>
-        )}
+        </div>
       </div>
     </div>
   )

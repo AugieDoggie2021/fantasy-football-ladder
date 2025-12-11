@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateLeagueStatus } from '@/app/actions/leagues'
+import { prepareDraftAndStart } from '@/app/actions/draft'
 import { createLeagueInvite, getLeagueInvites, resendInviteEmail } from '@/app/actions/invites'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -83,13 +84,14 @@ export function CommissionerSetupPanel({
     setIsUpdating(true)
     setError(null)
 
-    const result = await updateLeagueStatus(leagueId, 'draft')
+    const result = await prepareDraftAndStart(leagueId)
 
     if (result.error) {
       setError(result.error)
       setIsUpdating(false)
     } else {
       router.refresh()
+      setIsUpdating(false)
     }
   }
 
@@ -104,6 +106,7 @@ export function CommissionerSetupPanel({
       setIsUpdating(false)
     } else {
       router.refresh()
+      setIsUpdating(false)
     }
   }
 

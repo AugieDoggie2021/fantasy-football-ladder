@@ -59,6 +59,12 @@ export async function generateDraftPicksForLeague(leagueId: string, rounds: numb
     return { error: 'Not authenticated' }
   }
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('is_admin')
+    .eq('id', user.id)
+    .maybeSingle()
+
   // Verify user is league creator (commissioner)
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
@@ -66,7 +72,14 @@ export async function generateDraftPicksForLeague(leagueId: string, rounds: numb
     .eq('id', leagueId)
     .single()
 
-  if (leagueError || !league || league.created_by_user_id !== user.id) {
+  if (!league || leagueError) {
+    return { error: 'League not found' }
+  }
+
+  const isCommissioner = league.created_by_user_id === user.id
+  const isAdmin = profile?.is_admin === true
+
+  if (!isCommissioner && !isAdmin) {
     return { error: 'Only the league commissioner can generate draft picks' }
   }
 
@@ -78,7 +91,7 @@ export async function generateDraftPicksForLeague(leagueId: string, rounds: numb
     .limit(1)
 
   if (existingPicks && existingPicks.length > 0) {
-    return { error: 'Draft picks have already been generated for this league' }
+    return { data: existingPicks, message: 'Draft picks have already been generated for this league' }
   }
 
   // Fetch all teams in the league
@@ -461,6 +474,12 @@ export async function startDraft(leagueId: string) {
     return { error: 'Not authenticated' }
   }
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('is_admin')
+    .eq('id', user.id)
+    .maybeSingle()
+
   // Verify user is league creator (commissioner)
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
@@ -468,7 +487,14 @@ export async function startDraft(leagueId: string) {
     .eq('id', leagueId)
     .single()
 
-  if (leagueError || !league || league.created_by_user_id !== user.id) {
+  if (leagueError || !league) {
+    return { error: 'League not found' }
+  }
+
+  const isCommissioner = league.created_by_user_id === user.id
+  const isAdmin = profile?.is_admin === true
+
+  if (!isCommissioner && !isAdmin) {
     return { error: 'Only the league commissioner can start the draft' }
   }
 
@@ -530,6 +556,85 @@ export async function startDraft(leagueId: string) {
   revalidatePath(`/leagues/${leagueId}`)
 
   return { data: { started: true, current_pick_id: firstPick.id } }
+}
+
+/**
+ * Prepare a league for drafting (generate picks if missing) and start the draft.
+ * Requires commissioner or admin access and a full league.
+ */
+export async function prepareDraftAndStart(leagueId: string, rounds: number = 14) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('is_admin')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('id, created_by_user_id, max_teams, status, draft_status')
+    .eq('id', leagueId)
+    .single()
+
+  if (!league) {
+    return { error: 'League not found' }
+  }
+
+  const isCommissioner = league.created_by_user_id === user.id
+  const isAdmin = profile?.is_admin === true
+  if (!isCommissioner && !isAdmin) {
+    return { error: 'Only the league commissioner can start the draft' }
+  }
+
+  const { data: teams } = await supabase
+    .from('teams')
+    .select('id, name, draft_position, is_active')
+    .eq('league_id', leagueId)
+    .eq('is_active', true)
+    .order('draft_position', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+
+  if (!teams || teams.length === 0) {
+    return { error: 'No teams found in this league' }
+  }
+
+  if (teams.length < league.max_teams) {
+    return { error: 'League is not full yet' }
+  }
+
+  const { count: pickCount } = await supabase
+    .from('draft_picks')
+    .select('id', { count: 'exact', head: true })
+    .eq('league_id', leagueId)
+
+  if (!pickCount || pickCount === 0) {
+    const pickResult = await generateDraftPicksForLeague(leagueId, rounds)
+    if ((pickResult as any)?.error) {
+      return pickResult
+    }
+  }
+
+  // Ensure league status reflects draft phase
+  if (league.status !== 'draft') {
+    await supabase
+      .from('leagues')
+      .update({ status: 'draft' })
+      .eq('id', leagueId)
+  }
+
+  const startResult = await startDraft(leagueId)
+  if (startResult.error) {
+    return startResult
+  }
+
+  revalidatePath(`/leagues/${leagueId}`)
+  revalidatePath(`/leagues/${leagueId}/draft`)
+  return { data: { started: true, current_pick_id: startResult.data?.current_pick_id || null } }
 }
 
 /**
@@ -1899,4 +2004,3 @@ async function finalizeDraft(leagueId: string, userId: string | null) {
     })
   }
 }
-
