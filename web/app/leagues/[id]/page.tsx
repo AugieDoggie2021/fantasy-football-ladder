@@ -15,6 +15,13 @@ import { LeagueTestToolsPanel } from '@/components/league-test-tools-panel'
 import { isTestTeamsEnabledClient } from '@/lib/feature-flags'
 import { LeagueTeamsPanel } from '@/components/league-teams-panel'
 
+const normalizeDraftStatus = (status?: string | null) => {
+  if (!status) return 'pre_draft'
+  if (status === 'scheduled') return 'pre_draft'
+  if (status === 'in_progress') return 'live'
+  return status
+}
+
 export default async function LeagueDetailPage({
   params,
 }: {
@@ -94,6 +101,14 @@ export default async function LeagueDetailPage({
 
   const teamCount = teams?.length || 0
   const commissionerUserId = league.created_by_user_id
+  const leagueDraftStatus = normalizeDraftStatus(league.draft_status || 'pre_draft')
+  const showDraftEntryCta = (canAccessCommissioner || !!userTeam) && (
+    leagueDraftStatus === 'live' ||
+    leagueDraftStatus === 'paused' ||
+    leagueDraftStatus === 'completed' ||
+    teamCount >= league.max_teams
+  )
+  const draftCtaLabel = leagueDraftStatus === 'completed' ? 'View Draft Results' : 'Enter the Draft'
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220]">
@@ -136,6 +151,28 @@ export default async function LeagueDetailPage({
 
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
+              {showDraftEntryCta && (
+                <Card className="bg-slate-900/80 border-slate-700 shadow-md" padding="lg">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-emerald-300 font-semibold uppercase tracking-wide">
+                        Draft Room Ready
+                      </p>
+                      <p className="text-base text-slate-200">
+                        {leagueDraftStatus === 'completed'
+                          ? 'Review the finalized draft board and results.'
+                          : 'Head to the draft room. The clock only starts when the commissioner hits Start.'}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/leagues/${params.id}/draft`}
+                      className="inline-flex items-center justify-center rounded-full bg-ladder-primary text-slate-950 px-5 py-2.5 font-semibold shadow-md hover:bg-emerald-400 transition-colors whitespace-nowrap"
+                    >
+                      {draftCtaLabel}
+                    </Link>
+                  </div>
+                </Card>
+              )}
               {canAccessCommissioner && (league.status === 'invites_open' || league.status === 'draft') && (
                 <CommissionerSetupPanel
                   leagueId={params.id}

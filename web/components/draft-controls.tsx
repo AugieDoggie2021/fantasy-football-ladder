@@ -6,9 +6,9 @@ import {
   startDraft, 
   pauseDraft, 
   resumeDraft, 
-  completeDraft,
+  stopDraft,
+  resetDraft,
   updateDraftSettings,
-  getDraftProgress,
   extendTimer,
 } from '@/app/actions/draft'
 import { useToast } from './toast-provider'
@@ -22,6 +22,13 @@ interface DraftControlsProps {
     rounds?: number
   }
   isCommissioner: boolean
+}
+
+const normalizeDraftStatus = (status?: string | null) => {
+  if (!status) return 'pre_draft'
+  if (status === 'scheduled') return 'pre_draft'
+  if (status === 'in_progress') return 'live'
+  return status
 }
 
 export function DraftControls({
@@ -43,6 +50,8 @@ export function DraftControls({
   if (!isCommissioner) {
     return null
   }
+
+  const normalizedStatus = normalizeDraftStatus(draftStatus)
 
   const handleStartDraft = async () => {
     if (!confirm('Start the draft? This will begin the timer for the first pick.')) {
@@ -88,17 +97,17 @@ export function DraftControls({
     setLoading(null)
   }
 
-  const handleCompleteDraft = async () => {
-    if (!confirm('Complete the draft? This will finalize all rosters and end the draft.')) {
+  const handleStopDraft = async () => {
+    if (!confirm('Stop the draft now? This will end the draft room and prevent further picks.')) {
       return
     }
 
     setLoading('complete')
-    const result = await completeDraft(leagueId)
+    const result = await stopDraft(leagueId)
     if (result.error) {
       showToast(result.error, 'error')
     } else {
-      showToast('Draft completed!', 'success')
+      showToast('Draft stopped and finalized.', 'success')
       router.refresh()
     }
     setLoading(null)
@@ -129,12 +138,27 @@ export function DraftControls({
     setLoading(null)
   }
 
+  const handleResetDraft = async () => {
+    if (!confirm('Force reset the draft? This clears all picks, rosters, and timers. This cannot be undone.')) {
+      return
+    }
+    setLoading('reset')
+    const result = await resetDraft(leagueId)
+    if (result.error) {
+      showToast(result.error, 'error')
+    } else {
+      showToast('Draft reset to pre-draft.', 'info')
+      router.refresh()
+    }
+    setLoading(null)
+  }
+
   // Get status badge color
   const getStatusBadgeColor = () => {
-    switch (draftStatus) {
-      case 'scheduled':
+    switch (normalizedStatus) {
+      case 'pre_draft':
         return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
-      case 'in_progress':
+      case 'live':
         return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
       case 'paused':
         return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
@@ -150,7 +174,7 @@ export function DraftControls({
       {/* Draft Status Badge */}
       <div className="flex items-center gap-4">
         <div className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusBadgeColor()}`}>
-          {draftStatus.replace('_', ' ')}
+          {normalizedStatus.replace('_', ' ')}
         </div>
         <button
           onClick={() => setShowSettings(!showSettings)}
@@ -235,7 +259,7 @@ export function DraftControls({
           Manage the draft state and settings. Only the commissioner can use these controls.
         </p>
         <div className="flex gap-2 flex-wrap">
-          {draftStatus === 'scheduled' && (
+          {normalizedStatus === 'pre_draft' && (
             <button
               onClick={handleStartDraft}
               disabled={loading !== null}
@@ -244,7 +268,7 @@ export function DraftControls({
               {loading === 'start' ? 'Starting...' : 'Start Draft'}
             </button>
           )}
-          {draftStatus === 'in_progress' && (
+          {normalizedStatus === 'live' && (
             <>
               <button
                 onClick={handlePauseDraft}
@@ -268,15 +292,15 @@ export function DraftControls({
                 {loading === 'extend' ? 'Extending...' : '+60s Timer'}
               </button>
               <button
-                onClick={handleCompleteDraft}
+                onClick={handleStopDraft}
                 disabled={loading !== null}
                 className="px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium touch-manipulation min-h-[44px]"
               >
-                {loading === 'complete' ? 'Completing...' : 'Complete Draft'}
+                {loading === 'complete' ? 'Stopping...' : 'Stop Draft'}
               </button>
             </>
           )}
-          {draftStatus === 'paused' && (
+          {normalizedStatus === 'paused' && (
             <>
               <button
                 onClick={handleResumeDraft}
@@ -286,17 +310,26 @@ export function DraftControls({
                 {loading === 'resume' ? 'Resuming...' : 'Resume Draft'}
               </button>
               <button
-                onClick={handleCompleteDraft}
+                onClick={handleStopDraft}
                 disabled={loading !== null}
                 className="px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium touch-manipulation min-h-[44px]"
               >
-                {loading === 'complete' ? 'Completing...' : 'Complete Draft'}
+                {loading === 'complete' ? 'Stopping...' : 'Stop Draft'}
               </button>
             </>
           )}
-          {draftStatus === 'completed' && (
+          {['pre_draft', 'live', 'paused', 'completed'].includes(normalizedStatus) && (
+            <button
+              onClick={handleResetDraft}
+              disabled={loading !== null}
+              className="px-4 py-3 sm:py-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium touch-manipulation min-h-[44px]"
+            >
+              {loading === 'reset' ? 'Resetting...' : 'Force Reset Draft'}
+            </button>
+          )}
+          {normalizedStatus === 'completed' && (
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Draft has been completed. All picks are finalized.
+              Draft has been stopped. All picks are finalized.
             </p>
           )}
         </div>
@@ -304,4 +337,3 @@ export function DraftControls({
     </div>
   )
 }
-

@@ -33,6 +33,7 @@ interface DraftQueueProps {
   }>
   draftedPlayerIds?: Set<string>
   isEditable?: boolean
+  onQueueSync?: (playerIds: string[]) => void
 }
 
 /**
@@ -51,6 +52,7 @@ export function DraftQueue({
   availablePlayers,
   draftedPlayerIds = new Set(),
   isEditable = true,
+  onQueueSync,
 }: DraftQueueProps) {
   const router = useRouter()
   const [queueItems, setQueueItems] = useState<QueueItem[]>([])
@@ -70,6 +72,7 @@ export function DraftQueue({
       // getTeamQueue already returns items ordered by priority DESC, but we'll sort again to be safe
       const sorted = [...result.data].sort((a, b) => (b.priority || 0) - (a.priority || 0))
       setQueueItems(sorted)
+      onQueueSync?.(sorted.map(item => item.player_id))
     }
   }
 
@@ -326,4 +329,3 @@ export function DraftQueue({
     </div>
   )
 }
-

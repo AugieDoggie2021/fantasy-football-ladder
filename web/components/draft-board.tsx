@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 import { generateDraftPicksForLeague, makeDraftPick } from '@/app/actions/draft'
-import { useDraftRealtime } from '@/lib/hooks/use-draft-realtime'
+import { useDraftRealtime, DraftFeedEvent } from '@/lib/hooks/use-draft-realtime'
 import { useExpiredPicksCheck } from '@/lib/hooks/use-expired-picks-check'
 import { DraftTimer } from '@/components/draft-timer'
 import { DraftQueue } from '@/components/draft-queue'
 import { DraftPlayerList } from '@/components/draft-player-list'
 import { DraftStatusPanel } from '@/components/draft-status-panel'
 import { DraftMobileActions } from '@/components/draft-mobile-actions'
+import { DraftFeed } from '@/components/draft-feed'
 import { useToast } from '@/components/toast-provider'
 
 interface Team {
@@ -24,6 +26,10 @@ interface Player {
   position: string
   nfl_team: string | null
   bye_week: number | null
+  adp?: number | null
+  average_draft_position?: number | null
+  rank?: number | null
+  external_id?: string | null
 }
 
 interface DraftPick {
@@ -33,7 +39,10 @@ interface DraftPick {
   team_id: string
   player_id: string | null
   pick_due_at?: string | null
+  pick_started_at?: string | null
+  pick_duration_seconds?: number | null
   picked_at?: string | null
+  is_auto_pick?: boolean | null
   teams: Team | null
   players: Player | null
 }
@@ -47,6 +56,14 @@ interface DraftBoardProps {
   currentPickId?: string | null
   userTeamId?: string | null
   isCommissioner?: boolean
+  draftSettings?: Record<string, any> | null
+}
+
+const normalizeDraftStatus = (status?: string | null) => {
+  if (!status) return 'pre_draft'
+  if (status === 'in_progress') return 'live'
+  if (status === 'scheduled') return 'pre_draft'
+  return status
 }
 
 export function DraftBoard({
@@ -54,37 +71,45 @@ export function DraftBoard({
   teams,
   draftPicks: initialDraftPicks,
   availablePlayers: initialAvailablePlayers,
-  draftStatus: initialDraftStatus = 'scheduled',
+  draftStatus: initialDraftStatus = 'pre_draft',
   currentPickId: initialCurrentPickId = null,
   userTeamId = null,
   isCommissioner = false,
+  draftSettings = null,
 }: DraftBoardProps) {
   const router = useRouter()
   const { showToast } = useToast()
-  const [selectedPick, setSelectedPick] = useState<string | null>(null)
-  const [positionFilter, setPositionFilter] = useState<string>('All')
-  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showQueue, setShowQueue] = useState(userTeamId !== null) // Show queue by default if user has a team
   const [recentlyPicked, setRecentlyPicked] = useState<Set<string>>(new Set())
-  const [retryCount, setRetryCount] = useState(0)
-  
-  // Realtime subscription
+  const [availablePlayers, setAvailablePlayers] = useState(initialAvailablePlayers)
+  const [draftedPlayerIds, setDraftedPlayerIds] = useState<Set<string>>(new Set())
+  const [queuedPlayerIds, setQueuedPlayerIds] = useState<Set<string>>(new Set())
+  const [teamNameDraft, setTeamNameDraft] = useState(() => teams.find(t => t.id === userTeamId)?.name || '')
+  const [renaming, setRenaming] = useState(false)
+
+  const syncQueuedIds = useCallback((ids: string[]) => setQueuedPlayerIds(new Set(ids)), [])
+  const handleQueueAdd = useCallback((playerId: string) => {
+    setQueuedPlayerIds((prev) => {
+      const next = new Set(prev)
+      next.add(playerId)
+      return next
+    })
+  }, [])
+
   const {
     picks: realtimePicks,
     draftState: realtimeDraftState,
+    feedEvents: realtimeFeedEvents,
     isConnected,
     error: realtimeError,
   } = useDraftRealtime({
     leagueId,
-    enabled: initialDraftStatus === 'in_progress' || initialDraftStatus === 'paused',
+    enabled: normalizeDraftStatus(initialDraftStatus) !== 'completed',
     onPickUpdate: (pick) => {
-      // Show animation when pick is made
       if (pick.player_id) {
-        setRecentlyPicked(prev => new Set([...prev, pick.id]))
-        // Remove animation class after animation completes
+        setRecentlyPicked((prev) => new Set([...prev, pick.id]))
         setTimeout(() => {
-          setRecentlyPicked(prev => {
+          setRecentlyPicked((prev) => {
             const next = new Set(prev)
             next.delete(pick.id)
             return next
@@ -92,44 +117,34 @@ export function DraftBoard({
         }, 2000)
       }
     },
-    onDraftStatusChange: (state) => {
-      // Optional: Handle draft status changes
+  })
+
+  const draftPicks = realtimePicks.length > 0 ? realtimePicks : initialDraftPicks
+  const rawDraftStatus = realtimeDraftState?.draft_status || initialDraftStatus
+  const draftStatus = normalizeDraftStatus(rawDraftStatus)
+  const currentPickId = realtimeDraftState?.current_pick_id || initialCurrentPickId
+  const pausedRemainingSeconds =
+    (realtimeDraftState?.draft_settings as any)?.paused_remaining_seconds ??
+    (normalizeDraftStatus(initialDraftStatus) === 'paused'
+      ? (draftSettings as any)?.paused_remaining_seconds ?? null
+      : null)
+
+  useExpiredPicksCheck({
+    enabled: draftStatus === 'live',
+    intervalMs: 10000,
+    onError: (error) => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Draft status changed:', state.draft_status)
+        console.error('Expired picks check error:', error)
       }
     },
   })
 
-  // Use realtime data if available, otherwise fall back to initial props
-  const draftPicks = realtimePicks.length > 0 ? realtimePicks : initialDraftPicks
-  const draftStatus = realtimeDraftState?.draft_status || initialDraftStatus
-  const currentPickId = realtimeDraftState?.current_pick_id || initialCurrentPickId
-
-  // Client-side expired picks check (replaces server cron job for Hobby accounts)
-  // Only check when draft is in progress
-  const handleExpiredPicksError = useCallback((error: Error) => {
-    // Silently handle errors - don't show toasts for background checks
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Expired picks check error:', error)
-    }
-  }, [])
-
-  useExpiredPicksCheck({
-    enabled: draftStatus === 'in_progress',
-    intervalMs: 10000, // Check every 10 seconds
-    onError: handleExpiredPicksError,
-  })
-
-  // Update available players based on realtime picks
-  const [availablePlayers, setAvailablePlayers] = useState(initialAvailablePlayers)
-  const [draftedPlayerIds, setDraftedPlayerIds] = useState<Set<string>>(new Set())
-  
   useEffect(() => {
     const drafted = new Set(
-      draftPicks.filter(p => p.player_id).map(p => p.player_id).filter(Boolean) as string[]
+      draftPicks.filter((p) => p.player_id).map((p) => p.player_id).filter(Boolean) as string[]
     )
     setDraftedPlayerIds(drafted)
-    const available = initialAvailablePlayers.filter(p => !drafted.has(p.id))
+    const available = initialAvailablePlayers.filter((p) => !drafted.has(p.id))
     setAvailablePlayers(available)
   }, [draftPicks, initialAvailablePlayers])
 
@@ -137,11 +152,10 @@ export function DraftBoard({
     if (!confirm('Generate draft picks? This will create picks for all teams.')) {
       return
     }
-
     setLoading(true)
     const result = await generateDraftPicksForLeague(leagueId, 14)
-    if (result.error) {
-      alert(result.error)
+    if ((result as any)?.error) {
+      alert((result as any).error)
     } else {
       router.refresh()
     }
@@ -149,14 +163,15 @@ export function DraftBoard({
   }
 
   const handleAssignPlayer = async (pickId: string, playerId: string, retries = 0) => {
+    if (!pickId) {
+      showToast('No active pick available right now.', 'error')
+      return
+    }
+
     setLoading(true)
-    
-    // Optimistic update: remove player from available list immediately
-    setAvailablePlayers(prev => prev.filter(p => p.id !== playerId))
-    
-    // Add to recently picked for animation
-    setRecentlyPicked(prev => new Set([...prev, pickId]))
-    
+    setAvailablePlayers((prev) => prev.filter((p) => p.id !== playerId))
+    setRecentlyPicked((prev) => new Set([...prev, pickId]))
+
     const formData = new FormData()
     formData.append('draft_pick_id', pickId)
     formData.append('player_id', playerId)
@@ -164,141 +179,150 @@ export function DraftBoard({
 
     try {
       const result = await makeDraftPick(formData)
-      
-      if (result.error) {
-        // Handle network errors with retry
-        if (result.error.includes('network') || result.error.includes('fetch') || result.error.includes('timeout')) {
-          if (retries < 2) {
-            // Retry after a short delay
-            await new Promise(resolve => setTimeout(resolve, 1000 * (retries + 1)))
-            setLoading(false)
-            return handleAssignPlayer(pickId, playerId, retries + 1)
-          }
-        }
 
-        // Revert handled via realtime updates - no need to manually revert
-        setRecentlyPicked(prev => {
+      if ((result as any)?.error) {
+        const errMsg = (result as any).error as string
+        setRecentlyPicked((prev) => {
           const next = new Set(prev)
           next.delete(pickId)
           return next
         })
-        
-        // Show error toast
-        showToast(result.error, 'error')
-        
-        // If it's a concurrent pick error, refresh to get latest state
-        if (result.error.includes('already been made') || result.error.includes('no longer available')) {
-          setTimeout(() => {
-            router.refresh()
-          }, 2000)
+        showToast(errMsg, 'error')
+        if (errMsg.includes('already been made') || errMsg.includes('no longer available')) {
+          setTimeout(() => router.refresh(), 1500)
         }
       } else {
-        setSelectedPick(null)
         showToast('Pick made successfully!', 'success')
-        
-        // Remove animation after it completes
         setTimeout(() => {
-          setRecentlyPicked(prev => {
+          setRecentlyPicked((prev) => {
             const next = new Set(prev)
             next.delete(pickId)
             return next
           })
         }, 2000)
-        // Don't refresh - realtime will update automatically
       }
     } catch (error: any) {
-      // Handle unexpected errors
-      console.error('Unexpected error making draft pick:', error)
-      
-      // Revert handled via realtime updates - no need to manually revert
-      setRecentlyPicked(prev => {
+      setRecentlyPicked((prev) => {
         const next = new Set(prev)
         next.delete(pickId)
         return next
       })
-      
-      // Retry on network errors
-      if (retries < 2 && (error.message?.includes('network') || error.message?.includes('fetch'))) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retries + 1)))
+      if (
+        retries < 2 &&
+        (error?.message?.includes('network') || error?.message?.includes('fetch'))
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (retries + 1)))
         setLoading(false)
         return handleAssignPlayer(pickId, playerId, retries + 1)
       }
-      
       showToast('Failed to make pick. Please try again.', 'error')
     } finally {
       setLoading(false)
-      setRetryCount(0)
     }
   }
 
-  // Filter available players
-  const filteredPlayers = availablePlayers.filter(player => {
-    if (positionFilter !== 'All' && player.position !== positionFilter) {
-      return false
+  const currentPick = useMemo(() => {
+    if (currentPickId) {
+      return draftPicks.find((p) => p.id === currentPickId) || null
     }
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      return (
-        player.full_name.toLowerCase().includes(query) ||
-        player.nfl_team?.toLowerCase().includes(query) ||
-        false
-      )
+    return draftPicks.find((p) => !p.player_id) || null
+  }, [currentPickId, draftPicks])
+
+  const isUserTurn = useMemo(
+    () => currentPick && userTeamId && currentPick.team_id === userTeamId,
+    [currentPick, userTeamId]
+  )
+
+  const canMakePick = Boolean(
+    currentPick &&
+      isUserTurn &&
+      draftStatus === 'live' &&
+      !currentPick.player_id
+  )
+
+  const onDraftPlayer = (playerId: string) => {
+    if (!canMakePick || !currentPick?.id) {
+      showToast('You can only draft when you are on the clock.', 'error')
+      return
     }
-    return true
-  })
+    handleAssignPlayer(currentPick.id, playerId)
+  }
 
-  // Memoize picks by round for performance
-  const picksByRound = useMemo(() => {
-    const grouped: Record<number, DraftPick[]> = {}
-    draftPicks.forEach(pick => {
-      if (!grouped[pick.round]) {
-        grouped[pick.round] = []
-      }
-      grouped[pick.round].push(pick)
-    })
-    return grouped
-  }, [draftPicks])
+  const mergedFeedEvents: DraftFeedEvent[] =
+    realtimeFeedEvents && realtimeFeedEvents.length > 0
+      ? realtimeFeedEvents
+      : draftPicks
+          .filter(p => p.player_id)
+          .map((p): DraftFeedEvent => ({
+            id: `fallback-${p.id}`,
+            league_id: leagueId,
+            pick_id: p.id,
+            event_type: 'pick_made',
+            payload: {
+              round: p.round,
+              overall_pick: p.overall_pick,
+              team_id: p.team_id,
+              player_id: p.player_id,
+            },
+            actor_user_id: null,
+            is_auto_pick: p.is_auto_pick || false,
+            created_at: p.picked_at || new Date().toISOString(),
+            draft_picks: {
+              id: p.id,
+              overall_pick: p.overall_pick,
+              round: p.round,
+              team_id: p.team_id,
+              player_id: p.player_id,
+              teams: p.teams ? { id: p.teams.id, name: p.teams.name } : null,
+              players: p.players
+                ? {
+                    id: p.players.id,
+                    full_name: p.players.full_name,
+                    position: p.players.position,
+                    nfl_team: p.players.nfl_team || null,
+                  }
+                : null,
+            },
+          }))
 
-  // Memoize max round and next pick calculations
-  const maxRound = useMemo(() => 
-    draftPicks.length > 0 ? Math.max(...draftPicks.map(p => p.round)) : 0
-  , [draftPicks])
-  
-  const nextPick = useMemo(() => 
-    currentPickId 
-      ? draftPicks.find(p => p.id === currentPickId && !p.player_id)
-      : draftPicks.find(p => !p.player_id)
-  , [currentPickId, draftPicks])
-  
-  // Check if it's the user's turn
-  const isUserTurn = useMemo(() => 
-    nextPick && userTeamId && nextPick.team_id === userTeamId
-  , [nextPick, userTeamId])
-  
-  const canMakePick = isUserTurn || isCommissioner
+  const handleRenameTeam = async () => {
+    if (!userTeamId) return
+    if (!teamNameDraft.trim()) {
+      showToast('Team name cannot be empty', 'error')
+      return
+    }
+    setRenaming(true)
+    const { error } = await supabase
+      .from('teams')
+      .update({ name: teamNameDraft.trim() })
+      .eq('id', userTeamId)
+
+    if (error) {
+      showToast(error.message, 'error')
+    } else {
+      showToast('Team name updated', 'success')
+      router.refresh()
+    }
+    setRenaming(false)
+  }
 
   return (
-    <div className="space-y-6 pb-20 lg:pb-6">
-      {/* Mobile Quick Actions */}
+    <div className="space-y-4 lg:space-y-5 pb-3 lg:pb-2 h-full">
       <DraftMobileActions
         leagueId={leagueId}
         teamId={userTeamId}
         availablePlayers={availablePlayers}
         draftedPlayerIds={draftedPlayerIds}
-        isUserTurn={isUserTurn}
-        isCommissioner={isCommissioner}
-        onSelectPlayer={(playerId) => {
-          if (selectedPick) {
-            handleAssignPlayer(selectedPick, playerId)
-          } else if (currentPickId && canMakePick) {
-            handleAssignPlayer(currentPickId, playerId)
-          }
-        }}
+        queuedPlayerIds={queuedPlayerIds}
+        canDraft={canMakePick}
+        draftStatus={draftStatus}
+        onSelectPlayer={onDraftPlayer}
         currentPickId={currentPickId}
+        onQueueSync={syncQueuedIds}
+        onQueueAdd={handleQueueAdd}
       />
 
-      {/* Realtime Connection Status */}
-      {(initialDraftStatus === 'in_progress' || initialDraftStatus === 'paused') && (
+      {(normalizeDraftStatus(initialDraftStatus) === 'live' || normalizeDraftStatus(initialDraftStatus) === 'paused') && (
         <div className="flex items-center gap-2 text-sm">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
           <span className="text-gray-600 dark:text-gray-400">
@@ -312,7 +336,6 @@ export function DraftBoard({
         </div>
       )}
 
-      {/* Generate Draft Button */}
       {draftPicks.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -333,147 +356,160 @@ export function DraftBoard({
 
       {draftPicks.length > 0 && (
         <>
-          {/* Draft Status Panel */}
-          <DraftStatusPanel
-            draftPicks={draftPicks}
-            teams={teams}
-            currentPickId={currentPickId}
-            draftStatus={draftStatus}
-            nextPick={nextPick || null}
-            isUserTurn={isUserTurn}
-            userTeamId={userTeamId}
-          />
-
-          {/* Draft Timer (if in progress) */}
-          {nextPick && (draftStatus === 'in_progress' || draftStatus === 'paused') && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <DraftTimer
-                pickDueAt={(nextPick as any).pick_due_at || null}
-                isPaused={draftStatus === 'paused'}
-                size="md"
-              />
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 sticky top-0">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Draft Status</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                    {draftStatus.replace('_', ' ')}
+                  </span>
+                  {isUserTurn && draftStatus === 'live' && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200">
+                      You&apos;re up
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {draftStatus === 'paused'
+                    ? 'Draft paused by commissioner'
+                    : isUserTurn
+                    ? 'You are on the clock'
+                    : 'Waiting for current manager'}
+                </p>
+              </div>
+              {currentPick && (draftStatus === 'live' || draftStatus === 'paused') ? (
+                <div className="flex-1 flex md:justify-center">
+                  <DraftTimer
+                    pickDueAt={currentPick.pick_due_at || null}
+                    pickStartedAt={(currentPick as any).pick_started_at || null}
+                    pickDurationSeconds={(currentPick as any).pick_duration_seconds || null}
+                    isPaused={draftStatus === 'paused'}
+                    pausedSeconds={pausedRemainingSeconds}
+                    size="xl"
+                    label={draftStatus === 'paused' ? 'Draft Paused' : 'On the Clock'}
+                  />
+                </div>
+              ) : (
+                <div className="text-right text-sm text-gray-500 dark:text-gray-400">
+                  Timer will appear once the draft is live.
+                </div>
+              )}
+              <div className="text-right space-y-1">
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Current Pick</p>
+                <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {currentPick
+                    ? `Round ${currentPick.round}, Pick ${currentPick.overall_pick}`
+                    : 'Waiting for next pick'}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {currentPick?.teams?.name || 'No active team'}
+                </p>
+              </div>
             </div>
-          )}
-
-          {/* Draft Board and Queue Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-            {/* Main Draft Board */}
-            <div className="lg:col-span-8 xl:col-span-9 bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 lg:p-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-                Draft Board
-              </h2>
-            <div className="space-y-3 sm:space-y-4">
-              {Array.from({ length: maxRound }, (_, i) => i + 1).map(round => {
-                const roundPicks = picksByRound[round] || []
-                // Lazy load: only render visible rounds initially, then load more on scroll
-                const isVisible = round <= Math.min(maxRound, 5) || roundPicks.some(p => p.id === currentPickId)
-                
-                if (!isVisible && roundPicks.every(p => p.player_id)) {
-                  // Skip fully completed rounds that aren't near current pick
-                  return null
-                }
-                
-                return (
-                  <div key={round} className="border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4">
-                    <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white mb-2">
-                      Round {round}
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-2">
-                      {roundPicks.map(pick => {
-                        const isCurrentPick = pick.id === currentPickId
-                        const isUserPick = userTeamId && pick.team_id === userTeamId
-                        const canSelect = (isCurrentPick && canMakePick) || isCommissioner
-                        
-                        const isRecentlyPicked = recentlyPicked.has(pick.id)
-                        return (
-                          <button
-                            key={pick.id}
-                            onClick={() => canSelect && !pick.player_id ? setSelectedPick(pick.id) : null}
-                            disabled={!canSelect || !!pick.player_id}
-                            className={`text-left p-3 sm:p-2 rounded border text-xs sm:text-sm transition-all duration-300 touch-manipulation min-h-[44px] ${
-                              isRecentlyPicked
-                                ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-400 animate-pulse'
-                                : selectedPick === pick.id
-                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                                : isCurrentPick && !pick.player_id
-                                ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400 animate-pulse'
-                                : pick.player_id
-                                ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50'
-                                : canSelect
-                                ? 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:shadow-md'
-                                : 'border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
-                            }`}
-                          >
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              #{pick.overall_pick} - {pick.teams?.name}
-                            </div>
-                            {pick.players ? (
-                              <div className={`text-xs mt-1 transition-all ${
-                                isRecentlyPicked
-                                  ? 'text-green-700 dark:text-green-300 font-semibold'
-                                  : 'text-gray-600 dark:text-gray-400'
-                              }`}>
-                                {pick.players.full_name} ({pick.players.position})
-                                {isRecentlyPicked && (
-                                  <span className="ml-2 animate-bounce">✓</span>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-gray-400 dark:text-gray-500 italic mt-1">
-                                {isCurrentPick ? 'On the clock' : 'Not selected'}
-                              </div>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            </div>
-
-            {/* Draft Queue Sidebar - Hidden on mobile, shown on desktop */}
-            {userTeamId && (
-              <div className="hidden lg:block lg:col-span-4 xl:col-span-3">
-                <DraftQueue
-                  leagueId={leagueId}
-                  teamId={userTeamId}
-                  availablePlayers={availablePlayers}
-                  draftedPlayerIds={draftedPlayerIds}
-                  isEditable={!isCommissioner || userTeamId !== null}
-                />
+            {draftStatus === 'paused' && !isCommissioner && (
+              <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 px-3 py-2 text-sm text-yellow-800 dark:text-yellow-200">
+                Draft paused by commissioner. Draft buttons are disabled until play resumes.
               </div>
             )}
           </div>
 
-          {/* Player Selection */}
-          {selectedPick && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Select Player
-                </h2>
-                <button
-                  onClick={() => setSelectedPick(null)}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
+          <div
+            className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5"
+            style={{ height: 'calc(100vh - 220px)' }}
+          >
+            <div className="lg:col-span-3 flex flex-col gap-3 h-full min-h-0">
+              <DraftStatusPanel
+                draftPicks={draftPicks}
+                teams={teams}
+                currentPickId={currentPickId}
+                draftStatus={draftStatus}
+                userTeamId={userTeamId}
+                className="flex-1 min-h-0"
+              />
+
+              <DraftFeed events={mergedFeedEvents} picks={draftPicks} teams={teams} className="min-h-0" />
+            </div>
+
+            <div className="lg:col-span-5 flex flex-col h-full min-h-0 space-y-3">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 flex-1 min-h-0 flex flex-col">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                    Available Players
+                  </h2>
+                  <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    ADP sorted
+                  </span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <DraftPlayerList
+                    players={availablePlayers}
+                    leagueId={leagueId}
+                    teamId={userTeamId}
+                    draftedPlayerIds={draftedPlayerIds}
+                    queuedPlayerIds={queuedPlayerIds}
+                    canDraft={canMakePick}
+                    draftStatus={draftStatus}
+                    onSelectPlayer={onDraftPlayer}
+                    onQueueAdd={handleQueueAdd}
+                    className="h-full overflow-y-auto"
+                  />
+                </div>
               </div>
 
-              <DraftPlayerList
-                players={availablePlayers}
-                leagueId={leagueId}
-                teamId={userTeamId}
-                onSelectPlayer={(playerId) => handleAssignPlayer(selectedPick, playerId)}
-                draftedPlayerIds={draftedPlayerIds}
-              />
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 hidden lg:block">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Your Team</p>
+                    <p className="text-base font-semibold text-gray-900 dark:text-white">{teamNameDraft || 'My Team'}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                      value={teamNameDraft}
+                      onChange={(e) => setTeamNameDraft(e.target.value)}
+                      placeholder="Team name"
+                    />
+                    <button
+                      onClick={handleRenameTeam}
+                      disabled={!userTeamId || renaming}
+                      className="px-3 py-1 rounded bg-indigo-600 text-white text-sm disabled:opacity-50"
+                    >
+                      {renaming ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
+
+            <div className="lg:col-span-4 flex flex-col gap-3 h-full min-h-0">
+              {userTeamId && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 flex-1 min-h-0 overflow-hidden">
+                  <div className="hidden lg:block h-full">
+                    <DraftQueue
+                      leagueId={leagueId}
+                      teamId={userTeamId}
+                      availablePlayers={availablePlayers}
+                      draftedPlayerIds={draftedPlayerIds}
+                      isEditable={true}
+                      onQueueSync={syncQueuedIds}
+                    />
+                  </div>
+                  <div className="lg:hidden text-sm text-gray-500 dark:text-gray-400">
+                    Queue available on desktop view.
+                  </div>
+                </div>
+              )}
+
+              {!userTeamId && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Join a team to edit queue and roster.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </>
       )}
     </div>
   )
 }
-

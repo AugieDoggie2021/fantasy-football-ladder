@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react'
 
 interface DraftTimerProps {
   pickDueAt: string | null
+  pickStartedAt?: string | null
+  pickDurationSeconds?: number | null
   isPaused?: boolean
+  pausedSeconds?: number | null
+  label?: string
   onExpired?: () => void
   size?: 'sm' | 'md' | 'lg'
 }
@@ -21,15 +25,39 @@ interface DraftTimerProps {
  */
 export function DraftTimer({
   pickDueAt,
+  pickStartedAt = null,
+  pickDurationSeconds = null,
   isPaused = false,
+  pausedSeconds = null,
+  label,
   onExpired,
   size = 'md',
 }: DraftTimerProps) {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
   const [isExpired, setIsExpired] = useState(false)
 
+  const deriveDueAt = () => {
+    if (pickDueAt) return pickDueAt
+    if (pickStartedAt && pickDurationSeconds) {
+      const start = new Date(pickStartedAt)
+      const due = new Date(start.getTime() + pickDurationSeconds * 1000)
+      return due.toISOString()
+    }
+    return null
+  }
+
   useEffect(() => {
-    if (!pickDueAt || isPaused) {
+    if (isPaused) {
+      // Freeze timer when paused; use provided pausedSeconds when available
+      if (typeof pausedSeconds === 'number') {
+        setTimeRemaining(pausedSeconds)
+      }
+      setIsExpired(false)
+      return
+    }
+
+    const derivedDueAt = deriveDueAt()
+    if (!derivedDueAt) {
       setTimeRemaining(null)
       setIsExpired(false)
       return
@@ -37,7 +65,7 @@ export function DraftTimer({
 
     const calculateTimeRemaining = () => {
       try {
-        const dueAt = new Date(pickDueAt)
+        const dueAt = new Date(derivedDueAt)
         const now = new Date()
         
         // Handle invalid dates
@@ -82,20 +110,18 @@ export function DraftTimer({
     const interval = setInterval(calculateTimeRemaining, 1000)
 
     return () => clearInterval(interval)
-  }, [pickDueAt, isPaused, onExpired, isExpired])
+  }, [pickDueAt, pickStartedAt, pickDurationSeconds, isPaused, pausedSeconds, onExpired, isExpired])
 
-  // If no timer or paused, show paused state
-  if (!pickDueAt || isPaused) {
-    return (
-      <div className={`flex items-center gap-2 ${size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : ''}`}>
-        <div className="w-2 h-2 rounded-full bg-gray-400" />
-        <span className="text-gray-600 dark:text-gray-400">Timer paused</span>
-      </div>
-    )
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  const effectiveRemaining = timeRemaining
+
   // If expired
-  if (isExpired || (timeRemaining !== null && timeRemaining === 0)) {
+  if (!isPaused && (isExpired || (effectiveRemaining !== null && effectiveRemaining === 0))) {
     return (
       <div className={`flex items-center gap-2 ${size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : ''}`}>
         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -104,26 +130,39 @@ export function DraftTimer({
     )
   }
 
-  // Format time as MM:SS
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
+  // Handle paused display
+  if (isPaused) {
+    return (
+      <div className={`flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 ${size === 'lg' ? 'text-xl' : ''}`}>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-gray-400" />
+          <span className="text-gray-700 dark:text-gray-300 font-medium">
+            {label || 'Draft Paused'}
+          </span>
+        </div>
+        {typeof effectiveRemaining === 'number' && (
+          <span className="font-mono font-semibold text-gray-900 dark:text-white">
+            {formatTime(Math.max(0, effectiveRemaining))}
+          </span>
+        )}
+      </div>
+    )
   }
 
   // Determine warning state
   const getWarningState = (): 'normal' | 'warning' | 'critical' => {
-    if (timeRemaining === null) return 'normal'
-    if (timeRemaining <= 10) return 'critical'
-    if (timeRemaining <= 30) return 'warning'
+    if (effectiveRemaining === null) return 'normal'
+    if (effectiveRemaining <= 10) return 'critical'
+    if (effectiveRemaining <= 30) return 'warning'
     return 'normal'
   }
 
   const warningState = getWarningState()
-  const totalSeconds = pickDueAt ? Math.floor((new Date(pickDueAt).getTime() - new Date().getTime()) / 1000) : 0
-  const initialSeconds = totalSeconds > 0 ? totalSeconds : 90 // Default to 90 if we can't calculate
-  const progress = timeRemaining !== null && initialSeconds > 0 
-    ? (timeRemaining / initialSeconds) * 100 
+  const derivedDueAt = deriveDueAt()
+  const totalSeconds = derivedDueAt ? Math.max(0, Math.floor((new Date(derivedDueAt).getTime() - new Date().getTime()) / 1000)) : effectiveRemaining ?? 0
+  const initialSeconds = totalSeconds > 0 ? totalSeconds : effectiveRemaining ?? 90 // Default to 90 if we can't calculate
+  const progress = effectiveRemaining !== null && initialSeconds > 0 
+    ? (effectiveRemaining / initialSeconds) * 100 
     : 100
 
   // Color based on warning state
@@ -173,16 +212,16 @@ export function DraftTimer({
     <div className={`p-4 rounded-lg border ${colors.bg} ${colors.border}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${colors.dot} ${warningState === 'critical' ? 'animate-pulse' : ''}`} />
-          <span className={`text-sm font-medium ${colors.text}`}>
-            Time Remaining
-          </span>
-        </div>
-        <span className={`font-mono font-bold text-2xl ${colors.text}`}>
-          {timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}
+        <div className={`w-2 h-2 rounded-full ${colors.dot} ${warningState === 'critical' ? 'animate-pulse' : ''}`} />
+        <span className={`text-sm font-medium ${colors.text}`}>
+            {label || 'Time Remaining'}
         </span>
       </div>
-      
+      <span className={`font-mono font-bold text-2xl ${colors.text}`}>
+          {effectiveRemaining !== null ? formatTime(effectiveRemaining) : '--:--'}
+      </span>
+    </div>
+    
       {/* Progress Bar */}
       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
         <div
@@ -205,4 +244,3 @@ export function DraftTimer({
     </div>
   )
 }
-

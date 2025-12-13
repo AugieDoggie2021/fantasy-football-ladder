@@ -16,10 +16,20 @@ interface DraftMobileActionsProps {
   teamId: string | null
   availablePlayers: Player[]
   draftedPlayerIds: Set<string>
-  isUserTurn: boolean
-  isCommissioner: boolean
+  queuedPlayerIds?: Set<string>
+  canDraft: boolean
+  draftStatus?: string
   onSelectPlayer: (playerId: string) => void
   currentPickId: string | null
+  onQueueSync?: (playerIds: string[]) => void
+  onQueueAdd?: (playerId: string) => void
+}
+
+const normalizeDraftStatus = (status?: string | null) => {
+  if (!status) return 'pre_draft'
+  if (status === 'scheduled') return 'pre_draft'
+  if (status === 'in_progress') return 'live'
+  return status
 }
 
 /**
@@ -36,16 +46,20 @@ export function DraftMobileActions({
   teamId,
   availablePlayers,
   draftedPlayerIds,
-  isUserTurn,
-  isCommissioner,
+  queuedPlayerIds,
+  canDraft,
+  draftStatus,
   onSelectPlayer,
   currentPickId,
+  onQueueSync,
+  onQueueAdd,
 }: DraftMobileActionsProps) {
   const [showQueue, setShowQueue] = useState(false)
   const [showPlayerList, setShowPlayerList] = useState(false)
   const [activeSheet, setActiveSheet] = useState<'queue' | 'players' | null>(null)
 
-  const canMakePick = isUserTurn || isCommissioner
+  const normalizedStatus = normalizeDraftStatus(draftStatus)
+  const canMakePick = canDraft && normalizedStatus === 'live'
 
   if (!teamId) {
     return null
@@ -179,7 +193,8 @@ export function DraftMobileActions({
               teamId={teamId}
               availablePlayers={availablePlayers}
               draftedPlayerIds={draftedPlayerIds}
-              isEditable={canMakePick}
+              isEditable={true}
+              onQueueSync={onQueueSync}
             />
           </div>
 
@@ -240,6 +255,10 @@ export function DraftMobileActions({
               players={availablePlayers}
               leagueId={leagueId}
               teamId={teamId}
+              queuedPlayerIds={queuedPlayerIds}
+              canDraft={canMakePick}
+              draftStatus={draftStatus}
+              onQueueAdd={onQueueAdd}
               onSelectPlayer={(playerId) => {
                 onSelectPlayer(playerId)
                 handleCloseSheet()
@@ -252,4 +271,3 @@ export function DraftMobileActions({
     </>
   )
 }
-

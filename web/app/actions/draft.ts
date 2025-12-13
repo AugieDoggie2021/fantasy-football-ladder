@@ -22,6 +22,25 @@ import { checkDraftPickRateLimit } from '@/lib/draft-rate-limit'
 import { logDraftAction, getRequestMetadata } from '@/lib/draft-audit'
 import { headers } from 'next/headers'
 
+const DRAFT_STATUS = {
+  PRE_DRAFT: 'pre_draft',
+  LIVE: 'live',
+  PAUSED: 'paused',
+  COMPLETED: 'completed',
+} as const
+
+const normalizeStatus = (status: string | null): string => {
+  if (!status) return DRAFT_STATUS.PRE_DRAFT
+  if (status === 'scheduled') return DRAFT_STATUS.PRE_DRAFT
+  if (status === 'in_progress') return DRAFT_STATUS.LIVE
+  return status
+}
+
+const isLiveStatus = (status: string | null) => normalizeStatus(status) === DRAFT_STATUS.LIVE
+const isPausedStatus = (status: string | null) => normalizeStatus(status) === DRAFT_STATUS.PAUSED
+const isCompletedStatus = (status: string | null) => normalizeStatus(status) === DRAFT_STATUS.COMPLETED
+const isPreDraftStatus = (status: string | null) => normalizeStatus(status) === DRAFT_STATUS.PRE_DRAFT
+
 /**
  * Helper function to get the next unpicked draft pick
  */
@@ -197,10 +216,12 @@ export async function makeDraftPick(formData: FormData) {
     return { error: 'League not found' }
   }
 
-  // Check if draft is in progress
-  if (league.draft_status !== 'in_progress') {
-    return { error: `Draft is not in progress. Current status: ${league.draft_status}` }
-  }
+  const currentDraftSettings = (league.draft_settings as { 
+    timer_seconds?: number
+    paused_remaining_seconds?: number | null
+    paused_pick_id?: string | null
+    paused_at?: string | null
+  }) || {}
 
   // Get draft pick info
   const { data: draftPick, error: pickError } = await supabase
@@ -229,6 +250,11 @@ export async function makeDraftPick(formData: FormData) {
   // Check if pick has already been made
   if (draftPick.player_id) {
     return { error: 'This pick has already been made' }
+  }
+
+  // Check if draft is in progress and this is the current pick (unless commissioner)
+  if (!isLiveStatus(league.draft_status)) {
+    return { error: `Draft is not live. Current status: ${league.draft_status}` }
   }
 
   // Check if this is the current pick (or allow commissioner to make any pick)
@@ -284,59 +310,29 @@ export async function makeDraftPick(formData: FormData) {
     return { error: 'The draft has progressed. This pick is no longer available.' }
   }
 
-  // Update draft pick with player (with optimistic locking)
-  const pickedAt = new Date().toISOString()
-  const { data: updatedPick, error: updateError } = await supabase
-    .from('draft_picks')
-    .update({ 
-      player_id: playerId,
-      picked_at: pickedAt,
-      pick_due_at: null, // Clear timer since pick is made
-    })
-    .eq('id', draftPickId)
-    .is('player_id', null) // Only update if player_id is still null (prevent concurrent picks)
-    .select()
-    .single()
+  // Perform atomic pick via RPC
+  const { data: rpcResult, error: rpcError } = await supabase.rpc('draft_make_pick', {
+    p_league_id: leagueId,
+    p_pick_id: draftPickId,
+    p_player_id: playerId,
+    p_is_auto: false,
+    p_actor_id: user.id,
+  })
 
-  if (updateError) {
-    // Check if error is due to concurrent pick (row not found because it was already updated)
-    if (updateError.code === 'PGRST116' || !updatedPick) {
-      await logDraftAction('pick_failed', leagueId, user.id, {
-        draftPickId,
-        playerId,
-        metadata: {
-          error: 'Concurrent pick detected - pick was already made',
-          concurrentPick: true,
-          ...getRequestMetadata(headersList),
-        },
-      })
-      return { error: 'This pick was already made by another user. Please refresh the page.' }
-    }
+  const rpcResponse = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult
+  if (rpcError || !rpcResponse?.success) {
+    const errMsg = rpcResponse?.error || rpcError?.message || 'Failed to make pick'
     await logDraftAction('pick_failed', leagueId, user.id, {
       draftPickId,
       playerId,
       metadata: {
-        error: updateError.message,
-        databaseError: true,
+        error: errMsg,
         ...getRequestMetadata(headersList),
       },
     })
-    return { error: `Failed to make pick: ${updateError.message}` }
+    return { error: errMsg }
   }
 
-  if (!updatedPick) {
-    await logDraftAction('pick_failed', leagueId, user.id, {
-      draftPickId,
-      playerId,
-      metadata: {
-        error: 'Pick was already made',
-        ...getRequestMetadata(headersList),
-      },
-    })
-    return { error: 'This pick was already made. Please refresh the page.' }
-  }
-
-  // Log successful pick
   await logDraftAction('pick_made', leagueId, user.id, {
     draftPickId,
     playerId,
@@ -348,109 +344,43 @@ export async function makeDraftPick(formData: FormData) {
     },
   })
 
-  // Get player info for tracking
-  const { data: player } = await supabase
-    .from('players')
-    .select('id, full_name, position')
-    .eq('id', playerId)
-    .single()
-
-  // Create roster entry for the team (default to BENCH)
-  const { error: rosterError } = await supabase
-    .from('rosters')
-    .insert({
-      team_id: draftPick.team_id,
-      player_id: playerId,
-      league_id: leagueId,
-      slot_type: 'BENCH',
-      is_starter: false,
-    })
-
-  if (rosterError) {
-    // Log error but don't fail - roster might already exist or there could be a constraint issue
-    console.error('Error creating roster entry:', rosterError)
-  }
-
-  // Create transaction record
-  await supabase
-    .from('transactions')
-    .insert({
-      league_id: leagueId,
-      team_id: draftPick.team_id,
-      type: 'add',
-      player_in_id: playerId,
-      notes: `Drafted in round ${draftPick.round}, pick ${draftPick.overall_pick}`,
-    })
-
-  // Get next pick
-  const nextPick = await getNextDraftPick(leagueId)
-
-  // Update league with next pick (or null if draft is complete)
-  const updateData: {
-    current_pick_id?: string | null
-    draft_status?: string
-    draft_completed_at?: string
-  } = {}
-
-  if (nextPick) {
-    // Set next pick as current and start timer
-    updateData.current_pick_id = nextPick.id
-    
-    // Get timer settings
-    const draftSettings = (league.draft_settings as { timer_seconds?: number }) || {}
-    const timerSeconds = draftSettings.timer_seconds || 90
-    const pickDueAt = calculatePickDueAt(timerSeconds)
-
-    // Set timer for next pick
-    await supabase
-      .from('draft_picks')
-      .update({ pick_due_at: pickDueAt })
-      .eq('id', nextPick.id)
-  } else {
-    // Draft is complete - finalize everything
-    updateData.current_pick_id = null
-    updateData.draft_status = 'completed'
-    updateData.draft_completed_at = pickedAt
-    
-    // Finalize draft (validate all picks, ensure rosters are complete)
-    await finalizeDraft(leagueId, user.id)
-  }
-
-  // Update league
-  await supabase
-    .from('leagues')
-    .update(updateData)
-    .eq('id', leagueId)
-
   // Track draft pick made (non-blocking)
-  if (player) {
-    trackDraftPickMade(
-      leagueId,
-      draftPick.round,
-      draftPick.overall_pick,
-      playerId,
-      player.full_name,
-      player.position,
-      user.id
-    ).catch(err => {
-      console.error('Error tracking draft pick:', err)
-    })
-  }
+  trackDraftPickMade(
+    leagueId,
+    draftPick.round,
+    draftPick.overall_pick,
+    playerId,
+    draftPick.players?.full_name || '',
+    draftPick.players?.position || '',
+    user.id
+  ).catch(err => {
+    console.error('Error tracking draft pick:', err)
+  })
 
-  // Track draft completed if finished (non-blocking)
-  if (!nextPick) {
-    trackDraftCompleted(leagueId, user.id).catch(err => {
-      console.error('Error tracking draft completed:', err)
+  // Emit feed event
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      pick_id: draftPickId,
+      event_type: 'pick_made',
+      payload: {
+        round: draftPick.round,
+        overall_pick: draftPick.overall_pick,
+        team_id: draftPick.team_id,
+        player_id: playerId,
+      },
+      actor_user_id: user.id,
+      is_auto_pick: false,
     })
-  }
 
   revalidatePath(`/leagues/${leagueId}/draft`)
   revalidatePath(`/leagues/${leagueId}`)
   
   return { 
-    data: updatedPick,
-    next_pick_id: nextPick?.id || null,
-    draft_complete: !nextPick,
+    data: { pick_id: draftPickId },
+    next_pick_id: null,
+    draft_complete: false,
   }
 }
 
@@ -499,11 +429,11 @@ export async function startDraft(leagueId: string) {
   }
 
   // Check if draft is already started
-  if (league.draft_status === 'in_progress') {
-    return { error: 'Draft is already in progress' }
+  if (isLiveStatus(league.draft_status)) {
+    return { error: 'Draft is already live' }
   }
 
-  if (league.draft_status === 'completed') {
+  if (isCompletedStatus(league.draft_status)) {
     return { error: 'Draft has already been completed' }
   }
 
@@ -514,19 +444,32 @@ export async function startDraft(leagueId: string) {
   }
 
   // Get timer settings
-  const draftSettings = (league.draft_settings as { timer_seconds?: number }) || {}
+  const draftSettings = (league.draft_settings as { 
+    timer_seconds?: number 
+    paused_remaining_seconds?: number | null
+    paused_pick_id?: string | null
+    paused_at?: string | null
+  }) || {}
   const timerSeconds = draftSettings.timer_seconds || 90
+  const startedAt = new Date()
+  const sanitizedDraftSettings = {
+    ...draftSettings,
+    paused_remaining_seconds: null,
+    paused_pick_id: null,
+    paused_at: null,
+  }
 
   // Calculate pick due time
-  const pickDueAt = calculatePickDueAt(timerSeconds)
+  const pickDueAt = new Date(startedAt.getTime() + timerSeconds * 1000).toISOString()
 
   // Start the draft
   const { error: updateLeagueError } = await supabase
     .from('leagues')
     .update({
-      draft_status: 'in_progress',
-      draft_started_at: new Date().toISOString(),
+      draft_status: DRAFT_STATUS.LIVE,
+      draft_started_at: startedAt.toISOString(),
       current_pick_id: firstPick.id,
+      draft_settings: sanitizedDraftSettings,
     })
     .eq('id', leagueId)
 
@@ -538,6 +481,8 @@ export async function startDraft(leagueId: string) {
   const { error: updatePickError } = await supabase
     .from('draft_picks')
     .update({
+      pick_started_at: startedAt.toISOString(),
+      pick_duration_seconds: timerSeconds,
       pick_due_at: pickDueAt,
     })
     .eq('id', firstPick.id)
@@ -551,6 +496,15 @@ export async function startDraft(leagueId: string) {
   trackDraftStarted(leagueId, user.id).catch(err => {
     console.error('Error tracking draft started:', err)
   })
+
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      event_type: 'start',
+      payload: { started_at: startedAt.toISOString(), first_pick_id: firstPick.id },
+      actor_user_id: user.id,
+    })
 
   revalidatePath(`/leagues/${leagueId}/draft`)
   revalidatePath(`/leagues/${leagueId}`)
@@ -652,7 +606,7 @@ export async function pauseDraft(leagueId: string) {
   // Verify user is league creator (commissioner)
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id, created_by_user_id, draft_status, current_pick_id')
+    .select('id, created_by_user_id, draft_status, current_pick_id, draft_settings')
     .eq('id', leagueId)
     .single()
 
@@ -660,29 +614,67 @@ export async function pauseDraft(leagueId: string) {
     return { error: 'Only the league commissioner can pause the draft' }
   }
 
-  if (league.draft_status !== 'in_progress') {
-    return { error: 'Draft is not currently in progress' }
+  if (!isLiveStatus(league.draft_status)) {
+    return { error: 'Draft is not currently live' }
   }
 
-  // Clear timer for current pick
+  const draftSettings = (league.draft_settings as { 
+    timer_seconds?: number
+    paused_remaining_seconds?: number | null
+    paused_pick_id?: string | null
+    paused_at?: string | null
+  }) || {}
+
+  // Calculate remaining time for the current pick so we can resume accurately
+  let pausedRemainingSeconds = draftSettings.timer_seconds || 90
   if (league.current_pick_id) {
+    const { data: currentPick } = await supabase
+      .from('draft_picks')
+      .select('id, pick_due_at')
+      .eq('id', league.current_pick_id)
+      .single()
+
+    if (currentPick?.pick_due_at) {
+      const now = new Date()
+      const dueAt = new Date(currentPick.pick_due_at)
+      pausedRemainingSeconds = Math.max(0, Math.floor((dueAt.getTime() - now.getTime()) / 1000))
+    }
+
+    // Clear timer for current pick so the countdown freezes while paused
     await supabase
       .from('draft_picks')
       .update({ pick_due_at: null })
       .eq('id', league.current_pick_id)
   }
 
+  const updatedSettings = {
+    ...draftSettings,
+    paused_remaining_seconds: pausedRemainingSeconds,
+    paused_pick_id: league.current_pick_id,
+    paused_at: new Date().toISOString(),
+  }
+
   // Pause the draft
   const { error: updateError } = await supabase
     .from('leagues')
     .update({
-      draft_status: 'paused',
+      draft_status: DRAFT_STATUS.PAUSED,
+      draft_settings: updatedSettings,
     })
     .eq('id', leagueId)
 
   if (updateError) {
     return { error: updateError.message }
   }
+
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      event_type: 'paused',
+      payload: { paused_at: updatedSettings.paused_at },
+      actor_user_id: user.id,
+    })
 
   // Track draft paused (non-blocking)
   trackDraftPaused(leagueId, user.id).catch(err => {
@@ -718,7 +710,7 @@ export async function resumeDraft(leagueId: string) {
     return { error: 'Only the league commissioner can resume the draft' }
   }
 
-  if (league.draft_status !== 'paused') {
+  if (!isPausedStatus(league.draft_status)) {
     return { error: 'Draft is not currently paused' }
   }
 
@@ -726,18 +718,30 @@ export async function resumeDraft(leagueId: string) {
     return { error: 'No current pick found. Cannot resume draft.' }
   }
 
-  // Get timer settings
-  const draftSettings = (league.draft_settings as { timer_seconds?: number }) || {}
-  const timerSeconds = draftSettings.timer_seconds || 90
+  // Get timer settings (prefer paused remaining time if available)
+  const draftSettings = (league.draft_settings as { 
+    timer_seconds?: number
+    paused_remaining_seconds?: number | null
+    paused_pick_id?: string | null
+    paused_at?: string | null
+  }) || {}
+  const timerSeconds = draftSettings.paused_remaining_seconds ?? draftSettings.timer_seconds ?? 90
 
   // Calculate pick due time
-  const pickDueAt = calculatePickDueAt(timerSeconds)
+  const resumedAt = new Date()
+  const pickDueAt = new Date(resumedAt.getTime() + timerSeconds * 1000).toISOString()
 
   // Resume the draft
   const { error: updateLeagueError } = await supabase
     .from('leagues')
     .update({
-      draft_status: 'in_progress',
+      draft_status: DRAFT_STATUS.LIVE,
+      draft_settings: {
+        ...draftSettings,
+        paused_remaining_seconds: null,
+        paused_pick_id: null,
+        paused_at: null,
+      },
     })
     .eq('id', leagueId)
 
@@ -749,6 +753,8 @@ export async function resumeDraft(leagueId: string) {
   const { error: updatePickError } = await supabase
     .from('draft_picks')
     .update({
+      pick_started_at: resumedAt.toISOString(),
+      pick_duration_seconds: timerSeconds,
       pick_due_at: pickDueAt,
     })
     .eq('id', league.current_pick_id)
@@ -784,7 +790,7 @@ export async function completeDraft(leagueId: string) {
   // Verify user is league creator (commissioner)
   const { data: league, error: leagueError } = await supabase
     .from('leagues')
-    .select('id, created_by_user_id, draft_status')
+    .select('id, created_by_user_id, draft_status, draft_settings')
     .eq('id', leagueId)
     .single()
 
@@ -792,7 +798,7 @@ export async function completeDraft(leagueId: string) {
     return { error: 'Only the league commissioner can complete the draft' }
   }
 
-  if (league.draft_status === 'completed') {
+  if (isCompletedStatus(league.draft_status)) {
     return { error: 'Draft has already been completed' }
   }
 
@@ -808,6 +814,13 @@ export async function completeDraft(leagueId: string) {
     return { error: 'Cannot complete draft. There are still unpicked players.' }
   }
 
+  const draftSettings = (league.draft_settings as { 
+    paused_remaining_seconds?: number | null
+    paused_pick_id?: string | null
+    paused_at?: string | null
+  }) || {}
+  const completedAt = new Date()
+
   // Finalize draft (validate picks, ensure rosters are complete)
   await finalizeDraft(leagueId, user.id)
 
@@ -815,15 +828,30 @@ export async function completeDraft(leagueId: string) {
   const { error: updateError } = await supabase
     .from('leagues')
     .update({
-      draft_status: 'completed',
-      draft_completed_at: new Date().toISOString(),
+      draft_status: DRAFT_STATUS.COMPLETED,
+      draft_completed_at: completedAt.toISOString(),
       current_pick_id: null,
+      draft_settings: {
+        ...draftSettings,
+        paused_remaining_seconds: null,
+        paused_pick_id: null,
+        paused_at: null,
+      },
     })
     .eq('id', leagueId)
 
   if (updateError) {
     return { error: updateError.message }
   }
+
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      event_type: 'completed',
+      payload: { completed_at: completedAt.toISOString() },
+      actor_user_id: user.id,
+    })
 
   // Track draft completed (non-blocking - already done in finalizeDraft, but keep for safety)
   trackDraftCompleted(leagueId, user.id).catch(err => {
@@ -834,6 +862,162 @@ export async function completeDraft(leagueId: string) {
   revalidatePath(`/leagues/${leagueId}`)
 
   return { data: { completed: true } }
+}
+
+/**
+ * Reset a draft (commissioner can force reset even after picks)
+ */
+export async function resetDraft(leagueId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('id, created_by_user_id')
+    .eq('id', leagueId)
+    .single()
+
+  if (!league || league.created_by_user_id !== user.id) {
+    return { error: 'Only the league commissioner can reset the draft' }
+  }
+
+  const resetAt = new Date().toISOString()
+
+  // Clear pick timers/state
+  await supabase
+    .from('draft_picks')
+    .update({
+      player_id: null,
+      picked_at: null,
+      is_auto_pick: false,
+      auto_source: null,
+      pick_due_at: null,
+      pick_started_at: null,
+      pick_duration_seconds: null,
+    })
+    .eq('league_id', leagueId)
+
+  // Remove rosters so teams are clean for the restart
+  await supabase
+    .from('rosters')
+    .delete()
+    .eq('league_id', leagueId)
+
+  // Clear feed so the new draft starts fresh
+  await supabase
+    .from('draft_feed_events')
+    .delete()
+    .eq('league_id', leagueId)
+
+  await supabase
+    .from('leagues')
+    .update({
+      draft_status: DRAFT_STATUS.PRE_DRAFT,
+      draft_started_at: null,
+      draft_completed_at: null,
+      current_pick_id: null,
+      draft_settings: {
+        timer_seconds: 90,
+        auto_pick_enabled: false,
+        rounds: 14,
+        paused_remaining_seconds: null,
+        paused_pick_id: null,
+        paused_at: null,
+      },
+    })
+    .eq('id', leagueId)
+
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      event_type: 'reset',
+      payload: { reset_at: resetAt },
+      actor_user_id: user.id,
+    })
+
+  revalidatePath(`/leagues/${leagueId}`)
+  revalidatePath(`/leagues/${leagueId}/draft`)
+
+  return { data: { reset: true } }
+}
+
+/**
+ * Stop the draft immediately
+ * Sets status to completed, clears active timers, and finalizes rosters for drafted players
+ */
+export async function stopDraft(leagueId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const { data: league, error: leagueError } = await supabase
+    .from('leagues')
+    .select('id, created_by_user_id, draft_status, draft_settings, current_pick_id')
+    .eq('id', leagueId)
+    .single()
+
+  if (leagueError || !league || league.created_by_user_id !== user.id) {
+    return { error: 'Only the league commissioner can stop the draft' }
+  }
+
+  if (isCompletedStatus(league.draft_status)) {
+    return { error: 'Draft has already been completed' }
+  }
+
+  // Clear any active timers
+  await supabase
+    .from('draft_picks')
+    .update({ pick_due_at: null })
+    .eq('league_id', leagueId)
+    .is('player_id', null)
+
+  const draftSettings = (league.draft_settings as {
+    paused_remaining_seconds?: number | null
+    paused_pick_id?: string | null
+    paused_at?: string | null
+  }) || {}
+
+  const completedAt = new Date().toISOString()
+  const { error: updateError } = await supabase
+    .from('leagues')
+    .update({
+      draft_status: DRAFT_STATUS.COMPLETED,
+      draft_completed_at: completedAt,
+      current_pick_id: null,
+      draft_settings: {
+        ...draftSettings,
+        paused_remaining_seconds: null,
+        paused_pick_id: null,
+        paused_at: null,
+      },
+    })
+    .eq('id', leagueId)
+
+  if (updateError) {
+    return { error: updateError.message }
+  }
+
+  await finalizeDraft(leagueId, user.id)
+
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      event_type: 'stopped',
+      payload: { stopped_at: completedAt },
+      actor_user_id: user.id,
+    })
+
+  revalidatePath(`/leagues/${leagueId}/draft`)
+  revalidatePath(`/leagues/${leagueId}`)
+
+  return { data: { stopped: true } }
 }
 
 /**
@@ -872,9 +1056,16 @@ export async function processAutoPick(draftPickId: string, leagueId: string) {
     return { error: 'This pick has already been made' }
   }
 
-  // Check if timer has actually expired
-  if (draftPick.pick_due_at) {
-    const dueAt = new Date(draftPick.pick_due_at)
+  // Check if timer has actually expired (prefer server timestamps)
+  const dueAt = draftPick.pick_due_at
+    ? new Date(draftPick.pick_due_at)
+    : draftPick.pick_started_at && draftPick.pick_duration_seconds
+    ? new Date(new Date(draftPick.pick_started_at).getTime() + draftPick.pick_duration_seconds * 1000)
+    : null
+  if (!dueAt) {
+    return { error: 'No timer set for this pick' }
+  }
+  if (dueAt) {
     const now = new Date()
     if (dueAt > now) {
       return { error: 'Pick timer has not expired yet' }
@@ -888,8 +1079,8 @@ export async function processAutoPick(draftPickId: string, leagueId: string) {
     .eq('id', leagueId)
     .single()
 
-  if (!league || league.draft_status !== 'in_progress') {
-    return { error: 'Draft is not in progress' }
+  if (!league || !isLiveStatus(league.draft_status)) {
+    return { error: 'Draft is not live' }
   }
 
   const draftSettings = (league.draft_settings as { 
@@ -911,6 +1102,7 @@ export async function processAutoPick(draftPickId: string, leagueId: string) {
     `)
     .eq('team_id', draftPick.team_id)
     .eq('league_id', leagueId)
+    .eq('user_id', (draftPick.teams as any)?.owner_user_id || null)
     .order('priority', { ascending: false })
 
   // Get all already drafted players in this league
@@ -974,15 +1166,20 @@ export async function processAutoPick(draftPickId: string, leagueId: string) {
     if (nextPick) {
       updateData.current_pick_id = nextPick.id
       const timerSeconds = draftSettings.timer_seconds || 90
-      const pickDueAt = calculatePickDueAt(timerSeconds)
+      const startedAt = new Date()
+      const pickDueAt = new Date(startedAt.getTime() + timerSeconds * 1000).toISOString()
       
       await supabase
         .from('draft_picks')
-        .update({ pick_due_at: pickDueAt })
+        .update({ 
+          pick_started_at: startedAt.toISOString(),
+          pick_duration_seconds: timerSeconds,
+          pick_due_at: pickDueAt,
+        })
         .eq('id', nextPick.id)
     } else {
       updateData.current_pick_id = null
-      updateData.draft_status = 'completed'
+      updateData.draft_status = DRAFT_STATUS.COMPLETED
       updateData.draft_completed_at = new Date().toISOString()
     }
 
@@ -1038,8 +1235,8 @@ async function makeDraftPickSystem(
     return { error: 'League not found' }
   }
 
-  if (league.draft_status !== 'in_progress') {
-    return { error: `Draft is not in progress. Current status: ${league.draft_status}` }
+  if (!isLiveStatus(league.draft_status)) {
+    return { error: `Draft is not live. Current status: ${league.draft_status}` }
   }
 
   // Get draft pick info
@@ -1070,115 +1267,55 @@ async function makeDraftPickSystem(
     return { error: 'This player has already been drafted in this league' }
   }
 
-  // Update draft pick with player
-  const pickedAt = new Date().toISOString()
-  const { data: updatedPick, error: updateError } = await supabase
-    .from('draft_picks')
-    .update({ 
-      player_id: playerId,
-      picked_at: pickedAt,
-      pick_due_at: null,
-    })
-    .eq('id', draftPickId)
-    .select()
-    .single()
+  const { data: rpcResult, error: rpcError } = await supabase.rpc('draft_make_pick', {
+    p_league_id: leagueId,
+    p_pick_id: draftPickId,
+    p_player_id: playerId,
+    p_is_auto: true,
+    p_actor_id: null,
+  })
 
-  if (updateError) {
-    return { error: updateError.message }
+  const rpcResponse = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult
+  if (rpcError || !rpcResponse?.success) {
+    return { error: rpcResponse?.error || rpcError?.message || 'Failed to auto-pick' }
   }
-
-  // Get player info
-  const { data: player } = await supabase
-    .from('players')
-    .select('id, full_name, position')
-    .eq('id', playerId)
-    .single()
-
-  // Create roster entry
-  await supabase
-    .from('rosters')
-    .insert({
-      team_id: draftPick.team_id,
-      player_id: playerId,
-      league_id: leagueId,
-      slot_type: 'BENCH',
-      is_starter: false,
-    })
-
-  // Create transaction record
-  await supabase
-    .from('transactions')
-    .insert({
-      league_id: leagueId,
-      team_id: draftPick.team_id,
-      type: 'add',
-      player_in_id: playerId,
-      notes: `Auto-drafted in round ${draftPick.round}, pick ${draftPick.overall_pick}`,
-    })
-
-  // Get next pick
-  const nextPick = await getNextDraftPick(leagueId)
-
-  // Update league with next pick
-  const updateData: {
-    current_pick_id?: string | null
-    draft_status?: string
-    draft_completed_at?: string
-  } = {}
-
-  if (nextPick) {
-    updateData.current_pick_id = nextPick.id
-    const draftSettings = (league.draft_settings as { timer_seconds?: number }) || {}
-    const timerSeconds = draftSettings.timer_seconds || 90
-    const pickDueAt = calculatePickDueAt(timerSeconds)
-
-    await supabase
-      .from('draft_picks')
-      .update({ pick_due_at: pickDueAt })
-      .eq('id', nextPick.id)
-  } else {
-    // Draft is complete - finalize everything
-    updateData.current_pick_id = null
-    updateData.draft_status = 'completed'
-    updateData.draft_completed_at = pickedAt
-    
-    // Finalize draft (validate all picks, ensure rosters are complete)
-    await finalizeDraft(leagueId, user.id)
-  }
-
-  await supabase
-    .from('leagues')
-    .update(updateData)
-    .eq('id', leagueId)
 
   // Track auto-pick (non-blocking)
-  if (player) {
-    trackDraftPickMade(
-      leagueId,
-      draftPick.round,
-      draftPick.overall_pick,
-      playerId,
-      player.full_name,
-      player.position,
-      null, // System-initiated, no user
-    ).catch(err => {
-      console.error('Error tracking auto-pick:', err)
-    })
-  }
+  trackDraftPickMade(
+    leagueId,
+    draftPick.round,
+    draftPick.overall_pick,
+    playerId,
+    draftPick.players?.full_name || '',
+    draftPick.players?.position || '',
+    null, // system
+  ).catch(err => {
+    console.error('Error tracking auto-pick:', err)
+  })
 
-  if (!nextPick) {
-    trackDraftCompleted(leagueId, null).catch(err => {
-      console.error('Error tracking draft completed:', err)
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      pick_id: draftPickId,
+      event_type: 'auto_pick',
+      payload: {
+        round: draftPick.round,
+        overall_pick: draftPick.overall_pick,
+        team_id: draftPick.team_id,
+        player_id: playerId,
+      },
+      actor_user_id: null,
+      is_auto_pick: true,
     })
-  }
 
   revalidatePath(`/leagues/${leagueId}/draft`)
   revalidatePath(`/leagues/${leagueId}`)
 
   return { 
-    data: updatedPick,
-    next_pick_id: nextPick?.id || null,
-    draft_complete: !nextPick,
+    data: { pick_id: draftPickId },
+    next_pick_id: null,
+    draft_complete: false,
     auto_picked: true,
   }
 }
@@ -1189,31 +1326,42 @@ async function makeDraftPickSystem(
  */
 export async function checkAndProcessExpiredPicks() {
   const supabase = await createClient()
-  const now = new Date().toISOString()
+  const now = Date.now()
 
-  // Find all expired picks in in_progress drafts
-  const { data: expiredPicks, error } = await supabase
+  // Find all candidate picks in live drafts
+  const { data: candidatePicks, error } = await supabase
     .from('draft_picks')
     .select(`
       id,
       league_id,
       pick_due_at,
+      pick_started_at,
+      pick_duration_seconds,
+      player_id,
       leagues!inner (
         id,
         draft_status
       )
     `)
-    .not('pick_due_at', 'is', null)
-    .lt('pick_due_at', now)
     .is('player_id', null)
-    .eq('leagues.draft_status', 'in_progress')
+    .eq('leagues.draft_status', DRAFT_STATUS.LIVE)
 
   if (error) {
     console.error('Error finding expired picks:', error)
     return { error: error.message }
   }
 
-  if (!expiredPicks || expiredPicks.length === 0) {
+  const expiredPicks =
+    candidatePicks?.filter((pick: any) => {
+      const due = pick.pick_due_at
+        ? new Date(pick.pick_due_at).getTime()
+        : pick.pick_started_at && pick.pick_duration_seconds
+        ? new Date(pick.pick_started_at).getTime() + pick.pick_duration_seconds * 1000
+        : null
+      return due !== null && due <= now
+    }) || []
+
+  if (expiredPicks.length === 0) {
     return { data: { processed: 0, message: 'No expired picks found' } }
   }
 
@@ -1268,12 +1416,13 @@ export async function addPlayerToQueue(
     return { error: 'You do not own this team' }
   }
 
-  // Check if player is already in queue
+  // Check if player is already in queue (user-scoped)
   const { data: existingQueueItem } = await supabase
     .from('draft_queues')
     .select('id')
     .eq('team_id', teamId)
     .eq('league_id', leagueId)
+    .eq('user_id', user.id)
     .eq('player_id', playerId)
     .single()
 
@@ -1301,6 +1450,7 @@ export async function addPlayerToQueue(
     .select('priority')
     .eq('team_id', teamId)
     .eq('league_id', leagueId)
+    .eq('user_id', user.id)
     .order('priority', { ascending: false })
     .limit(1)
     .single()
@@ -1315,6 +1465,7 @@ export async function addPlayerToQueue(
     .insert({
       team_id: teamId,
       league_id: leagueId,
+      user_id: user.id,
       player_id: playerId,
       priority: defaultPriority,
     })
@@ -1375,6 +1526,7 @@ export async function removePlayerFromQueue(
     .delete()
     .eq('team_id', teamId)
     .eq('league_id', leagueId)
+    .eq('user_id', user.id)
     .eq('player_id', playerId)
 
   if (deleteError) {
@@ -1425,6 +1577,7 @@ export async function reorderQueue(
     .select('id')
     .eq('team_id', teamId)
     .eq('league_id', leagueId)
+    .eq('user_id', user.id)
     .in('id', queueItemIds)
 
   if (!queueItems || queueItems.length !== queueItemIds.length) {
@@ -1440,6 +1593,7 @@ export async function reorderQueue(
       .eq('id', itemId)
       .eq('team_id', teamId)
       .eq('league_id', leagueId)
+      .eq('user_id', user.id)
   })
 
   const results = await Promise.all(updates)
@@ -1490,6 +1644,8 @@ export async function getTeamQueue(leagueId: string, teamId: string) {
     return { error: 'You do not have permission to view this queue' }
   }
 
+  const targetUserId = user.id
+
   // Get queue items with player info, ordered by priority
   const { data: queueItems, error } = await supabase
     .from('draft_queues')
@@ -1508,6 +1664,7 @@ export async function getTeamQueue(leagueId: string, teamId: string) {
     `)
     .eq('team_id', teamId)
     .eq('league_id', leagueId)
+    .eq('user_id', targetUserId)
     .order('priority', { ascending: false })
 
   if (error) {
@@ -1565,6 +1722,15 @@ export async function getCurrentDraftState(leagueId: string) {
     return { error: 'League not found' }
   }
 
+  const draftSettings = (league.draft_settings as {
+    timer_seconds?: number
+    auto_pick_enabled?: boolean
+    rounds?: number
+    paused_remaining_seconds?: number | null
+    paused_pick_id?: string | null
+    paused_at?: string | null
+  }) || {}
+
   // Get current pick details
   let currentPick = null
   if (league.current_pick_id) {
@@ -1590,17 +1756,27 @@ export async function getCurrentDraftState(leagueId: string) {
     if (pick) {
       // Calculate time remaining if timer is active
       let timeRemainingSeconds: number | null = null
-      if (pick.pick_due_at && league.draft_status === 'in_progress') {
-        const dueAt = new Date(pick.pick_due_at)
-        const now = new Date()
-        const remaining = Math.max(0, Math.floor((dueAt.getTime() - now.getTime()) / 1000))
-        timeRemainingSeconds = remaining
+      if (isPausedStatus(league.draft_status)) {
+        timeRemainingSeconds = draftSettings.paused_remaining_seconds ?? null
+      } else if (isLiveStatus(league.draft_status)) {
+        // Prefer due_at; otherwise derive from started_at + duration
+        const due = pick.pick_due_at
+          ? new Date(pick.pick_due_at)
+          : pick.pick_started_at && pick.pick_duration_seconds
+          ? new Date(new Date(pick.pick_started_at).getTime() + pick.pick_duration_seconds * 1000)
+          : null
+        if (due) {
+          const now = new Date()
+          const remaining = Math.max(0, Math.floor((due.getTime() - now.getTime()) / 1000))
+          timeRemainingSeconds = remaining
+        }
       }
 
       currentPick = {
         ...pick,
         time_remaining_seconds: timeRemainingSeconds,
         is_expired: timeRemainingSeconds !== null && timeRemainingSeconds === 0,
+        is_paused: isPausedStatus(league.draft_status),
       }
     }
   }
@@ -1671,17 +1847,11 @@ export async function getCurrentDraftState(leagueId: string) {
     })
   }
 
-  const draftSettings = (league.draft_settings as {
-    timer_seconds?: number
-    auto_pick_enabled?: boolean
-    rounds?: number
-  }) || {}
-
   return {
     data: {
       league_id: leagueId,
       league_name: league.name,
-      draft_status: league.draft_status,
+      draft_status: normalizeStatus(league.draft_status),
       draft_started_at: league.draft_started_at,
       draft_completed_at: league.draft_completed_at,
       current_pick: currentPick,
@@ -1690,6 +1860,7 @@ export async function getCurrentDraftState(leagueId: string) {
         timer_seconds: draftSettings.timer_seconds || 90,
         auto_pick_enabled: draftSettings.auto_pick_enabled || false,
         rounds: draftSettings.rounds || 14,
+        paused_remaining_seconds: draftSettings.paused_remaining_seconds ?? null,
       },
       team_summaries: Object.values(teamSummaries),
     },
@@ -1759,7 +1930,7 @@ export async function getDraftProgress(leagueId: string) {
 
   // Estimate time remaining (based on average pick time or timer)
   let estimatedTimeRemainingSeconds: number | null = null
-  if (league?.draft_started_at && league.draft_status === 'in_progress' && picksMade > 0) {
+  if (league?.draft_started_at && isLiveStatus(league?.draft_status || null) && picksMade > 0) {
     const startedAt = new Date(league.draft_started_at)
     const now = new Date()
     const elapsedSeconds = Math.floor((now.getTime() - startedAt.getTime()) / 1000)
@@ -1890,8 +2061,8 @@ export async function extendTimer(leagueId: string, additionalSeconds: number = 
     return { error: 'Only the league commissioner can extend the timer' }
   }
 
-  if (league.draft_status !== 'in_progress') {
-    return { error: 'Draft is not currently in progress' }
+  if (!isLiveStatus(league.draft_status)) {
+    return { error: 'Draft is not currently live' }
   }
 
   if (!league.current_pick_id) {
@@ -1937,6 +2108,19 @@ export async function extendTimer(leagueId: string, additionalSeconds: number = 
   trackDraftTimerExtended(leagueId, additionalSeconds, timeRemainingBefore, user.id).catch(err => {
     console.error('Error tracking timer extended:', err)
   })
+
+  await supabase
+    .from('draft_feed_events')
+    .insert({
+      league_id: leagueId,
+      event_type: 'timer_extended',
+      payload: {
+        additional_seconds: additionalSeconds,
+        new_due_at: newDueAt.toISOString(),
+        current_pick_id: league.current_pick_id,
+      },
+      actor_user_id: user.id,
+    })
 
   revalidatePath(`/leagues/${leagueId}/draft`)
   revalidatePath(`/leagues/${leagueId}`)

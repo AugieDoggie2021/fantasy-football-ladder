@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateLeagueStatus } from '@/app/actions/leagues'
-import { prepareDraftAndStart } from '@/app/actions/draft'
 import { createLeagueInvite, getLeagueInvites, resendInviteEmail } from '@/app/actions/invites'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -84,7 +83,8 @@ export function CommissionerSetupPanel({
     setIsUpdating(true)
     setError(null)
 
-    const result = await prepareDraftAndStart(leagueId)
+    // Move league into draft phase without auto-starting the clock
+    const result = await updateLeagueStatus(leagueId, 'draft')
 
     if (result.error) {
       setError(result.error)
@@ -217,7 +217,7 @@ export function CommissionerSetupPanel({
             </p>
             {!isFull && (
               <p className="text-sm text-slate-400">
-                Invite managers until the league is full, then start the draft.
+                Invite managers until the league is full, then enter the draft room to kick things off.
               </p>
             )}
           </div>
@@ -230,7 +230,7 @@ export function CommissionerSetupPanel({
               size="md"
               className="whitespace-nowrap"
             >
-              {isUpdating ? 'Starting Draft...' : 'Start Draft'}
+              {isUpdating ? 'Entering Draft...' : 'Enter the Draft'}
             </Button>
           )}
         </div>
@@ -398,23 +398,33 @@ export function CommissionerSetupPanel({
         </h2>
 
         <p className="text-slate-400 mb-4">
-          Draft flow coming soon. For now, you can manage teams manually after setting the league to active.
+          Enter the live draft room to start, pause, or stop the draft. Managers can join without starting the clock.
         </p>
 
-        {error && (
-          <div className="mb-4 rounded-md border border-status-error/40 bg-red-900/30 px-4 py-3 text-sm text-status-error">
-            {error}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            onClick={() => router.push(`/leagues/${leagueId}/draft`)}
+            variant="primary"
+            size="md"
+          >
+            Enter the Draft
+          </Button>
 
-        <Button
-          onClick={handleStartSeason}
-          disabled={isUpdating}
-          variant="primary"
-          size="md"
-        >
-          {isUpdating ? 'Starting Season...' : 'Mark Draft Complete / Start Season'}
-        </Button>
+          {error && (
+            <div className="rounded-md border border-status-error/40 bg-red-900/30 px-4 py-3 text-sm text-status-error">
+              {error}
+            </div>
+          )}
+
+          <Button
+            onClick={handleStartSeason}
+            disabled={isUpdating}
+            variant="secondary"
+            size="md"
+          >
+            {isUpdating ? 'Starting Season...' : 'Mark Draft Complete / Start Season'}
+          </Button>
+        </div>
       </Card>
     )
   }

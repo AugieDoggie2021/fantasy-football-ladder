@@ -13,6 +13,15 @@ interface Team {
   draft_position?: number | null
 }
 
+const normalizeDraftStatus = (status?: string | null) => {
+  if (!status) return 'pre_draft'
+  if (status === 'scheduled') return 'pre_draft'
+  if (status === 'in_progress') return 'live'
+  return status
+}
+
+const isLiveStatus = (status?: string | null) => normalizeDraftStatus(status) === 'live'
+
 /**
  * Generate snake draft order based on teams
  * For MVP: uses team creation order if draft_position is not set
@@ -155,7 +164,7 @@ export async function canMakePick(
   const isCommissioner = league.created_by_user_id === userId
 
   // Check draft status
-  if (league.draft_status !== 'in_progress') {
+  if (!isLiveStatus(league.draft_status)) {
     return {
       canPick: false,
       reason: `Draft is not in progress. Current status: ${league.draft_status}`,
@@ -224,4 +233,3 @@ export async function canMakePick(
     userTeamId: userTeam.id,
   }
 }
-
