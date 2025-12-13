@@ -48,7 +48,7 @@ export function validateDraftPickInputs(
  * Validate draft status
  */
 export function validateDraftStatus(status: string | null | undefined): ValidationResult {
-  const validStatuses = ['not_started', 'scheduled', 'in_progress', 'paused', 'completed']
+  const validStatuses = ['pre_draft', 'live', 'paused', 'completed', 'scheduled', 'in_progress']
   
   if (!status) {
     return { valid: false, error: 'Draft status is required' }
@@ -98,4 +98,3 @@ export function validateDraftRounds(rounds: number): ValidationResult {
   
   return { valid: true }
 }
-

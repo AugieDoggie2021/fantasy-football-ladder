@@ -1,5 +1,7 @@
 'use client'
 
+import { useMemo } from 'react'
+
 interface Team {
   id: string
   name: string
@@ -12,11 +14,14 @@ interface DraftPick {
   overall_pick: number
   team_id: string
   player_id: string | null
+  picked_at?: string | null
+  is_auto_pick?: boolean | null
   teams?: Team | null
   players?: {
     id: string
     full_name: string
     position: string
+    nfl_team?: string | null
   } | null
 }
 
@@ -25,222 +30,201 @@ interface DraftStatusPanelProps {
   teams: Team[]
   currentPickId: string | null
   draftStatus: string
-  nextPick?: DraftPick | null
-  isUserTurn?: boolean
   userTeamId?: string | null
   className?: string
 }
 
+type PositionSlot = 'QB' | 'RB' | 'WR' | 'TE' | 'FLEX' | 'K' | 'DEF'
+const POSITION_SLOTS: PositionSlot[] = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF']
+
+const buildTeamPositionProgress = (teams: Team[], picks: DraftPick[]) => {
+  const orderedPicks = [...picks].sort((a, b) => a.overall_pick - b.overall_pick)
+
+  return teams.map(team => {
+    const teamPicks = orderedPicks.filter(p => p.team_id === team.id && p.player_id && p.players)
+    const usedPlayerIds = new Set<string>()
+
+    const takePlayerFor = (positions: string[]) => {
+      const found = teamPicks.find(p => p.players && positions.includes(p.players.position) && !usedPlayerIds.has(p.players.id))
+      if (found && found.players) {
+        usedPlayerIds.add(found.players.id)
+        return found.players
+      }
+      return null
+    }
+
+    const slots: Record<PositionSlot, { name: string; position: string } | null> = {
+      QB: takePlayerFor(['QB']),
+      RB: takePlayerFor(['RB']),
+      WR: takePlayerFor(['WR']),
+      TE: takePlayerFor(['TE']),
+      FLEX: null,
+      K: takePlayerFor(['K']),
+      DEF: takePlayerFor(['DEF']),
+    }
+
+    // Flex pulls from remaining RB/WR/TE
+    slots.FLEX = takePlayerFor(['RB', 'WR', 'TE'])
+
+    const benchCount = teamPicks.filter(p => p.players && !usedPlayerIds.has(p.players.id)).length
+
+    return {
+      team,
+      slots,
+      benchCount,
+    }
+  })
+}
+
 /**
- * DraftStatusPanel component showing current pick, progress, and team summaries
- * 
- * Features:
- * - Current pick information
- * - Draft progress (picks made / total)
- * - Round progress
- * - Team pick counts
- * - Next picks preview
- * - Team roster summaries
+ * DraftStatusPanel component providing:
+ * - Draft order clarity (current + upcoming picks)
+ * - Position-aware roster progress for every team
+ * Layout is columnar and scroll-safe for a constrained viewport.
  */
 export function DraftStatusPanel({
   draftPicks,
   teams,
   currentPickId,
   draftStatus,
-  nextPick,
-  isUserTurn = false,
   userTeamId = null,
   className = '',
 }: DraftStatusPanelProps) {
-  // Calculate progress
-  const totalPicks = draftPicks.length
-  const picksMade = draftPicks.filter(p => p.player_id).length
-  const progressPercent = totalPicks > 0 ? (picksMade / totalPicks) * 100 : 0
-
-  // Get current round
-  const currentRound = nextPick?.round || 1
-  const maxRound = draftPicks.length > 0 ? Math.max(...draftPicks.map(p => p.round)) : 0
-
-  // Calculate picks in current round
-  const currentRoundPicks = draftPicks.filter(p => p.round === currentRound)
-  const currentRoundPicksMade = currentRoundPicks.filter(p => p.player_id).length
-  const currentRoundTotal = currentRoundPicks.length
-
-  // Team pick counts
-  const teamPickCounts = teams.map(team => {
-    const picks = draftPicks.filter(p => p.team_id === team.id && p.player_id)
-    return {
-      team,
-      count: picks.length,
-      picks: picks.slice(0, 5), // Last 5 picks for preview
+  const orderedPicks = useMemo(
+    () => [...draftPicks].sort((a, b) => a.overall_pick - b.overall_pick),
+    [draftPicks]
+  )
+  const currentPickIndex = useMemo(() => {
+    if (!currentPickId) {
+      return orderedPicks.findIndex(p => !p.player_id)
     }
-  }).sort((a, b) => b.count - a.count)
+    return orderedPicks.findIndex(p => p.id === currentPickId)
+  }, [orderedPicks, currentPickId])
+  const upcomingPickIds = useMemo(() => {
+    if (currentPickIndex === -1) return new Set<string>()
+    return new Set(
+      orderedPicks
+        .slice(currentPickIndex + 1, currentPickIndex + 4)
+        .map(p => p.id)
+    )
+  }, [orderedPicks, currentPickIndex])
 
-  // Next few picks preview
-  const nextPicks = draftPicks
-    .filter(p => !p.player_id)
-    .slice(0, 5)
+  const positionProgress = useMemo(
+    () => buildTeamPositionProgress(teams, draftPicks),
+    [teams, draftPicks]
+  )
+
+  const picksMade = draftPicks.filter(p => p.player_id).length
+  const totalPicks = draftPicks.length
+  const progressPercent = totalPicks > 0 ? Math.round((picksMade / totalPicks) * 100) : 0
 
   return (
-    <div className={`space-y-3 sm:space-y-4 ${className}`}>
-      {/* Current Pick Status */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 lg:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-          Current Pick
-        </h3>
-        
-        {nextPick ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Round {nextPick.round}, Pick {nextPick.overall_pick}</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">
-                  {nextPick.teams?.name || 'Unknown Team'}
-                </p>
-              </div>
-              {isUserTurn && (
-                <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm font-medium">
-                  Your Turn!
-                </span>
-              )}
-            </div>
-            
-            {draftStatus === 'in_progress' && (
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {isUserTurn ? 'Make your selection' : 'Waiting for pick...'}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            No current pick
-          </p>
-        )}
-      </div>
-
-      {/* Draft Progress */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 lg:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-          Draft Progress
-        </h3>
-        
-        <div className="space-y-4">
-          {/* Overall Progress */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Overall
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {picksMade} / {totalPicks} picks
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-              <div
-                className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {progressPercent.toFixed(1)}% complete
-            </p>
-          </div>
-
-          {/* Round Progress */}
-          {currentRound > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Round {currentRound} of {maxRound}
-                </span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {currentRoundPicksMade} / {currentRoundTotal} picks
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(currentRoundPicksMade / currentRoundTotal) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
+    <div className={`flex flex-col gap-3 ${className}`}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 min-h-0">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Draft Order</h3>
+          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 capitalize">
+            {draftStatus.replace('_', ' ')}
+          </span>
         </div>
-      </div>
-
-      {/* Team Pick Counts */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 lg:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-          Team Progress
-        </h3>
-        
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {teamPickCounts.map(({ team, count }) => {
-            const isUserTeam = userTeamId === team.id
+        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+          {orderedPicks.map((pick, idx) => {
+            const isCurrent = currentPickIndex === idx
+            const isUpcoming = upcomingPickIds.has(pick.id)
+            const isUserTeam = userTeamId === pick.team_id
             return (
               <div
-                key={team.id}
-                className={`flex items-center justify-between p-2 rounded ${
-                  isUserTeam
-                    ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800'
-                    : 'bg-gray-50 dark:bg-gray-700/30'
+                key={pick.id}
+                className={`flex items-center justify-between px-3 py-2 text-sm transition-colors ${
+                  isCurrent
+                    ? 'bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400'
+                    : isUpcoming
+                    ? 'bg-indigo-50 dark:bg-indigo-900/20'
+                    : ''
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-medium ${
-                    isUserTeam
-                      ? 'text-indigo-900 dark:text-indigo-200'
-                      : 'text-gray-900 dark:text-white'
-                  }`}>
-                    {team.name}
+                  <span className="text-gray-500 dark:text-gray-400">#{pick.overall_pick}</span>
+                  <span className={`font-medium ${isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+                    {pick.teams?.name || 'TBD'}
                   </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">R{pick.round}</span>
                   {isUserTeam && (
-                    <span className="text-xs px-1.5 py-0.5 bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 rounded">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-200 dark:bg-indigo-800 text-indigo-900 dark:text-indigo-200">
                       You
                     </span>
                   )}
+                  {isCurrent && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-300 text-yellow-900">
+                      On the clock
+                    </span>
+                  )}
+                  {isUpcoming && !isCurrent && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-800/50 text-indigo-800 dark:text-indigo-200">
+                      Up next
+                    </span>
+                  )}
                 </div>
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  {count} picks
-                </span>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {pick.players ? `${pick.players.full_name} (${pick.players.position})` : 'Pending'}
+                </div>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* Next Picks Preview */}
-      {nextPicks.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 lg:p-6">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-            Upcoming Picks
-          </h3>
-          
-          <div className="space-y-2">
-            {nextPicks.map((pick, index) => (
-              <div
-                key={pick.id}
-                className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-700/30 text-sm"
-              >
-                <div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    #{pick.overall_pick}
-                  </span>
-                  <span className="ml-2 font-medium text-gray-900 dark:text-white">
-                    {pick.teams?.name}
-                  </span>
-                </div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  R{pick.round}
-                </span>
-              </div>
-            ))}
-          </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col gap-3 min-h-0">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Team Roster Progress</h3>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {picksMade} / {totalPicks} picks • {progressPercent}%
+          </span>
         </div>
-      )}
+        <div className="space-y-3 flex-1 min-h-0 overflow-y-auto">
+          {positionProgress.map(({ team, slots, benchCount }) => {
+            const isUserTeam = userTeamId === team.id
+            return (
+              <div
+                key={team.id}
+                className={`p-3 rounded-md border ${isUserTeam ? 'border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30'}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900 dark:text-white">{team.name}</span>
+                    {isUserTeam && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-200 dark:bg-indigo-800 text-indigo-900 dark:text-indigo-200">
+                        You
+                      </span>
+                    )}
+                  </div>
+                  {benchCount > 0 && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Bench +{benchCount}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {POSITION_SLOTS.map((slot) => {
+                    const assigned = slots[slot]
+                    return (
+                      <div
+                        key={slot}
+                        className={`p-2 rounded border text-xs ${assigned ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'}`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-gray-800 dark:text-gray-200">{slot}</span>
+                        </div>
+                        <div className="text-gray-700 dark:text-gray-300">
+                          {assigned ? assigned.name : 'Empty'}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
-

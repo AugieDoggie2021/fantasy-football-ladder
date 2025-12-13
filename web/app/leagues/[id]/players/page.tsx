@@ -201,7 +201,7 @@ export default async function LeaguePlayersPage({
     .order('name', { ascending: true })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
+    <div className="min-h-screen bg-gradient-to-b from-[#020617] via-[#0a1020] to-[#0b1220]">
       <PageEventTracker
         event={AnalyticsEvents.PLAYERS_VIEWED}
         properties={{
@@ -209,7 +209,7 @@ export default async function LeaguePlayersPage({
         }}
       />
       <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6">
-        <div>
+        <div className="space-y-3">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 transition-colors"
@@ -218,17 +218,18 @@ export default async function LeaguePlayersPage({
             <span className="text-sm font-semibold">Back to Overview</span>
           </Link>
 
-          <LeagueContextHeader
-            seasonYear={league.seasons?.[0]?.year}
-            promotionGroupName={league.promotion_groups?.name}
-            leagueName={league.name}
-            tier={league.tier}
-            currentWeek={currentWeek?.week_number || null}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-display font-semibold text-white">Players</h1>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-display font-semibold text-white">{league.name}</h1>
+            <p className="text-sm text-slate-400">Players</p>
+            <LeagueContextHeader
+              seasonYear={league.seasons?.[0]?.year}
+              promotionGroupName={league.promotion_groups?.name}
+              leagueName={league.name}
+              tier={league.tier}
+              currentWeek={currentWeek?.week_number || null}
+              showLeagueName={false}
+            />
+          </div>
         </div>
 
         <LeagueNavigation leagueId={params.id} isCommissioner={canAccessCommissioner} />
@@ -250,4 +251,3 @@ export default async function LeaguePlayersPage({
     </div>
   )
 }
-

@@ -7,6 +7,13 @@ import { DraftSummary } from '@/components/draft-summary'
 import { PageEventTracker } from '@/components/analytics/page-event-tracker'
 import { AnalyticsEvents } from '@/lib/analytics/events'
 
+const normalizeDraftStatus = (status?: string | null) => {
+  if (!status) return 'pre_draft'
+  if (status === 'scheduled') return 'pre_draft'
+  if (status === 'in_progress') return 'live'
+  return status
+}
+
 export default async function DraftPage({
   params,
 }: {
@@ -31,7 +38,6 @@ export default async function DraftPage({
   }
 
   // Check if user has access to this league (RLS should handle this, but we verify)
-  // User can access if they're the commissioner OR they have a team in the league
   const { data: userTeam } = await supabase
     .from('teams')
     .select('id, name, owner_user_id')
@@ -91,19 +97,21 @@ export default async function DraftPage({
     player => !draftedPlayerIds.has(player.id)
   )
 
+  const normalizedDraftStatus = normalizeDraftStatus(league.draft_status || 'pre_draft')
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <PageEventTracker
         event={AnalyticsEvents.DRAFT_BOARD_VIEWED}
         properties={{
           league_id: params.id,
-          draft_status: league.draft_status || 'scheduled',
+          draft_status: normalizedDraftStatus,
           funnel_name: 'draft',
           funnel_step: 'draft_board_viewed',
         }}
       />
-      <div className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
-        <div className="py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto py-3 sm:py-4 px-3 sm:px-6 lg:px-8 h-screen">
+        <div className="py-2 sm:py-4 h-full flex flex-col">
           <div className="mb-6">
             <Link
               href={`/leagues/${params.id}`}
@@ -115,13 +123,13 @@ export default async function DraftPage({
               Draft - {league.name}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {league.seasons?.[0]?.year} Season • Status: {league.draft_status || 'scheduled'}
-              {isCommissioner && ' • Commissioner'}
+              {league.seasons?.[0]?.year} Season · Status: {normalizedDraftStatus}
+              {isCommissioner && ' · Commissioner'}
             </p>
           </div>
 
           {/* Show Draft Summary if completed, otherwise show draft board */}
-          {league.draft_status === 'completed' ? (
+          {normalizedDraftStatus === 'completed' ? (
             <DraftSummary
               leagueId={params.id}
               leagueName={league.name}
@@ -130,13 +138,13 @@ export default async function DraftPage({
               draftCompletedAt={league.draft_completed_at}
             />
           ) : (
-            <>
+            <div className="flex-1 min-h-0 flex flex-col space-y-4">
               {/* Commissioner Draft Controls */}
               {isCommissioner && (
                 <div className="mb-6">
                   <DraftControls
                     leagueId={params.id}
-                    draftStatus={league.draft_status || 'scheduled'}
+                    draftStatus={normalizedDraftStatus}
                     draftSettings={(league.draft_settings as {
                       timer_seconds?: number
                       auto_pick_enabled?: boolean
@@ -152,16 +160,16 @@ export default async function DraftPage({
                 teams={teams || []}
                 draftPicks={draftPicks || []}
                 availablePlayers={availablePlayers}
-                draftStatus={league.draft_status || 'scheduled'}
+                draftStatus={normalizedDraftStatus}
                 currentPickId={league.current_pick_id || null}
                 userTeamId={userTeam?.id || null}
                 isCommissioner={isCommissioner}
+                draftSettings={(league.draft_settings as any) || {}}
               />
-            </>
+            </div>
           )}
         </div>
       </div>
     </div>
   )
 }
-

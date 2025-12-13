@@ -12,7 +12,10 @@ interface DraftPick {
   team_id: string
   player_id: string | null
   pick_due_at: string | null
+  pick_started_at?: string | null
+  pick_duration_seconds?: number | null
   picked_at: string | null
+  is_auto_pick?: boolean | null
   created_at: string
   teams?: {
     id: string
@@ -40,17 +43,39 @@ interface LeagueDraftState {
   } | null
 }
 
+export interface DraftFeedEvent {
+  id: string
+  league_id: string
+  pick_id?: string | null
+  event_type: string
+  payload: Record<string, any> | null
+  actor_user_id?: string | null
+  is_auto_pick?: boolean | null
+  created_at: string
+  draft_picks?: {
+    id: string
+    overall_pick: number
+    round: number
+    team_id: string
+    player_id: string | null
+    teams?: { id: string; name: string } | null
+    players?: { id: string; full_name: string; position: string; nfl_team?: string | null } | null
+  } | null
+}
+
 interface UseDraftRealtimeOptions {
   leagueId: string
   enabled?: boolean
   onPickUpdate?: (pick: DraftPick) => void
   onDraftStatusChange?: (status: LeagueDraftState) => void
+  onFeedUpdate?: (event: DraftFeedEvent) => void
   onError?: (error: Error) => void
 }
 
 interface UseDraftRealtimeReturn {
   picks: DraftPick[]
   draftState: LeagueDraftState | null
+  feedEvents: DraftFeedEvent[]
   isConnected: boolean
   error: Error | null
   reconnect: () => void
@@ -74,15 +99,18 @@ export function useDraftRealtime({
   enabled = true,
   onPickUpdate,
   onDraftStatusChange,
+  onFeedUpdate,
   onError,
 }: UseDraftRealtimeOptions): UseDraftRealtimeReturn {
   const [picks, setPicks] = useState<DraftPick[]>([])
   const [draftState, setDraftState] = useState<LeagueDraftState | null>(null)
+  const [feedEvents, setFeedEvents] = useState<DraftFeedEvent[]>([])
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   
   const picksChannelRef = useRef<RealtimeChannel | null>(null)
   const leaguesChannelRef = useRef<RealtimeChannel | null>(null)
+  const feedChannelRef = useRef<RealtimeChannel | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const maxReconnectAttempts = 5
@@ -114,6 +142,28 @@ export function useDraftRealtime({
         if (picksError) throw picksError
 
         setPicks(initialPicks || [])
+
+        // Fetch initial feed
+        const { data: initialFeed, error: feedError } = await supabase
+          .from('draft_feed_events')
+          .select(`
+            *,
+            draft_picks (
+              id,
+              overall_pick,
+              round,
+              team_id,
+              player_id,
+              teams ( id, name ),
+              players ( id, full_name, position, nfl_team )
+            )
+          `)
+          .eq('league_id', leagueId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+
+        if (feedError) throw feedError
+        setFeedEvents((initialFeed as DraftFeedEvent[]) || [])
 
         // Fetch initial league state
         const { data: league, error: leagueError } = await supabase
@@ -260,15 +310,76 @@ export function useDraftRealtime({
 
     leaguesChannelRef.current = leaguesChannel
 
+    // Subscribe to feed events
+    const feedChannel = supabase
+      .channel(`draft_feed_events:${leagueId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'draft_feed_events',
+          filter: `league_id=eq.${leagueId}`,
+        },
+        async (payload) => {
+          try {
+            const eventId = payload.new.id as string
+            const { data: eventWithRelations, error } = await supabase
+              .from('draft_feed_events')
+              .select(`
+                *,
+                draft_picks (
+                  id,
+                  overall_pick,
+                  round,
+                  team_id,
+                  player_id,
+                  teams ( id, name ),
+                  players ( id, full_name, position, nfl_team )
+                )
+              `)
+              .eq('id', eventId)
+              .single()
+
+            if (error) {
+              throw error
+            }
+
+            if (eventWithRelations) {
+              setFeedEvents((prev) => {
+                const next = [eventWithRelations as DraftFeedEvent, ...prev].slice(0, 50)
+                return next
+              })
+              onFeedUpdate?.(eventWithRelations as DraftFeedEvent)
+            }
+          } catch (err) {
+            const error = err instanceof Error ? err : new Error('Failed to process feed update')
+            setError(error)
+            onError?.(error)
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsConnected(true)
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setIsConnected(false)
+          handleReconnect()
+        }
+      })
+
+    feedChannelRef.current = feedChannel
+
     // Cleanup function
     return () => {
       picksChannel.unsubscribe()
       leaguesChannel.unsubscribe()
+      feedChannel.unsubscribe()
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
       }
     }
-  }, [leagueId, enabled, onPickUpdate, onDraftStatusChange, onError])
+  }, [leagueId, enabled, onPickUpdate, onDraftStatusChange, onFeedUpdate, onError])
 
   const handleReconnect = () => {
     if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
@@ -302,9 +413,9 @@ export function useDraftRealtime({
   return {
     picks,
     draftState,
+    feedEvents,
     isConnected,
     error,
     reconnect,
   }
 }
-
