@@ -11,6 +11,7 @@ final class AppState: ObservableObject {
         }
     }
     @Published var pendingAuthURL: URL? = nil
+    @Published var pendingInviteToken: String? = nil
     
     // Leagues
     @Published var userLeagues: [League] = []

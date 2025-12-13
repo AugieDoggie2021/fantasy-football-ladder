@@ -5,6 +5,8 @@ import { addPlayerToRoster } from '@/app/actions/rosters'
 import { useRouter } from 'next/navigation'
 import { track } from '@/lib/analytics/track'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useToast } from './toast-provider'
 
 interface Player {
   id: string
@@ -36,9 +38,15 @@ export function PlayersList({
   leagueId,
 }: PlayersListProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('All')
   const [loading, setLoading] = useState<string | null>(null)
+  const [addDialog, setAddDialog] = useState<{ isOpen: boolean; playerId: string; playerName: string }>({
+    isOpen: false,
+    playerId: '',
+    playerName: '',
+  })
 
   const filteredPlayers = useMemo(() => {
     return players.filter(player => {
@@ -61,12 +69,16 @@ export function PlayersList({
     })
   }, [players, positionFilter, searchQuery])
 
-  const handleAddPlayer = async (playerId: string, playerName: string) => {
-    if (!confirm(`Add ${playerName} to your team?`)) {
-      return
-    }
+  const handleAddPlayerClick = (playerId: string, playerName: string) => {
+    setAddDialog({ isOpen: true, playerId, playerName })
+  }
 
+  const handleAddPlayerConfirm = async () => {
+    const { playerId, playerName } = addDialog
+    
     setLoading(playerId)
+    setAddDialog({ isOpen: false, playerId: '', playerName: '' })
+    
     const formData = new FormData()
     formData.append('team_id', teamId)
     formData.append('player_id', playerId)
@@ -81,9 +93,10 @@ export function PlayersList({
         team_id: teamId,
         player_id: playerId,
       })
+      showToast(`${playerName} added to your team`, 'success')
       router.refresh()
     } else {
-      alert(result.error)
+      showToast(result.error, 'error')
     }
     setLoading(null)
   }
@@ -196,7 +209,7 @@ export function PlayersList({
                         </div>
                         {!isOwned && (
                           <button
-                            onClick={() => handleAddPlayer(player.id, player.full_name)}
+                            onClick={() => handleAddPlayerClick(player.id, player.full_name)}
                             disabled={loading === player.id}
                             className="ml-2 px-3 py-1 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -218,6 +231,17 @@ export function PlayersList({
           No players found matching your filters.
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={addDialog.isOpen}
+        onClose={() => setAddDialog({ isOpen: false, playerId: '', playerName: '' })}
+        onConfirm={handleAddPlayerConfirm}
+        title="Add Player"
+        message={`Add ${addDialog.playerName} to your team? They will be added to your bench.`}
+        confirmLabel="Add Player"
+        cancelLabel="Cancel"
+        isLoading={loading === addDialog.playerId}
+      />
     </div>
   )
 }

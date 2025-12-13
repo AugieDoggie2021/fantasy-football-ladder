@@ -57,7 +57,7 @@ const createNavItems = (
     {
       href: `${basePath}/players`,
       label: 'Players',
-      icon: StandingsIcon,
+      icon: FantasyPointsIcon,
       isActive: pathname === `${basePath}/players`,
     },
   ]

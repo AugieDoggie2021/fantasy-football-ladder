@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { useToast } from './toast-provider'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface CommissionerSetupPanelProps {
   leagueId: string
@@ -70,6 +72,7 @@ export function CommissionerSetupPanel({
   maxTeams,
 }: CommissionerSetupPanelProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [invitesData, setInvitesData] = useState<InvitesData | null>(null)
@@ -78,8 +81,19 @@ export function CommissionerSetupPanel({
   const [sendingInvite, setSendingInvite] = useState(false)
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null)
   const [resendingInviteId, setResendingInviteId] = useState<string | null>(null)
+  const [copyingInviteId, setCopyingInviteId] = useState<string | null>(null)
+  const [showDraftOverride, setShowDraftOverride] = useState(false)
+
+  const handleStartDraftClick = () => {
+    if (teamCount >= maxTeams) {
+      handleStartDraft()
+    } else {
+      setShowDraftOverride(true)
+    }
+  }
 
   const handleStartDraft = async () => {
+    setShowDraftOverride(false)
     setIsUpdating(true)
     setError(null)
 
@@ -90,6 +104,8 @@ export function CommissionerSetupPanel({
       setError(result.error)
       setIsUpdating(false)
     } else {
+      showToast('Draft started!', 'success')
+      router.refresh()
       router.push(`/leagues/${leagueId}/draft`)
     }
   }
@@ -201,6 +217,78 @@ export function CommissionerSetupPanel({
     setResendingInviteId(null)
   }
 
+  const handleCopyInviteLink = async (invite: Invite) => {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
+    const inviteLink = `${baseUrl}/join/${invite.token}`
+    
+    setCopyingInviteId(invite.id)
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      showToast('Invite link copied to clipboard!', 'success')
+    } catch (err) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea')
+      textArea.value = inviteLink
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        showToast('Invite link copied to clipboard!', 'success')
+      } catch (fallbackErr) {
+        showToast('Failed to copy link. Please copy manually: ' + inviteLink, 'error')
+      }
+      document.body.removeChild(textArea)
+    }
+    setCopyingInviteId(null)
+  }
+
+  const handleCreateAndCopyInviteLink = async () => {
+    setSendingInvite(true)
+    setError(null)
+    setInviteSuccess(null)
+
+    // Create invite without email
+    const result = await createLeagueInvite(leagueId)
+
+    if (result.error) {
+      setError(result.error)
+    } else if (result.data?.token) {
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fantasyladder.app'
+      const inviteLink = `${baseUrl}/join/${result.data.token}`
+      
+      try {
+        await navigator.clipboard.writeText(inviteLink)
+        showToast('Invite link created and copied to clipboard!', 'success')
+        setInviteSuccess(`Invite link created and copied! Share: ${inviteLink}`)
+      } catch (err) {
+        // Fallback
+        const textArea = document.createElement('textarea')
+        textArea.value = inviteLink
+        textArea.style.position = 'fixed'
+        textArea.style.opacity = '0'
+        document.body.appendChild(textArea)
+        textArea.select()
+        try {
+          document.execCommand('copy')
+          showToast('Invite link created and copied to clipboard!', 'success')
+          setInviteSuccess(`Invite link created and copied! Share: ${inviteLink}`)
+        } catch (fallbackErr) {
+          setInviteSuccess(`Invite link created! Copy this link: ${inviteLink}`)
+        }
+        document.body.removeChild(textArea)
+      }
+
+      const invitesResult = await getLeagueInvites(leagueId)
+      if (!invitesResult.error) {
+        setInvitesData(invitesResult.data as InvitesData)
+      }
+    }
+
+    setSendingInvite(false)
+  }
+
   if (leagueStatus === 'invites_open') {
     const isFull = teamCount >= maxTeams
 
@@ -222,50 +310,126 @@ export function CommissionerSetupPanel({
             )}
           </div>
 
-          {isFull && (
-            <Button
-              onClick={handleStartDraft}
-              disabled={isUpdating}
-              variant="primary"
-              size="md"
-              className="whitespace-nowrap"
-            >
-              {isUpdating ? 'Entering Draft...' : 'Enter the Draft'}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {isFull ? (
+              <Button
+                onClick={handleStartDraft}
+                disabled={isUpdating}
+                variant="primary"
+                size="md"
+                className="whitespace-nowrap"
+              >
+                {isUpdating ? 'Starting Draft...' : 'Start Draft'}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleStartDraftClick}
+                disabled={isUpdating}
+                variant="secondary"
+                size="md"
+                className="whitespace-nowrap"
+              >
+                {isUpdating ? 'Starting Draft...' : 'Start Draft Anyway'}
+              </Button>
+            )}
+          </div>
         </div>
 
-        <form onSubmit={handleSendInvite} className="mb-6">
-          <div className="flex flex-col md:flex-row gap-3">
-            <Input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="manager@team.com"
-              aria-label="Invite by email"
-              disabled={sendingInvite}
-            />
-            <Button
-              type="submit"
-              disabled={sendingInvite || !inviteEmail.trim()}
-              variant="primary"
-              size="md"
-              className="md:w-auto"
-            >
-              {sendingInvite ? 'Sending...' : 'Send Invite'}
-            </Button>
+        <div className="mb-6 space-y-3">
+          <form onSubmit={handleSendInvite}>
+            <div className="flex flex-col md:flex-row gap-3">
+              <Input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="manager@team.com"
+                aria-label="Invite by email"
+                disabled={sendingInvite}
+              />
+              <Button
+                type="submit"
+                disabled={sendingInvite || !inviteEmail.trim()}
+                variant="primary"
+                size="md"
+                className="md:w-auto"
+              >
+                {sendingInvite ? 'Sending...' : 'Send Invite'}
+              </Button>
+            </div>
+          </form>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-px bg-slate-700/60"></div>
+            <span className="text-xs text-slate-400 uppercase tracking-wide">or</span>
+            <div className="flex-1 h-px bg-slate-700/60"></div>
           </div>
-        </form>
+          
+          <Button
+            onClick={handleCreateAndCopyInviteLink}
+            disabled={sendingInvite}
+            variant="secondary"
+            size="md"
+            className="w-full"
+          >
+            {sendingInvite ? 'Creating...' : '📋 Create & Copy Invite Link'}
+          </Button>
+        </div>
 
         {error && (
-          <div className="mb-4 rounded-md border border-status-error/40 bg-red-900/30 px-4 py-3 text-sm text-status-error">
-            {error}
+          <div className="mb-4 rounded-md border border-status-error/40 bg-red-900/30 px-4 py-3 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-status-error flex-1">{error}</p>
+              {error.includes('http') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    const linkMatch = error.match(/https?:\/\/[^\s]+/)
+                    if (linkMatch) {
+                      const link = linkMatch[0]
+                      try {
+                        await navigator.clipboard.writeText(link)
+                        showToast('Link copied to clipboard!', 'success')
+                      } catch (err) {
+                        showToast('Failed to copy link', 'error')
+                      }
+                    }
+                  }}
+                  className="shrink-0"
+                >
+                  📋 Copy Link
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
         {inviteSuccess && (
-          <div className="mb-4 rounded-md border border-emerald-500/40 bg-emerald-900/20 px-4 py-3 text-sm text-emerald-100">
-            {inviteSuccess}
+          <div className="mb-4 rounded-md border border-emerald-500/40 bg-emerald-900/20 px-4 py-3 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-emerald-100 flex-1">{inviteSuccess}</p>
+              {inviteSuccess.includes('http') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    const linkMatch = inviteSuccess.match(/https?:\/\/[^\s]+/)
+                    if (linkMatch) {
+                      const link = linkMatch[0]
+                      try {
+                        await navigator.clipboard.writeText(link)
+                        showToast('Link copied to clipboard!', 'success')
+                      } catch (err) {
+                        showToast('Failed to copy link', 'error')
+                      }
+                    }
+                  }}
+                  className="shrink-0"
+                >
+                  📋 Copy Link
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -325,20 +489,31 @@ export function CommissionerSetupPanel({
                               {formatDate(invite.email_sent_at || invite.created_at)}
                             </td>
                             <td className="px-3 py-2 text-right">
-                              {canResend ? (
+                              <div className="flex items-center gap-2 justify-end">
                                 <Button
                                   type="button"
-                                  variant="secondary"
+                                  variant="ghost"
                                   size="sm"
                                   className="h-9 px-3"
-                                  disabled={resendingInviteId === invite.id}
-                                  onClick={() => handleResendInvite(invite)}
+                                  disabled={copyingInviteId === invite.id}
+                                  onClick={() => handleCopyInviteLink(invite)}
+                                  title="Copy invite link"
                                 >
-                                  {resendingInviteId === invite.id ? 'Resending...' : 'Resend'}
+                                  {copyingInviteId === invite.id ? 'Copying...' : '📋 Copy'}
                                 </Button>
-                              ) : (
-                                <span className="text-xs text-slate-500">Link only</span>
-                              )}
+                                {canResend && (
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    className="h-9 px-3"
+                                    disabled={resendingInviteId === invite.id}
+                                    onClick={() => handleResendInvite(invite)}
+                                  >
+                                    {resendingInviteId === invite.id ? 'Resending...' : 'Resend'}
+                                  </Button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         )
@@ -386,6 +561,41 @@ export function CommissionerSetupPanel({
             No invites sent yet. Use the form above to invite managers.
           </p>
         )}
+
+        <ConfirmDialog
+          isOpen={showDraftOverride}
+          onClose={() => setShowDraftOverride(false)}
+          onConfirm={handleStartDraft}
+          title="Start Draft Before League is Full?"
+          variant="default"
+          isLoading={isUpdating}
+          confirmLabel="Yes, Start Draft"
+          cancelLabel="Cancel"
+        >
+          <div className="space-y-3">
+            <p className="text-slate-300">
+              You're starting the draft with <strong className="text-white">{teamCount} / {maxTeams}</strong> teams. 
+              This means some draft slots will be empty.
+            </p>
+            <div className="bg-amber-900/20 border border-amber-700/40 rounded-lg p-3">
+              <p className="text-sm font-semibold text-amber-200 mb-2">Readiness Checklist:</p>
+              <ul className="text-sm text-amber-100 space-y-1 list-disc list-inside">
+                <li className={teamCount >= 2 ? 'text-emerald-300' : ''}>
+                  {teamCount >= 2 ? '✓' : '○'} At least 2 teams joined ({teamCount >= 2 ? 'Yes' : 'No'})
+                </li>
+                <li className={teamCount >= maxTeams ? 'text-emerald-300' : 'text-amber-200'}>
+                  {teamCount >= maxTeams ? '✓' : '○'} League is full ({teamCount >= maxTeams ? 'Yes' : 'No'})
+                </li>
+                <li className="text-amber-200">
+                  ○ All managers are ready to draft
+                </li>
+              </ul>
+            </div>
+            <p className="text-xs text-slate-400">
+              You can still invite more managers after starting the draft, but they won't be able to participate.
+            </p>
+          </div>
+        </ConfirmDialog>
       </Card>
     )
   }

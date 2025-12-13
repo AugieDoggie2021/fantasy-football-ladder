@@ -12,16 +12,8 @@ interface JoinLeaguePageProps {
 }
 
 export default async function JoinLeaguePage({ params }: JoinLeaguePageProps) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Redirect to login if not authenticated
-  if (!user) {
-    redirect(`/login?next=/join/league/${params.token}`)
-  }
-
-  // Get invite by token
-  const inviteResult = await getInviteByToken(params.token)
+  // Redirect legacy /join/league/:token to canonical /join/:token
+  redirect(`/join/${params.token}`)
 
   if (inviteResult.error || !inviteResult.data) {
     return (

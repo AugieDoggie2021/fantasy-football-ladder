@@ -6,6 +6,7 @@
         "appID": "TEAMID.com.yourorg.FFLadder",
         "paths": [
           "/",
+          "/join/*",
           "/invite/*",
           "/auth/*",
           "/link/*",

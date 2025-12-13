@@ -4,6 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>applinks:fantasyladder.app</string>
 		<string>applinks:links.ffladder.app</string>
 	</array>
 </dict>

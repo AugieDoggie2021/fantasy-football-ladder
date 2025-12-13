@@ -98,8 +98,8 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from login page
   if (request.nextUrl.pathname === '/login' && user) {
-    // Check if there's a redirect parameter
-    const redirectTo = request.nextUrl.searchParams.get('redirect')
+    // Check if there's a redirect parameter (support both 'redirect' and 'next' for compatibility)
+    const redirectTo = request.nextUrl.searchParams.get('redirect') || request.nextUrl.searchParams.get('next')
     if (redirectTo) {
       return NextResponse.redirect(new URL(redirectTo, request.url))
     }

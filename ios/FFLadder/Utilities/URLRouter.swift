@@ -3,21 +3,46 @@ import SwiftUI
 
 enum AppDeepLink {
     case magicLink(URL)
-    case invite(leagueId: String, token: String)
+    case inviteJoin(token: String)
 }
 
 enum URLRouter {
     static func parse(url: URL) -> AppDeepLink? {
         let host = url.host ?? ""
-        if host.contains("links.ffladder.app") || url.scheme == "ffladder" {
-            if url.path.contains("invite"),
-               let leagueId = url.queryItems?["leagueId"],
+        let path = url.path
+        
+        // Handle web universal links (fantasyladder.app/join/:token)
+        if host.contains("fantasyladder.app") || host.contains("links.ffladder.app") {
+            // Match /join/:token pattern
+            if path.hasPrefix("/join/") {
+                let token = String(path.dropFirst(6)) // Remove "/join/"
+                if !token.isEmpty {
+                    return .inviteJoin(token: token)
+                }
+            }
+            // Legacy invite pattern with query params
+            if path.contains("invite"),
                let token = url.queryItems?["token"] {
-                return .invite(leagueId: leagueId, token: token)
-            } else {
+                return .inviteJoin(token: token)
+            }
+            // Magic link for auth
+            if path.contains("auth") || path.contains("callback") {
                 return .magicLink(url)
             }
         }
+        
+        // Handle custom URL scheme (ffladder://join/:token)
+        if url.scheme == "ffladder" {
+            if path.hasPrefix("/join/") {
+                let token = String(path.dropFirst(6))
+                if !token.isEmpty {
+                    return .inviteJoin(token: token)
+                }
+            }
+            // Fallback to magic link
+            return .magicLink(url)
+        }
+        
         return nil
     }
     
@@ -25,13 +50,10 @@ enum URLRouter {
         guard let link = parse(url: url) else { return }
         switch link {
         case .magicLink:
-            // Placeholder: AuthService will handle in Phase 2
             appState.pendingAuthURL = url
-        case .invite(let leagueId, _):
-            // Placeholder: set selected league if exists
-            if let league = appState.userLeagues.first(where: { $0.id == leagueId }) {
-                appState.selectedLeague = league
-            }
+        case .inviteJoin(let token):
+            // Set pending invite token to be handled by AppRouter
+            appState.pendingInviteToken = token
         }
     }
 }

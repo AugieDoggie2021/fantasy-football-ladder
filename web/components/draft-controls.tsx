@@ -12,6 +12,7 @@ import {
   extendTimer,
 } from '@/app/actions/draft'
 import { useToast } from './toast-provider'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface DraftControlsProps {
   leagueId: string
@@ -46,11 +47,18 @@ export function DraftControls({
     auto_pick_enabled: draftSettings.auto_pick_enabled || false,
     rounds: draftSettings.rounds || 14,
   })
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    action: 'start' | 'pause' | 'complete' | null
+  }>({ isOpen: false, action: null })
 
   if (!isCommissioner) {
     return null
   }
 
+  const handleStartDraftClick = () => {
+    setConfirmDialog({ isOpen: true, action: 'start' })
+  }
   const normalizedStatus = normalizeDraftStatus(draftStatus)
 
   const handleStartDraft = async () => {
@@ -58,6 +66,8 @@ export function DraftControls({
       return
     }
 
+  const handleStartDraft = async () => {
+    setConfirmDialog({ isOpen: false, action: null })
     setLoading('start')
     const result = await startDraft(leagueId)
     if (result.error) {
@@ -69,11 +79,12 @@ export function DraftControls({
     setLoading(null)
   }
 
-  const handlePauseDraft = async () => {
-    if (!confirm('Pause the draft? The timer will stop until you resume.')) {
-      return
-    }
+  const handlePauseDraftClick = () => {
+    setConfirmDialog({ isOpen: true, action: 'pause' })
+  }
 
+  const handlePauseDraft = async () => {
+    setConfirmDialog({ isOpen: false, action: null })
     setLoading('pause')
     const result = await pauseDraft(leagueId)
     if (result.error) {
@@ -97,11 +108,16 @@ export function DraftControls({
     setLoading(null)
   }
 
+  const handleCompleteDraftClick = () => {
+    setConfirmDialog({ isOpen: true, action: 'complete' })
+  }
   const handleStopDraft = async () => {
     if (!confirm('Stop the draft now? This will end the draft room and prevent further picks.')) {
       return
     }
 
+  const handleCompleteDraft = async () => {
+    setConfirmDialog({ isOpen: false, action: null })
     setLoading('complete')
     const result = await stopDraft(leagueId)
     if (result.error) {
@@ -111,6 +127,41 @@ export function DraftControls({
       router.refresh()
     }
     setLoading(null)
+  }
+
+  const handleConfirmAction = () => {
+    if (confirmDialog.action === 'start') {
+      handleStartDraft()
+    } else if (confirmDialog.action === 'pause') {
+      handlePauseDraft()
+    } else if (confirmDialog.action === 'complete') {
+      handleCompleteDraft()
+    }
+  }
+
+  const getConfirmDialogContent = () => {
+    switch (confirmDialog.action) {
+      case 'start':
+        return {
+          title: 'Start Draft',
+          message: 'Start the draft? This will begin the timer for the first pick.',
+          confirmLabel: 'Start Draft',
+        }
+      case 'pause':
+        return {
+          title: 'Pause Draft',
+          message: 'Pause the draft? The timer will stop until you resume.',
+          confirmLabel: 'Pause Draft',
+        }
+      case 'complete':
+        return {
+          title: 'Complete Draft',
+          message: 'Complete the draft? This will finalize all rosters and end the draft.',
+          confirmLabel: 'Complete Draft',
+        }
+      default:
+        return { title: '', message: '', confirmLabel: 'Confirm' }
+    }
   }
 
   const handleSaveSettings = async () => {
@@ -261,7 +312,7 @@ export function DraftControls({
         <div className="flex gap-2 flex-wrap">
           {normalizedStatus === 'pre_draft' && (
             <button
-              onClick={handleStartDraft}
+              onClick={handleStartDraftClick}
               disabled={loading !== null}
               className="px-4 py-3 sm:py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium touch-manipulation min-h-[44px]"
             >
@@ -271,7 +322,7 @@ export function DraftControls({
           {normalizedStatus === 'live' && (
             <>
               <button
-                onClick={handlePauseDraft}
+                onClick={handlePauseDraftClick}
                 disabled={loading !== null}
                 className="px-4 py-3 sm:py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium touch-manipulation min-h-[44px]"
               >
@@ -292,6 +343,7 @@ export function DraftControls({
                 {loading === 'extend' ? 'Extending...' : '+60s Timer'}
               </button>
               <button
+                onClick={handleCompleteDraftClick}
                 onClick={handleStopDraft}
                 disabled={loading !== null}
                 className="px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium touch-manipulation min-h-[44px]"
@@ -310,6 +362,7 @@ export function DraftControls({
                 {loading === 'resume' ? 'Resuming...' : 'Resume Draft'}
               </button>
               <button
+                onClick={handleCompleteDraftClick}
                 onClick={handleStopDraft}
                 disabled={loading !== null}
                 className="px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium touch-manipulation min-h-[44px]"
@@ -334,6 +387,19 @@ export function DraftControls({
           )}
         </div>
       </div>
+
+      {confirmDialog.isOpen && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={() => setConfirmDialog({ isOpen: false, action: null })}
+          onConfirm={handleConfirmAction}
+          title={getConfirmDialogContent().title}
+          message={getConfirmDialogContent().message}
+          confirmLabel={getConfirmDialogContent().confirmLabel}
+          cancelLabel="Cancel"
+          isLoading={loading !== null}
+        />
+      )}
     </div>
   )
 }

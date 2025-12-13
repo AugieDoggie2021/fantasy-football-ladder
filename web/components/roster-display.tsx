@@ -5,6 +5,8 @@ import { updateRosterSlot, dropPlayerFromRoster } from '@/app/actions/rosters'
 import { useRouter } from 'next/navigation'
 import { track } from '@/lib/analytics/track'
 import { AnalyticsEvents } from '@/lib/analytics/events'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useToast } from './toast-provider'
 
 interface Player {
   id: string
@@ -39,8 +41,14 @@ export function RosterDisplay({
   isEditable = true,
 }: RosterDisplayProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
+  const [dropDialog, setDropDialog] = useState<{ isOpen: boolean; rosterId: string; playerName: string }>({
+    isOpen: false,
+    rosterId: '',
+    playerName: '',
+  })
 
   const handleMoveToBench = async (rosterId: string) => {
     setLoading(rosterId)
@@ -58,9 +66,10 @@ export function RosterDisplay({
         changes_count: 1,
         positions_changed: ['BENCH'],
       })
+      showToast('Player moved to bench', 'success')
       router.refresh()
     } else {
-      alert(result.error)
+      showToast(result.error, 'error')
     }
     setLoading(null)
   }
@@ -81,24 +90,29 @@ export function RosterDisplay({
         changes_count: 1,
         positions_changed: [position],
       })
+      showToast('Player moved to starting lineup', 'success')
       router.refresh()
     } else {
-      alert(result.error)
+      showToast(result.error, 'error')
     }
     setLoading(null)
   }
 
-  const handleDrop = async (rosterId: string, playerName: string) => {
-    if (!confirm(`Drop ${playerName} from your roster?`)) {
-      return
-    }
+  const handleDropClick = (rosterId: string, playerName: string) => {
+    setDropDialog({ isOpen: true, rosterId, playerName })
+  }
 
+  const handleDropConfirm = async () => {
+    const { rosterId, playerName } = dropDialog
+    
     // Find the roster entry to get player_id
     const allEntries = [...Object.values(startersByPosition).flat(), ...bench]
     const entry = allEntries.find(e => e.id === rosterId)
     const playerId = entry?.players?.id
 
     setLoading(rosterId)
+    setDropDialog({ isOpen: false, rosterId: '', playerName: '' })
+    
     const formData = new FormData()
     formData.append('roster_id', rosterId)
 
@@ -110,9 +124,10 @@ export function RosterDisplay({
         team_id: teamId,
         player_id: playerId,
       })
+      showToast(`${playerName} dropped from roster`, 'success')
       router.refresh()
     } else {
-      alert(result.error)
+      showToast(result.error, 'error')
     }
     setLoading(null)
   }
@@ -181,7 +196,7 @@ export function RosterDisplay({
                               Bench
                             </button>
                             <button
-                              onClick={() => handleDrop(entry.id, entry.players?.full_name || 'Player')}
+                              onClick={() => handleDropClick(entry.id, entry.players?.full_name || 'Player')}
                               disabled={loading === entry.id}
                               className="text-xs px-2 py-0.5 bg-red-200 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded hover:bg-red-300 disabled:opacity-50"
                             >
@@ -234,7 +249,7 @@ export function RosterDisplay({
                       Start
                     </button>
                     <button
-                      onClick={() => handleDrop(entry.id, entry.players?.full_name || 'Player')}
+                      onClick={() => handleDropClick(entry.id, entry.players?.full_name || 'Player')}
                       disabled={loading === entry.id}
                       className="text-xs px-2 py-0.5 bg-red-200 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded hover:bg-red-300 disabled:opacity-50"
                     >
@@ -251,6 +266,18 @@ export function RosterDisplay({
           </p>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={dropDialog.isOpen}
+        onClose={() => setDropDialog({ isOpen: false, rosterId: '', playerName: '' })}
+        onConfirm={handleDropConfirm}
+        title="Drop Player"
+        message={`Are you sure you want to drop ${dropDialog.playerName} from your roster? This action cannot be undone.`}
+        confirmLabel="Drop Player"
+        cancelLabel="Cancel"
+        variant="destructive"
+        isLoading={loading === dropDialog.rosterId}
+      />
     </div>
   )
 }
