@@ -1,0 +1,24 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and run tests"
+  lane :ci do
+    scan(scheme: "FFLadder")
+  end
+
+  desc "Beta build to TestFlight"
+  lane :beta do
+    build_app(scheme: "FFLadder")
+    upload_to_testflight
+  end
+
+  desc "Release to App Store"
+  lane :release do
+    build_app(scheme: "FFLadder")
+    deliver(submit_for_review: false)
+  end
+end
+
+
+
+

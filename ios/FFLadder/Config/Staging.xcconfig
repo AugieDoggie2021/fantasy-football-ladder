@@ -1,0 +1,6 @@
+// Staging configuration
+APP_ENV = STAGING
+SUPABASE_URL = https://staging-yourproject.supabase.co
+SUPABASE_ANON_KEY = staging-anon-key
+
+

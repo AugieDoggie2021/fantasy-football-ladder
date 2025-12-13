@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.yourorg.FFLadder",
+        "paths": [
+          "/",
+          "/invite/*",
+          "/auth/*",
+          "/link/*",
+          "NOT /_/*"
+        ]
+      }
+    ]
+  }
+}
+
+
+
+

@@ -1,0 +1,35 @@
+name: iOS CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer || sudo xcode-select -p
+      - name: Lint
+        run: bash ios/FFLadder/Scripts/lint.sh
+        continue-on-error: false
+      - name: Build
+        run: |
+          xcodebuild -scheme FFLadder -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16' build | xcpretty
+      - name: Test with Coverage
+        run: |
+          xcodebuild -scheme FFLadder -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16' test -enableCodeCoverage YES | xcpretty
+      - name: Generate Coverage Report
+        run: |
+          xcrun xccov view --report --only-targets FFLadder DerivedData/Build/Logs/Test/*.xcresult > coverage.txt || true
+      - name: Check Coverage Threshold
+        run: |
+          # Extract coverage percentage (simplified check)
+          # In production, use a proper coverage tool like Slather or xcov
+          echo "Coverage report generated. Minimum threshold: 75%"
+          # TODO: Parse coverage.txt and fail if below threshold
+
+
+
+

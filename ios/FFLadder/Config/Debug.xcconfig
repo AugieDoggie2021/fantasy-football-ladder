@@ -1,0 +1,6 @@
+// Debug configuration
+APP_ENV = DEBUG
+SUPABASE_URL = https://dev-yourproject.supabase.co
+SUPABASE_ANON_KEY = dev-anon-key
+
+

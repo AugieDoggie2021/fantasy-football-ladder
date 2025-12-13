@@ -1,0 +1,6 @@
+// Release configuration
+APP_ENV = PROD
+SUPABASE_URL = https://yourproject.supabase.co
+SUPABASE_ANON_KEY = prod-anon-key
+
+
