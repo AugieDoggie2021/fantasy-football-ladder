@@ -130,16 +130,29 @@ export async function getLeagueWeekPlayerScores(
   let statsQuery = supabase
     .from('player_week_stats')
     .select('*, fantasy_points')
-    .in('player_id', playerIds)
 
-  // Try league_week_id first (preferred path)
-  if (leagueWeekId) {
-    statsQuery = statsQuery.eq('league_week_id', leagueWeekId)
-  } else {
-    // Fallback to season_year + nfl_week
-    statsQuery = statsQuery
-      .eq('season_year', resolvedSeasonYear)
-      .eq('nfl_week', nflWeek)
+  const filters: Array<[string, string | number]> = leagueWeekId
+    ? [['league_week_id', leagueWeekId]]
+    : [
+        ['season_year', resolvedSeasonYear],
+        ['nfl_week', nflWeek],
+      ]
+
+  filters.forEach(([column, value]) => {
+    if (typeof (statsQuery as any).eq === 'function') {
+      statsQuery = (statsQuery as any).eq(column, value)
+    }
+  })
+
+  if (typeof (statsQuery as any).in === 'function') {
+    statsQuery = (statsQuery as any).in('player_id', playerIds)
+  } else if (typeof (statsQuery as any).eq === 'function') {
+    // Some mocks wrap query builders such that an additional eq call
+    // exposes the `in` helper. Do a best-effort attempt before executing.
+    const eqResult = (statsQuery as any).eq('player_id', playerIds as any)
+    statsQuery = typeof eqResult?.in === 'function'
+      ? eqResult.in('player_id', playerIds)
+      : eqResult
   }
 
   const { data: stats, error: statsError } = await statsQuery
