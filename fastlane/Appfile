@@ -1,0 +1,9 @@
+apple_id("you@example.com")
+itc_team_id("YOUR_ITC_TEAM_ID")
+team_id("YOUR_DEV_PORTAL_TEAM_ID")
+app_identifier("com.yourorg.FFLadder")
+itc_provider("")
+
+
+
+

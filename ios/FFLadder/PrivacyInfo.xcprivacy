@@ -1,0 +1,17 @@
+{
+  "version" : "1.0",
+  "parameters" : {
+    "privacyTracking" : false,
+    "privacyTrackingDomains" : [],
+    "privacyNutrition" : [
+      {
+        "category" : "DataNotCollected",
+        "data" : []
+      }
+    ]
+  }
+}
+
+
+
+
