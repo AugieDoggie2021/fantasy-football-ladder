@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { track } from '@/lib/analytics/track'
+import { AnalyticsEvents } from '@/lib/analytics/events'
 
 interface JoinLeagueByCodeFormProps {}
 
@@ -23,6 +25,13 @@ export function JoinLeagueByCodeForm({}: JoinLeagueByCodeFormProps) {
       setLoading(false)
       return
     }
+
+    // Track join attempt
+    track(AnalyticsEvents.INVITE_ACCEPTED, {
+      funnel_name: 'league_join',
+      funnel_step: 'code_entered',
+      join_method: 'code',
+    })
 
     // Redirect to the join page with the token
     router.push(`/join/${code.trim()}`)

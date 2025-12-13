@@ -6,17 +6,17 @@ struct LeagueContainerView: View {
     
     var body: some View {
         TabView(selection: $vm.selectedTab) {
+            LeagueHomeView()
+                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tag(0)
             TeamView()
                 .tabItem { Label("Team", systemImage: "person.3.fill") }
-                .tag(0)
+                .tag(1)
             MatchupView()
                 .tabItem { Label("Matchup", systemImage: "shield.lefthalf.fill") }
-                .tag(1)
+                .tag(2)
             PlayersView()
                 .tabItem { Label("Players", systemImage: "list.bullet.rectangle.portrait.fill") }
-                .tag(2)
-            LeagueHomeView()
-                .tabItem { Label("League", systemImage: "flag.2.crossed.fill") }
                 .tag(3)
         }
         .task {

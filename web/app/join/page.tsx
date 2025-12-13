@@ -10,7 +10,7 @@ export default async function JoinLeaguePage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login?next=/join')
+    redirect('/login?redirect=/join')
   }
 
   return (

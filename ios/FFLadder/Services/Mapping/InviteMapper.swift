@@ -5,7 +5,7 @@ enum InviteMapper {
         Invite(
             id: dto.id,
             leagueId: dto.league_id,
-            email: dto.email,
+            email: dto.email ?? "",
             status: dto.status
         )
     }

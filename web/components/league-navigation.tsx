@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LeagueTrophyIcon, HomeFootballIcon, MatchupsIcon, StandingsIcon } from '@/components/icons'
+import { LeagueTrophyIcon, HomeFootballIcon, MatchupsIcon, FantasyPointsIcon } from '@/components/icons'
 
 interface LeagueNavigationProps {
   leagueId: string
@@ -41,7 +41,7 @@ const createNavItems = (
     {
       href: `${basePath}/players`,
       label: 'Players',
-      icon: StandingsIcon,
+      icon: FantasyPointsIcon,
       isActive: pathname === `${basePath}/players`,
     },
   ]

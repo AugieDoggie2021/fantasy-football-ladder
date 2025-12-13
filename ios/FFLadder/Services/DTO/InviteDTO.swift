@@ -3,8 +3,9 @@ import Foundation
 struct InviteDTO: Codable {
     let id: String
     let league_id: String
-    let email: String
+    let email: String?
     let status: String
+    let token: String?
     let created_at: String?
     let expires_at: String?
     
@@ -13,6 +14,7 @@ struct InviteDTO: Codable {
         case league_id
         case email
         case status
+        case token
         case created_at
         case expires_at
     }

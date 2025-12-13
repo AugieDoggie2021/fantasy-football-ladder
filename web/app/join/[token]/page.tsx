@@ -17,7 +17,7 @@ export default async function JoinLeaguePage({ params }: JoinLeaguePageProps) {
 
   // Redirect to login if not authenticated
   if (!user) {
-    redirect(`/login?next=/join/${params.token}`)
+    redirect(`/login?redirect=/join/${params.token}`)
   }
 
   // Get invite by token

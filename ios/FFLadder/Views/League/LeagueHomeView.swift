@@ -50,7 +50,12 @@ struct LeagueHomeView: View {
                                 .background(Theme.surface)
                                 .cornerRadius(8)
                             Button {
-                                Task { await vm.sendInvite(email: inviteEmail) }
+                                Task { 
+                                    await vm.sendInvite(email: inviteEmail)
+                                    if vm.errorMessage == nil {
+                                        inviteEmail = ""
+                                    }
+                                }
                             } label: {
                                 Text("Send")
                                     .bold()
@@ -60,6 +65,30 @@ struct LeagueHomeView: View {
                                     .foregroundColor(.white)
                                     .cornerRadius(8)
                             }
+                        }
+                        
+                        Divider()
+                            .padding(.vertical, 4)
+                        
+                        Button {
+                            Task { await vm.createInviteLink() }
+                        } label: {
+                            HStack {
+                                Image(systemName: "link")
+                                Text("Create & Share Invite Link")
+                            }
+                            .bold()
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Theme.surfaceElevated)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .sheet(item: Binding(
+                            get: { vm.inviteLinkToken.map { ShareItem(url: vm.getInviteURL(token: $0)!) } },
+                            set: { _ in vm.inviteLinkToken = nil }
+                        )) { item in
+                            ShareSheet(activityItems: [item.url])
                         }
                         
                         if !vm.invites.isEmpty {

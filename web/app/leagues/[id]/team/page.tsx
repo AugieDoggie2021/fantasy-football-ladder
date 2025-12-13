@@ -7,6 +7,7 @@ import { MyTeamRoster } from '@/components/my-team-roster'
 import { LeagueContextHeader } from '@/components/league-context-header'
 import { LeagueNavigation } from '@/components/league-navigation'
 import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 
 export default async function TeamPage({
   params,
@@ -63,6 +64,15 @@ export default async function TeamPage({
     .eq('is_current', true)
     .single()
 
+  // Check for pending invites for this user in this league
+  const { data: pendingInvites } = await supabase
+    .from('league_invites')
+    .select('id, token, email, created_at')
+    .eq('league_id', params.id)
+    .eq('status', 'pending')
+    .or(`email.eq.${user.email},email.is.null`)
+    .order('created_at', { ascending: false })
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0B1120] to-[#111827]">
       <div className="max-w-6xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6">
@@ -101,9 +111,42 @@ export default async function TeamPage({
             <h2 className="text-xl font-semibold text-white mb-3">
               Join this League
             </h2>
-            <p className="text-slate-400">
+            <p className="text-slate-400 mb-4">
               You need to join this league before you can manage your team.
             </p>
+            
+            {pendingInvites && pendingInvites.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-300 mb-2">
+                  You have {pendingInvites.length} pending invite{pendingInvites.length > 1 ? 's' : ''}:
+                </p>
+                {pendingInvites.map((invite) => (
+                  <Button key={invite.id} asChild variant="primary" size="md" className="w-full">
+                    <Link href={`/join/${invite.token}`}>
+                      Accept Invite
+                    </Link>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-300">
+                  Ask the commissioner for an invite link or code to join this league.
+                </p>
+                <div className="flex gap-3">
+                  <Button asChild variant="primary" size="md" className="flex-1">
+                    <Link href="/join">
+                      Join by Code
+                    </Link>
+                  </Button>
+                  <Button asChild variant="secondary" size="md" className="flex-1">
+                    <Link href="/dashboard">
+                      Back to Dashboard
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         )}
       </div>
